@@ -3107,6 +3107,26 @@ img { decoding: async; }
 }
 .sub-input:focus { border-color: #4ade80; outline: none; }
 
+/* Custom select للقضاء */
+.sub-select-wrap { position: relative; }
+.sub-select-wrap::after {
+  content: '';
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--muted, #888);
+  pointer-events: none;
+}
+select.sub-input {
+  appearance: none; -webkit-appearance: none;
+  cursor: pointer;
+  padding-left: 36px;
+  background-image: none;
+}
+
 /* Related products */
 .sub-also-need    { margin-bottom: 18px; }
 .sub-related-row  { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }

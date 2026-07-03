@@ -67,7 +67,7 @@
   <link rel="dns-prefetch" href="https://api.groq.com">
 
   {# ── CSS: render-critical أولاً ── #}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=49">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=50">
 
   {# ── Google Fonts: non-blocking — media=print trick ── #}
   <link rel="stylesheet" media="print" onload="this.media='all'"
@@ -789,7 +789,7 @@ function openSubCart() {
         custEl.innerHTML = '<div class="sub-cart-cust-row">' +
           '<span>👤 ' + customer.name + '</span>' +
           '<span>📞 ' + customer.phone + '</span>' +
-          (customer.area ? '<span>📍 ' + customer.area + '</span>' : '') +
+          (customer.area ? '<span>📍 ' + customer.area + (customer.address ? ' · ' + customer.address : '') + '</span>' : '') +
           '</div>';
       }
 
@@ -914,7 +914,7 @@ async function confirmSubCart() {
   fd.append('name',  customer.name  || '');
   fd.append('phone', customer.phone || '');
   fd.append('area',  customer.area  || '');
-  fd.append('notes', customer.notes || '');
+  fd.append('notes', (customer.address ? customer.address + (customer.notes ? ' | ' + customer.notes : '') : customer.notes || ''));
   cart.forEach(function(item, i) {
     fd.append('items[' + i + '][product_id]',   item.product_id);
     fd.append('items[' + i + '][qty]',          item.qty);

@@ -460,12 +460,19 @@
         </div>
         <div class="sub-field">
           <label class="sub-field-label">{{ 'القضاء' if lang == 'ar' else 'District' }}</label>
-          <select class="sub-input" id="sub-area">
-            <option value="">{{ '— اختر قضاءك —' if lang == 'ar' else '— Select district —' }}</option>
-            {% for z in shipping_zones if z.enabled %}
-            <option value="{{ z.name_ar }}">{{ z.name_ar }}</option>
-            {% endfor %}
-          </select>
+          <div class="sub-select-wrap">
+            <select class="sub-input" id="sub-area">
+              <option value="">{{ '— اختر قضاءك —' if lang == 'ar' else '— Select district —' }}</option>
+              {% for z in shipping_zones if z.enabled %}
+              <option value="{{ z.name_ar }}">{{ z.name_ar }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="sub-field">
+          <label class="sub-field-label">{{ 'المنطقة / العنوان' if lang == 'ar' else 'Area / Address' }}</label>
+          <input class="sub-input" id="sub-address" type="text"
+                 placeholder="{{ 'مثال: الحمرا، قرب المدرسة' if lang == 'ar' else 'e.g. Hamra, near the school' }}">
         </div>
         <div class="sub-field">
           <label class="sub-field-label">{{ 'ملاحظات (اختياري)' if lang == 'ar' else 'Notes (optional)' }}</label>
@@ -1070,10 +1077,11 @@ function openSubModal() {
   try {
     var cust = JSON.parse(localStorage.getItem('sub_customer') || 'null');
     if (cust) {
-      document.getElementById('sub-name').value  = cust.name  || '';
-      document.getElementById('sub-phone').value = cust.phone || '';
-      document.getElementById('sub-area').value  = cust.area  || '';
-      document.getElementById('sub-notes').value = cust.notes || '';
+      document.getElementById('sub-name').value    = cust.name    || '';
+      document.getElementById('sub-phone').value   = cust.phone   || '';
+      document.getElementById('sub-area').value    = cust.area    || '';
+      document.getElementById('sub-address').value = cust.address || '';
+      document.getElementById('sub-notes').value   = cust.notes   || '';
       if (cust.interval_days) {
         document.querySelectorAll('.sub-interval-btn').forEach(function(b) { b.classList.remove('sub-interval-active'); });
         var ab = document.querySelector('.sub-interval-btn[data-days="' + cust.interval_days + '"]');
@@ -1109,8 +1117,9 @@ function submitSubscription(pid, pNameAr, pNameEn) {
   if (!name)  { document.getElementById('sub-name').focus();  return; }
   if (!phone) { document.getElementById('sub-phone').focus(); return; }
 
-  var area  = document.getElementById('sub-area').value.trim();
-  var notes = document.getElementById('sub-notes').value.trim();
+  var area    = document.getElementById('sub-area').value.trim();
+  var address = document.getElementById('sub-address').value.trim();
+  var notes   = document.getElementById('sub-notes').value.trim();
 
   // Collect checked related products as note
   var checked = [];
@@ -1119,7 +1128,7 @@ function submitSubscription(pid, pNameAr, pNameEn) {
 
   // Save customer info
   try {
-    localStorage.setItem('sub_customer', JSON.stringify({ name: name, phone: phone, area: area, notes: notes, interval_days: days }));
+    localStorage.setItem('sub_customer', JSON.stringify({ name: name, phone: phone, area: area, address: address, notes: notes, interval_days: days }));
     // Save delivery config for cart calculations
     localStorage.setItem('sub_config', JSON.stringify({
       free_min:       {{ sub_cfg.free_min }},
