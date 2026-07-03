@@ -357,6 +357,7 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 CREATE TABLE IF NOT EXISTS shipping_zones (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name_ar    TEXT NOT NULL UNIQUE,
+    name_en    TEXT NOT NULL DEFAULT '',
     fee        REAL NOT NULL DEFAULT 4.0,
     enabled    INTEGER NOT NULL DEFAULT 1,
     sort_order INTEGER NOT NULL DEFAULT 0
@@ -609,20 +610,40 @@ def init_db():
             )
 
     # shipping_zones — seed الأقضية اللبنانية (INSERT OR IGNORE حتى لا نمسح تعديلات الأدمن)
-    cur.execute("CREATE TABLE IF NOT EXISTS shipping_zones (id INTEGER PRIMARY KEY AUTOINCREMENT, name_ar TEXT NOT NULL UNIQUE, fee REAL NOT NULL DEFAULT 4.0, enabled INTEGER NOT NULL DEFAULT 1, sort_order INTEGER NOT NULL DEFAULT 0)")
+    cur.execute("CREATE TABLE IF NOT EXISTS shipping_zones (id INTEGER PRIMARY KEY AUTOINCREMENT, name_ar TEXT NOT NULL UNIQUE, name_en TEXT NOT NULL DEFAULT '', fee REAL NOT NULL DEFAULT 4.0, enabled INTEGER NOT NULL DEFAULT 1, sort_order INTEGER NOT NULL DEFAULT 0)")
+    # migration: add name_en column if missing
+    cols = [r[1] for r in cur.execute("PRAGMA table_info(shipping_zones)").fetchall()]
+    if 'name_en' not in cols:
+        cur.execute("ALTER TABLE shipping_zones ADD COLUMN name_en TEXT NOT NULL DEFAULT ''")
     _zones = [
-        ("بيروت", 4.0, 0), ("المتن", 4.0, 1), ("بعبدا", 4.0, 2),
-        ("كسروان", 4.0, 3), ("الشوف", 4.0, 4), ("عاليه", 4.0, 5),
-        ("جبيل", 4.0, 6), ("طرابلس", 4.0, 7), ("البترون", 4.0, 8),
-        ("زغرتا", 4.0, 9), ("الكورة", 4.0, 10), ("بشري", 4.0, 11),
-        ("المنية - الضنية", 4.0, 12), ("عكار", 4.0, 13),
-        ("صيدا", 4.0, 14), ("صور", 4.0, 15), ("النبطية", 4.0, 16),
-        ("بنت جبيل", 4.0, 17), ("مرجعيون", 4.0, 18), ("حاصبيا", 4.0, 19),
-        ("زحلة", 4.0, 20), ("البقاع الغربي", 4.0, 21),
-        ("راشيا", 4.0, 22), ("بعلبك - الهرمل", 4.0, 23),
+        ("بيروت",           "Beirut",            4.0, 0),
+        ("المتن",           "Metn",              4.0, 1),
+        ("بعبدا",           "Baabda",            4.0, 2),
+        ("كسروان",          "Keserwan",          4.0, 3),
+        ("الشوف",           "Chouf",             4.0, 4),
+        ("عاليه",           "Aley",              4.0, 5),
+        ("جبيل",            "Jbeil",             4.0, 6),
+        ("طرابلس",          "Tripoli",           4.0, 7),
+        ("البترون",         "Batroun",           4.0, 8),
+        ("زغرتا",           "Zgharta",           4.0, 9),
+        ("الكورة",          "Koura",             4.0, 10),
+        ("بشري",            "Bsharri",           4.0, 11),
+        ("المنية - الضنية", "Miniyeh-Danniyeh",  4.0, 12),
+        ("عكار",            "Akkar",             4.0, 13),
+        ("صيدا",            "Saida",             4.0, 14),
+        ("صور",             "Tyre",              4.0, 15),
+        ("النبطية",         "Nabatieh",          4.0, 16),
+        ("بنت جبيل",        "Bint Jbeil",        4.0, 17),
+        ("مرجعيون",         "Marjeyoun",         4.0, 18),
+        ("حاصبيا",          "Hasbaya",           4.0, 19),
+        ("زحلة",            "Zahle",             4.0, 20),
+        ("البقاع الغربي",   "West Bekaa",        4.0, 21),
+        ("راشيا",           "Rashaya",           4.0, 22),
+        ("بعلبك - الهرمل",  "Baalbek-Hermel",    4.0, 23),
     ]
-    for _name, _fee, _sort in _zones:
-        cur.execute("INSERT OR IGNORE INTO shipping_zones (name_ar, fee, sort_order) VALUES (?,?,?)", (_name, _fee, _sort))
+    for _ar, _en, _fee, _sort in _zones:
+        cur.execute("INSERT OR IGNORE INTO shipping_zones (name_ar, name_en, fee, sort_order) VALUES (?,?,?,?)", (_ar, _en, _fee, _sort))
+        cur.execute("UPDATE shipping_zones SET name_en=? WHERE name_ar=? AND (name_en='' OR name_en IS NULL)", (_en, _ar))
 
     cur.execute("SELECT COUNT(*) FROM admin_users")
     if cur.fetchone()[0] == 0:

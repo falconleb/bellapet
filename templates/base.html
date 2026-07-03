@@ -162,8 +162,8 @@
           <div class="sub-cart-edit-row">
             <select id="sce-area" class="sub-cart-edit-inp sub-cart-edit-sel">
               <option value="">{{ '— اختر القضاء —' if lang == 'ar' else '— Select district —' }}</option>
-              {% for z_name, z_fee in global_zones.items() %}
-              <option value="{{ z_name }}">{{ z_name }}</option>
+              {% for z in global_zones %}
+              <option value="{{ z.name_ar }}">{{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}</option>
               {% endfor %}
             </select>
             <input id="sce-address" class="sub-cart-edit-inp" type="text" placeholder="{{ 'العنوان التفصيلي' if lang == 'ar' else 'Detailed address' }}">

@@ -78,9 +78,9 @@
     <label for="co-area">{{ 'القضاء *' if lang == 'ar' else 'District *' }}</label>
     <select id="co-area" name="area" autocomplete="address-level2">
       <option value="">{{ '— اختر قضاءك —' if lang == 'ar' else '— Select your district —' }}</option>
-      {% for area_name, fee in delivery_fees.items() %}
-      <option value="{{ area_name }}" {% if form.get('area') == area_name %}selected{% endif %}>
-        {{ area_name }}
+      {% for z in zones_list %}
+      <option value="{{ z.name_ar }}" {% if form.get('area') == z.name_ar %}selected{% endif %}>
+        {{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}
       </option>
       {% endfor %}
     </select>

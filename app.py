@@ -48,6 +48,15 @@ def _get_zones(db):
     return db.execute("SELECT * FROM shipping_zones ORDER BY sort_order, name_ar").fetchall()
 
 
+def _zones_list(db, enabled_only=True):
+    """list of dicts [{name_ar, name_en, fee}] للعرض في الـ templates."""
+    q = "SELECT name_ar, name_en, fee FROM shipping_zones"
+    if enabled_only:
+        q += " WHERE enabled=1"
+    q += " ORDER BY sort_order, name_ar"
+    return [dict(r) for r in db.execute(q).fetchall()]
+
+
 def _zones_fees(db, enabled_only=True):
     """dict {name_ar: fee} للأقضية."""
     q = "SELECT name_ar, fee FROM shipping_zones"
@@ -377,17 +386,17 @@ def inject_globals():
         except Exception:
             return 0
 
-    # قائمة الأقضية المفعّلة — للـ sub cart inline form
+    # قائمة الأقضية المفعّلة — للـ sub cart inline form والـ selects
     def _global_zones():
         try:
             db = get_db()
             rows = db.execute(
-                "SELECT name_ar, fee FROM shipping_zones WHERE enabled=1 ORDER BY sort_order, name_ar"
+                "SELECT name_ar, name_en, fee FROM shipping_zones WHERE enabled=1 ORDER BY sort_order, name_ar"
             ).fetchall()
             db.close()
-            return {r['name_ar']: r['fee'] for r in rows}
+            return [dict(r) for r in rows]
         except Exception:
-            return {}
+            return []
 
     return {
         "lang": lang,
@@ -523,13 +532,14 @@ def cart():
         cp['unlocked'] and cp['promo']['offer_type'] == 'free_shipping'
         for cp in cart_promos
     )
-    zones = _zones_fees(db)
+    zones      = _zones_fees(db)
+    zones_list = _zones_list(db)
     db.close()
     selected_gift = session.get('selected_gift')
     return render_template("cart.html", items=items, total=total,
                            cart_promos=cart_promos, selected_gift=selected_gift,
                            free_shipping_unlocked=free_shipping_unlocked,
-                           delivery_fees=zones, active_tab="cart")
+                           delivery_fees=zones, zones_list=zones_list, active_tab="cart")
 
 
 @app.route("/cart/select-gift", methods=["POST"])
@@ -744,23 +754,25 @@ def checkout():
             session['confirmed_orders'] = confirmed[-10:]
             return redirect(url_for("order_confirm", order_id=order_id))
 
-        zones = _zones_fees(db)
+        zones      = _zones_fees(db)
+        zones_list = _zones_list(db)
         db.close()
         return render_template(
             "checkout.html", items=items, total=total,
             final_total=final_total, perk=perk, perk_label=perk_label,
             perk_savings=perk_savings, selected_gift=selected_gift,
             errors=errors, form=request.form,
-            delivery_fees=zones, active_tab="cart"
+            delivery_fees=zones, zones_list=zones_list, active_tab="cart"
         )
 
     selected_gift = session.get('selected_gift')
-    zones = _zones_fees(db)
+    zones      = _zones_fees(db)
+    zones_list = _zones_list(db)
     db.close()
     return render_template(
         "checkout.html", items=items, total=total,
         final_total=total, perk=None, perk_label=None, perk_savings=0,
-        selected_gift=selected_gift, delivery_fees=zones,
+        selected_gift=selected_gift, delivery_fees=zones, zones_list=zones_list,
         errors={}, form={}, active_tab="cart"
     )
 

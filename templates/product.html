@@ -464,7 +464,7 @@
             <select class="sub-input" id="sub-area">
               <option value="">{{ '— اختر قضاءك —' if lang == 'ar' else '— Select district —' }}</option>
               {% for z in shipping_zones if z.enabled %}
-              <option value="{{ z.name_ar }}">{{ z.name_ar }}</option>
+              <option value="{{ z.name_ar }}">{{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}</option>
               {% endfor %}
             </select>
           </div>
