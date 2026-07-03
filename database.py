@@ -354,6 +354,14 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS shipping_zones (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name_ar    TEXT NOT NULL UNIQUE,
+    fee        REAL NOT NULL DEFAULT 4.0,
+    enabled    INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS subscriptions (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
     product_id        INTEGER NOT NULL REFERENCES products(id),
@@ -599,6 +607,22 @@ def init_db():
                 "VALUES (?,?,?,?,?)",
                 (cat_id, slug, name_en, name_ar, sort_order),
             )
+
+    # shipping_zones — seed الأقضية اللبنانية (INSERT OR IGNORE حتى لا نمسح تعديلات الأدمن)
+    cur.execute("CREATE TABLE IF NOT EXISTS shipping_zones (id INTEGER PRIMARY KEY AUTOINCREMENT, name_ar TEXT NOT NULL UNIQUE, fee REAL NOT NULL DEFAULT 4.0, enabled INTEGER NOT NULL DEFAULT 1, sort_order INTEGER NOT NULL DEFAULT 0)")
+    _zones = [
+        ("بيروت", 4.0, 0), ("المتن", 4.0, 1), ("بعبدا", 4.0, 2),
+        ("كسروان", 4.0, 3), ("الشوف", 4.0, 4), ("عاليه", 4.0, 5),
+        ("جبيل", 4.0, 6), ("طرابلس", 4.0, 7), ("البترون", 4.0, 8),
+        ("زغرتا", 4.0, 9), ("الكورة", 4.0, 10), ("بشري", 4.0, 11),
+        ("المنية - الضنية", 4.0, 12), ("عكار", 4.0, 13),
+        ("صيدا", 4.0, 14), ("صور", 4.0, 15), ("النبطية", 4.0, 16),
+        ("بنت جبيل", 4.0, 17), ("مرجعيون", 4.0, 18), ("حاصبيا", 4.0, 19),
+        ("زحلة", 4.0, 20), ("البقاع الغربي", 4.0, 21),
+        ("راشيا", 4.0, 22), ("بعلبك - الهرمل", 4.0, 23),
+    ]
+    for _name, _fee, _sort in _zones:
+        cur.execute("INSERT OR IGNORE INTO shipping_zones (name_ar, fee, sort_order) VALUES (?,?,?)", (_name, _fee, _sort))
 
     cur.execute("SELECT COUNT(*) FROM admin_users")
     if cur.fetchone()[0] == 0:

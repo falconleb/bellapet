@@ -1,0 +1,97 @@
+{% extends "admin/base.html" %}
+{% block title %}الشحن والأقضية{% endblock %}
+
+{% block content %}
+<div class="adm-page-hdr">
+  <h1 class="adm-page-title">🚚 الشحن والأقضية</h1>
+  {% if msg %}<div class="adm-alert adm-alert-ok">{{ msg }}</div>{% endif %}
+</div>
+
+{# ── إحصائية سريعة ── #}
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">
+  <div class="adm-stat-card">
+    <div class="adm-stat-val">{{ total_pending }}</div>
+    <div class="adm-stat-lbl">طلب لم يُسلَّم بعد</div>
+  </div>
+  <div class="adm-stat-card">
+    <div class="adm-stat-val">{{ zones|selectattr('enabled','eq',1)|list|length }}</div>
+    <div class="adm-stat-lbl">قضاء مفعّل</div>
+  </div>
+  <div class="adm-stat-card">
+    <div class="adm-stat-val">{{ zones|selectattr('enabled','eq',0)|list|length }}</div>
+    <div class="adm-stat-lbl">قضاء موقوف</div>
+  </div>
+</div>
+
+<form method="post">
+  <input type="hidden" name="action" value="save_zones">
+
+  {# ── أيام التوصيل ── #}
+  <div class="adm-card" style="margin-bottom:20px">
+    <div class="adm-card-hdr">⏱ أيام التوصيل الافتراضية</div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:16px">
+      <div>
+        <label class="adm-label">من</label>
+        <input type="number" name="sub_delivery_days_min" value="{{ days_min }}"
+               min="1" max="30" class="adm-input" style="width:80px">
+      </div>
+      <div>
+        <label class="adm-label">إلى</label>
+        <input type="number" name="sub_delivery_days_max" value="{{ days_max }}"
+               min="1" max="30" class="adm-input" style="width:80px">
+      </div>
+      <span style="color:var(--muted,#888);font-size:.85rem">أيام عمل — تظهر للزبون عند الاشتراك</span>
+    </div>
+  </div>
+
+  {# ── جدول الأقضية ── #}
+  <div class="adm-card">
+    <div class="adm-card-hdr" style="display:flex;justify-content:space-between;align-items:center">
+      <span>📍 الأقضية</span>
+      <button type="submit" class="adm-btn adm-btn-primary" style="padding:6px 18px">💾 حفظ التغييرات</button>
+    </div>
+
+    <div style="overflow-x:auto">
+      <table class="adm-table" style="min-width:520px">
+        <thead>
+          <tr>
+            <th>القضاء</th>
+            <th style="width:120px">رسوم الشحن ($)</th>
+            <th style="width:90px;text-align:center">مفعّل</th>
+            <th style="width:110px;text-align:center">طلبات معلقة</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for z in zones %}
+          <tr style="{{ 'opacity:.45' if not z.enabled else '' }}">
+            <td style="font-weight:600">{{ z.name_ar }}</td>
+            <td>
+              <input type="number" name="fee_{{ z.id }}" value="{{ '%.2f'|format(z.fee) }}"
+                     min="0" step="0.5" class="adm-input" style="width:90px">
+            </td>
+            <td style="text-align:center">
+              <label class="adm-toggle">
+                <input type="checkbox" name="enabled_{{ z.id }}" {% if z.enabled %}checked{% endif %}>
+                <span class="adm-toggle-slider"></span>
+              </label>
+            </td>
+            <td style="text-align:center">
+              {% set cnt = pending_map.get(z.name_ar, 0) %}
+              {% if cnt > 0 %}
+                <span class="adm-badge adm-badge-warn">{{ cnt }}</span>
+              {% else %}
+                <span style="color:#555">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="padding:14px 16px;border-top:1px solid var(--adm-border,#2a2a2a);display:flex;justify-content:flex-end">
+      <button type="submit" class="adm-btn adm-btn-primary">💾 حفظ التغييرات</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

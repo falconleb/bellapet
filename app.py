@@ -42,6 +42,20 @@ def _get_integration(key):
     db.close()
     return row['value'] if row else None
 
+
+def _get_zones(db):
+    """أقضية الشحن مرتبة."""
+    return db.execute("SELECT * FROM shipping_zones ORDER BY sort_order, name_ar").fetchall()
+
+
+def _zones_fees(db, enabled_only=True):
+    """dict {name_ar: fee} للأقضية."""
+    q = "SELECT name_ar, fee FROM shipping_zones"
+    if enabled_only:
+        q += " WHERE enabled=1"
+    q += " ORDER BY sort_order, name_ar"
+    return {r['name_ar']: r['fee'] for r in db.execute(q).fetchall()}
+
 def _auto_log(event_type: str, status: str = 'ok', summary: str = ''):
     """يسجّل حدث أتمتة بالـ DB."""
     try:
@@ -501,7 +515,7 @@ def cart():
     return render_template("cart.html", items=items, total=total,
                            cart_promos=cart_promos, selected_gift=selected_gift,
                            free_shipping_unlocked=free_shipping_unlocked,
-                           delivery_fees=config.DELIVERY_FEES, active_tab="cart")
+                           delivery_fees=_zones_fees(db), active_tab="cart")
 
 
 @app.route("/cart/select-gift", methods=["POST"])
@@ -716,20 +730,23 @@ def checkout():
             session['confirmed_orders'] = confirmed[-10:]
             return redirect(url_for("order_confirm", order_id=order_id))
 
+        zones = _zones_fees(db)
         db.close()
         return render_template(
             "checkout.html", items=items, total=total,
             final_total=final_total, perk=perk, perk_label=perk_label,
             perk_savings=perk_savings, selected_gift=selected_gift,
-            errors=errors, form=request.form, active_tab="cart"
+            errors=errors, form=request.form,
+            delivery_fees=zones, active_tab="cart"
         )
 
     selected_gift = session.get('selected_gift')
+    zones = _zones_fees(db)
     db.close()
     return render_template(
         "checkout.html", items=items, total=total,
         final_total=total, perk=None, perk_label=None, perk_savings=0,
-        selected_gift=selected_gift,
+        selected_gift=selected_gift, delivery_fees=zones,
         errors={}, form={}, active_tab="cart"
     )
 
@@ -1717,6 +1734,62 @@ def admin_collection_delete(cid):
     return redirect(url_for('admin_collections'))
 
 
+@app.route('/admin/shipping', methods=['GET', 'POST'])
+@admin_required
+def admin_shipping():
+    db = get_db()
+    msg = None
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'save_zones':
+            zones = db.execute("SELECT id FROM shipping_zones").fetchall()
+            for z in zones:
+                zid = z['id']
+                fee     = request.form.get(f'fee_{zid}', '4').strip()
+                enabled = 1 if request.form.get(f'enabled_{zid}') else 0
+                try:
+                    fee = float(fee)
+                except ValueError:
+                    fee = 4.0
+                db.execute("UPDATE shipping_zones SET fee=?, enabled=? WHERE id=?", (fee, enabled, zid))
+            # إعدادات الأيام
+            for key in ('sub_delivery_days_min', 'sub_delivery_days_max'):
+                val = request.form.get(key, '').strip()
+                if val:
+                    db.execute("INSERT OR REPLACE INTO integration_settings (key,value) VALUES (?,?)", (key, val))
+            db.commit()
+            msg = 'تم الحفظ ✅'
+
+    zones = _get_zones(db)
+
+    # طلبات معلقة per قضاء
+    pending_rows = db.execute(
+        "SELECT area, COUNT(*) as cnt FROM orders WHERE status NOT IN ('delivered','cancelled') GROUP BY area"
+    ).fetchall()
+    pending_map = {r['area']: r['cnt'] for r in pending_rows}
+
+    # إعدادات الأيام
+    def _g(k, d):
+        r = db.execute("SELECT value FROM integration_settings WHERE key=?", (k,)).fetchone()
+        return r['value'] if r else d
+
+    days_min = _g('sub_delivery_days_min', '2')
+    days_max = _g('sub_delivery_days_max', '4')
+
+    total_pending = sum(pending_map.values())
+
+    db.close()
+    return render_template('admin/shipping.html',
+                           active_admin='shipping',
+                           zones=zones,
+                           pending_map=pending_map,
+                           total_pending=total_pending,
+                           days_min=days_min,
+                           days_max=days_max,
+                           msg=msg)
+
+
 @app.route('/admin/settings', methods=['GET', 'POST'])
 @admin_required
 def admin_settings():
@@ -2004,7 +2077,9 @@ def product(slug):
         'SELECT ROUND(AVG(rating),1) as avg, COUNT(*) as cnt FROM product_reviews WHERE product_id=?',
         (p['id'],)
     ).fetchone()
-    sub_cfg = _sub_settings(db)
+    sub_cfg    = _sub_settings(db)
+    zones      = _get_zones(db)
+    zones_fees = _zones_fees(db)   # {name_ar: fee} enabled only
     db.close()
     return render_template(
         "product.html",
@@ -2016,6 +2091,8 @@ def product(slug):
         seo_data=seo,
         cust_rating=cust_rating,
         sub_cfg=sub_cfg,
+        shipping_zones=zones,
+        zones_fees=zones_fees,
         active_tab="categories",
     )
 

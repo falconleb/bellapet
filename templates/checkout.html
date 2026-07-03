@@ -75,11 +75,15 @@
   </div>
 
   <div class="co-field {{ 'has-error' if errors.get('area') else '' }}">
-    <label for="co-area">{{ 'المنطقة *' if lang == 'ar' else 'Area *' }}</label>
-    <input type="text" id="co-area" name="area"
-           value="{{ form.get('area', '') }}"
-           placeholder="{{ 'مثال: بيروت - الحمرا' if lang == 'ar' else 'e.g. Beirut - Hamra' }}"
-           autocomplete="address-level2">
+    <label for="co-area">{{ 'القضاء *' if lang == 'ar' else 'District *' }}</label>
+    <select id="co-area" name="area" autocomplete="address-level2">
+      <option value="">{{ '— اختر قضاءك —' if lang == 'ar' else '— Select your district —' }}</option>
+      {% for area_name, fee in delivery_fees.items() %}
+      <option value="{{ area_name }}" {% if form.get('area') == area_name %}selected{% endif %}>
+        {{ area_name }} — {{ currency }}{{ '%.2f'|format(fee) }}
+      </option>
+      {% endfor %}
+    </select>
     {% if errors.get('area') %}
     <span class="field-error">{{ 'مطلوب' if lang == 'ar' else 'Required' }}</span>
     {% endif %}

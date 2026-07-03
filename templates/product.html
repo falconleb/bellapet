@@ -459,9 +459,13 @@
                  placeholder="{{ '07X XXX XXX' if lang == 'ar' else '+961 XX XXX XXX' }}">
         </div>
         <div class="sub-field">
-          <label class="sub-field-label">{{ 'المنطقة / العنوان' if lang == 'ar' else 'Area / Address' }}</label>
-          <input class="sub-input" id="sub-area" type="text"
-                 placeholder="{{ 'مثال: بيروت، صنائع' if lang == 'ar' else 'e.g. Beirut, Hamra' }}">
+          <label class="sub-field-label">{{ 'القضاء' if lang == 'ar' else 'District' }}</label>
+          <select class="sub-input" id="sub-area">
+            <option value="">{{ '— اختر قضاءك —' if lang == 'ar' else '— Select district —' }}</option>
+            {% for z in shipping_zones if z.enabled %}
+            <option value="{{ z.name_ar }}">{{ z.name_ar }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="sub-field">
           <label class="sub-field-label">{{ 'ملاحظات (اختياري)' if lang == 'ar' else 'Notes (optional)' }}</label>
@@ -1118,9 +1122,9 @@ function submitSubscription(pid, pNameAr, pNameEn) {
     localStorage.setItem('sub_customer', JSON.stringify({ name: name, phone: phone, area: area, notes: notes, interval_days: days }));
     // Save delivery config for cart calculations
     localStorage.setItem('sub_config', JSON.stringify({
-      free_min:          {{ sub_cfg.free_min }},
-      currency:          '{{ currency }}',
-      flat_delivery_fee: {{ config.FLAT_DELIVERY_FEE }}
+      free_min:       {{ sub_cfg.free_min }},
+      currency:       '{{ currency }}',
+      delivery_fees:  {{ zones_fees | tojson }}
     }));
   } catch(e) {}
 

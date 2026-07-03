@@ -38,6 +38,7 @@
         🔔 طلبات الإشعار
         {% if pending_notify_count > 0 %}<span class="adm-nav-badge">{{ pending_notify_count }}</span>{% endif %}
       </a>
+      <a href="{{ url_for('admin_shipping') }}"    class="{{ 'active' if active_admin == 'shipping' }}">🚚 الشحن والأقضية</a>
       <a href="{{ url_for('admin_automations') }}"  class="{{ 'active' if active_admin == 'automations' }}">⚙️ الأتمتة</a>
       <a href="{{ url_for('admin_pwa') }}"          class="{{ 'active' if active_admin == 'pwa' }}">📱 التطبيق (PWA)</a>
 
