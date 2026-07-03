@@ -481,8 +481,8 @@ def cart():
     cart_data = session.get("cart", {})
     items = []
     total = 0.0
+    db = get_db()
     if cart_data:
-        db = get_db()
         for pid_str, qty in cart_data.items():
             p = db.execute(
                 "SELECT * FROM products WHERE id = ? AND is_active = 1", (int(pid_str),)
@@ -504,18 +504,19 @@ def cart():
                                "has_tier": tier_price is not None and tier_price < base_price,
                                "tiers": tiers, "free_qty": free_qty, "promo_saved": saved})
         cart_promos = _get_cart_promos(db, total)
-        db.close()
     else:
         cart_promos = []
     free_shipping_unlocked = any(
         cp['unlocked'] and cp['promo']['offer_type'] == 'free_shipping'
         for cp in cart_promos
     )
+    zones = _zones_fees(db)
+    db.close()
     selected_gift = session.get('selected_gift')
     return render_template("cart.html", items=items, total=total,
                            cart_promos=cart_promos, selected_gift=selected_gift,
                            free_shipping_unlocked=free_shipping_unlocked,
-                           delivery_fees=_zones_fees(db), active_tab="cart")
+                           delivery_fees=zones, active_tab="cart")
 
 
 @app.route("/cart/select-gift", methods=["POST"])
