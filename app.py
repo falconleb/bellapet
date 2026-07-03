@@ -377,6 +377,18 @@ def inject_globals():
         except Exception:
             return 0
 
+    # قائمة الأقضية المفعّلة — للـ sub cart inline form
+    def _global_zones():
+        try:
+            db = get_db()
+            rows = db.execute(
+                "SELECT name_ar, fee FROM shipping_zones WHERE enabled=1 ORDER BY sort_order, name_ar"
+            ).fetchall()
+            db.close()
+            return {r['name_ar']: r['fee'] for r in rows}
+        except Exception:
+            return {}
+
     return {
         "lang": lang,
         "site_name_en": config.SITE_NAME_EN,
@@ -389,6 +401,7 @@ def inject_globals():
         "seo_api_ready": bool(config.ANTHROPIC_API_KEY),
         "gemini_api_ready": bool(config.GEMINI_API_KEY),
         "pending_notify_count": _pending_notify(),
+        "global_zones": _global_zones(),
     }
 
 

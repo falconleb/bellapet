@@ -153,6 +153,25 @@
           <p>{{ 'لا يوجد منتجات بعد — اضغط زر الاشتراك على أي منتج' if lang == 'ar' else 'No items yet — tap Subscribe on any product' }}</p>
         </div>
         <div id="sub-cart-customer"></div>
+        {# نموذج تعديل بيانات الزبون المدمج #}
+        <div id="sub-cart-edit-form" style="display:none">
+          <div class="sub-cart-edit-row">
+            <input id="sce-name"  class="sub-cart-edit-inp" type="text"  placeholder="{{ 'الاسم الكامل *' if lang == 'ar' else 'Full name *' }}" autocomplete="name">
+            <input id="sce-phone" class="sub-cart-edit-inp" type="tel"   placeholder="{{ 'رقم الهاتف *' if lang == 'ar' else 'Phone *' }}" autocomplete="tel" inputmode="tel">
+          </div>
+          <div class="sub-cart-edit-row">
+            <select id="sce-area" class="sub-cart-edit-inp sub-cart-edit-sel">
+              <option value="">{{ '— اختر القضاء —' if lang == 'ar' else '— Select district —' }}</option>
+              {% for z_name, z_fee in global_zones.items() %}
+              <option value="{{ z_name }}">{{ z_name }}</option>
+              {% endfor %}
+            </select>
+            <input id="sce-address" class="sub-cart-edit-inp" type="text" placeholder="{{ 'العنوان التفصيلي' if lang == 'ar' else 'Detailed address' }}">
+          </div>
+          <button class="sub-cart-edit-save" onclick="saveSubCustomer()">
+            💾 {{ 'حفظ البيانات' if lang == 'ar' else 'Save info' }}
+          </button>
+        </div>
         <div id="sub-cart-items"></div>
         <div id="sub-cart-totals" style="display:none"></div>
       </div>
@@ -705,16 +724,25 @@ function openSubCart() {
       confirmBtn.textContent = isAr ? '✅ تأكيد الاشتراك' : '✅ Confirm Subscription';
 
       // Customer row
-      if (customer) {
+      var editFormEl = document.getElementById('sub-cart-edit-form');
+      if (customer && customer.name) {
+        editFormEl.style.display = 'none';
         custEl.innerHTML = '<div class="sub-cart-cust-row">' +
           '<span>👤 ' + customer.name + '</span>' +
           '<span>📞 ' + customer.phone + '</span>' +
           (customer.area ? '<span>📍 ' + customer.area + (customer.address ? ' · ' + customer.address : '') + '</span>' : '') +
+          '<button class="sub-cart-edit-btn" onclick="showSubEditForm()">' + (isAr ? '✏️ تعديل' : '✏️ Edit') + '</button>' +
           '</div>';
       } else {
-        custEl.innerHTML = '<div class="sub-cart-cust-row sub-cart-cust-missing">' +
-          '<span>⚠️ ' + (isAr ? 'أضف منتجاً من صفحته لتسجيل بياناتك' : 'Add a product from its page to enter your info') + '</span>' +
-          '</div>';
+        custEl.innerHTML = '';
+        // Pre-fill if partial data
+        if (customer) {
+          document.getElementById('sce-name').value    = customer.name    || '';
+          document.getElementById('sce-phone').value   = customer.phone   || '';
+          document.getElementById('sce-area').value    = customer.area    || '';
+          document.getElementById('sce-address').value = customer.address || '';
+        }
+        editFormEl.style.display = '';
       }
 
       // Read config
@@ -793,6 +821,41 @@ function closeSubCart(e) {
   if (e && e.target !== document.getElementById('sub-cart-overlay')) return;
   document.getElementById('sub-cart-overlay').classList.add('hidden');
   document.body.style.overflow = '';
+}
+
+function showSubEditForm() {
+  var customer = null;
+  try { customer = JSON.parse(localStorage.getItem('sub_customer') || 'null'); } catch(e) {}
+  if (customer) {
+    document.getElementById('sce-name').value    = customer.name    || '';
+    document.getElementById('sce-phone').value   = customer.phone   || '';
+    document.getElementById('sce-area').value    = customer.area    || '';
+    document.getElementById('sce-address').value = customer.address || '';
+  }
+  document.getElementById('sub-cart-customer').innerHTML = '';
+  document.getElementById('sub-cart-edit-form').style.display = '';
+}
+
+function saveSubCustomer() {
+  var isAr = _subLang === 'ar';
+  var name    = document.getElementById('sce-name').value.trim();
+  var phone   = document.getElementById('sce-phone').value.trim();
+  var area    = document.getElementById('sce-area').value.trim();
+  var address = document.getElementById('sce-address').value.trim();
+  if (!name)  { document.getElementById('sce-name').focus();  return; }
+  if (!phone) { document.getElementById('sce-phone').focus(); return; }
+  try {
+    var existing = JSON.parse(localStorage.getItem('sub_customer') || '{}');
+    localStorage.setItem('sub_customer', JSON.stringify({
+      name: name, phone: phone, area: area, address: address,
+      notes: existing.notes || '', interval_days: existing.interval_days || 30
+    }));
+    // Update sub_config currency if not set
+    var cfg = JSON.parse(localStorage.getItem('sub_config') || '{}');
+    if (!cfg.currency) { cfg.currency = '$'; localStorage.setItem('sub_config', JSON.stringify(cfg)); }
+  } catch(e) {}
+  document.getElementById('sub-cart-edit-form').style.display = 'none';
+  openSubCart();
 }
 
 function subCartQtyChange(idx, d) {

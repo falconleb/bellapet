@@ -3184,7 +3184,16 @@ button.nav-item { background:none; border:none; padding:0; font-family:inherit; 
 .sub-cart-close  { background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--muted); line-height:1; }
 .sub-cart-body   { flex:1; overflow-y:auto; padding:0 18px 12px; }
 .sub-cart-empty  { text-align:center; padding:32px 0; color:var(--muted); font-size:.88rem; line-height:1.6; }
-.sub-cart-cust-row { display:flex; gap:12px; flex-wrap:wrap; font-size:.76rem; color:var(--muted); background:var(--surface2); border-radius:10px; padding:10px 13px; margin-bottom:14px; }
+.sub-cart-cust-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; font-size:.76rem; color:var(--muted); background:var(--surface2); border-radius:10px; padding:10px 13px; margin-bottom:14px; }
+.sub-cart-edit-btn { margin-inline-start:auto; background:none; border:1px solid var(--border); border-radius:6px; color:var(--muted); font-size:.72rem; padding:3px 8px; cursor:pointer; }
+.sub-cart-edit-btn:hover { color:var(--text); border-color:var(--text); }
+#sub-cart-edit-form { background:var(--surface2); border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; flex-direction:column; gap:8px; }
+.sub-cart-edit-row { display:flex; gap:8px; }
+.sub-cart-edit-inp { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:.82rem; color:var(--text); outline:none; min-width:0; }
+.sub-cart-edit-inp:focus { border-color:var(--gold,#d4a72c); }
+.sub-cart-edit-sel { appearance:none; -webkit-appearance:none; cursor:pointer; }
+.sub-cart-edit-sel option { color:#111; background:#fff; }
+.sub-cart-edit-save { background:var(--gold,#d4a72c); color:#1a1209; border:none; border-radius:8px; padding:9px; font-size:.85rem; font-weight:700; cursor:pointer; }
 .sub-cart-item   { display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--border); }
 .sub-cart-item-info { flex:1; display:flex; flex-direction:column; gap:3px; }
 .sub-cart-item-info strong { font-size:.9rem; color:var(--text); }

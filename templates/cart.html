@@ -111,7 +111,7 @@
       <select id="area-select" class="calc-area-select" onchange="recalc()">
         <option value="">{{ '— اختر منطقتك —' if lang == 'ar' else '— Select your area —' }}</option>
         {% for area, fee in delivery_fees.items() %}
-        <option value="{{ fee }}" data-area="{{ area }}">{{ area }} — {{ currency }}{{ '%.1f'|format(fee) }}</option>
+        <option value="{{ fee }}" data-area="{{ area }}">{{ area }}</option>
         {% endfor %}
       </select>
     </div>
