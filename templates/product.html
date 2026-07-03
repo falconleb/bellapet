@@ -1116,6 +1116,12 @@ function submitSubscription(pid, pNameAr, pNameEn) {
   // Save customer info
   try {
     localStorage.setItem('sub_customer', JSON.stringify({ name: name, phone: phone, area: area, notes: notes, interval_days: days }));
+    // Save delivery config for cart calculations
+    localStorage.setItem('sub_config', JSON.stringify({
+      free_min: {{ sub_cfg.free_min }},
+      currency: '{{ currency }}',
+      delivery_fees: {{ config.DELIVERY_FEES | tojson }}
+    }));
   } catch(e) {}
 
   // Add to sub cart

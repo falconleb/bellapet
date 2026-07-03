@@ -67,7 +67,7 @@
   <link rel="dns-prefetch" href="https://api.groq.com">
 
   {# ── CSS: render-critical أولاً ── #}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=48">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=49">
 
   {# ── Google Fonts: non-blocking — media=print trick ── #}
   <link rel="stylesheet" media="print" onload="this.media='all'"
@@ -159,6 +159,7 @@
         </div>
         <div id="sub-cart-customer"></div>
         <div id="sub-cart-items"></div>
+        <div id="sub-cart-totals" style="display:none"></div>
       </div>
       <div class="sub-cart-foot" id="sub-cart-foot" style="display:none">
         <button class="sub-cart-confirm-btn" id="sub-cart-confirm" onclick="confirmSubCart()">
@@ -792,26 +793,68 @@ function openSubCart() {
           '</div>';
       }
 
-      // Items
+      // Read config
+      var subCfg = {};
+      try { subCfg = JSON.parse(localStorage.getItem('sub_config') || '{}'); } catch(e2) {}
+      var freeMin      = subCfg.free_min      || 0;
+      var deliveryFees = subCfg.delivery_fees || {};
+      var cur          = subCfg.currency      || '$';
+
+      // Items + subtotal
+      var subtotal = 0;
       itemsEl.innerHTML = cart.map(function(item, idx) {
         var interval = item.interval_days;
         var label = interval == 7  ? (isAr ? 'أسبوعي'    : 'Weekly')
                   : interval == 14 ? (isAr ? 'نصف شهري'  : 'Bi-weekly')
                   : interval == 30 ? (isAr ? 'شهري'       : 'Monthly')
                   : (isAr ? 'كل ' + interval + ' يوم' : 'Every ' + interval + ' days');
+        var qty = item.qty || 1;
+        var linePrice = (item.price || 0) * qty;
+        subtotal += linePrice;
+        var priceStr = item.price > 0
+          ? '<span class="sub-cart-item-price">' + cur + linePrice.toFixed(2) + '</span>'
+          : '';
         return '<div class="sub-cart-item">' +
           '<div class="sub-cart-item-info">' +
             '<strong>' + (item.name || '') + '</strong>' +
             '<span>🔄 ' + label + '</span>' +
           '</div>' +
+          priceStr +
           '<div class="sub-cart-item-qty">' +
             '<button onclick="subCartQtyChange(' + idx + ',-1)">−</button>' +
-            '<span>' + item.qty + '</span>' +
+            '<span>' + qty + '</span>' +
             '<button onclick="subCartQtyChange(' + idx + ',1)">+</button>' +
           '</div>' +
           '<button class="sub-cart-item-remove" onclick="removeFromSubCart(' + idx + ')">×</button>' +
         '</div>';
       }).join('');
+
+      // Totals + shipping
+      var totalsEl = document.getElementById('sub-cart-totals');
+      if (subtotal > 0) {
+        var area = (customer && customer.area) ? customer.area : '';
+        var shipping = 0;
+        var shipLabel = '';
+        if (freeMin > 0 && subtotal >= freeMin) {
+          shipLabel = '<span style="color:#4caf50">🎁 ' + (isAr ? 'شحن مجاني' : 'Free shipping') + '</span>';
+        } else {
+          var fee = deliveryFees[area] || 0;
+          if (fee > 0) {
+            shipping = fee;
+            shipLabel = cur + fee.toFixed(2);
+          } else {
+            shipLabel = isAr ? 'يُحدَّد لاحقاً' : 'TBD';
+          }
+        }
+        var grandTotal = subtotal + shipping;
+        totalsEl.innerHTML =
+          '<div class="sub-cart-total-row"><span>' + (isAr ? 'المجموع الفرعي' : 'Subtotal') + '</span><span>' + cur + subtotal.toFixed(2) + '</span></div>' +
+          '<div class="sub-cart-total-row"><span>' + (isAr ? 'الشحن' : 'Shipping') + '</span><span>' + shipLabel + '</span></div>' +
+          '<div class="sub-cart-total-row sub-cart-grand"><span>' + (isAr ? 'الإجمالي' : 'Total') + '</span><span>' + cur + grandTotal.toFixed(2) + '</span></div>';
+        totalsEl.style.display = '';
+      } else {
+        totalsEl.style.display = 'none';
+      }
     }
   } catch(e) {}
 

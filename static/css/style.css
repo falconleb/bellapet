@@ -3177,6 +3177,10 @@ button.nav-item { background:none; border:none; padding:0; font-family:inherit; 
 .sub-cart-confirm-btn { width:100%; background:var(--gold,#d4a72c); color:#000; border:none; border-radius:12px; padding:14px; font-size:1rem; font-weight:700; cursor:pointer; font-family:inherit; }
 .sub-cart-confirm-btn:disabled { opacity:.5; cursor:default; }
 .sub-cart-clear-btn   { background:none; border:1px solid var(--border); color:var(--muted); border-radius:10px; padding:10px; font-size:.85rem; cursor:pointer; width:100%; font-family:inherit; }
+.sub-cart-item-price  { font-size:.82rem; font-weight:600; color:var(--gold,#d4a72c); white-space:nowrap; align-self:center; }
+#sub-cart-totals      { border-top:1px solid var(--border); padding:12px 18px 4px; display:flex; flex-direction:column; gap:6px; }
+.sub-cart-total-row   { display:flex; justify-content:space-between; align-items:center; font-size:.85rem; color:var(--muted); }
+.sub-cart-grand       { font-size:.95rem; font-weight:700; color:var(--text); padding-top:6px; border-top:1px solid var(--border); margin-top:2px; }
 
 .sub-confirm { padding:4px 0; }
 .sub-confirm-title { font-size:.9rem; font-weight:700; color:var(--text); margin-bottom:12px; }
