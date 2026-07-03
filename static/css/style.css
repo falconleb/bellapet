@@ -3202,6 +3202,9 @@ button.nav-item { background:none; border:none; padding:0; font-family:inherit; 
 .sub-cart-total-row   { display:flex; justify-content:space-between; align-items:center; font-size:.85rem; color:var(--muted); }
 .sub-cart-grand       { font-size:.95rem; font-weight:700; color:var(--text); padding-top:6px; border-top:1px solid var(--border); margin-top:2px; }
 
+/* Native browser dropdown — يفتح بخلفية فاتحة، لازم النص داكن */
+select option { color: #111 !important; background: #fff !important; }
+
 .sub-confirm { padding:4px 0; }
 .sub-confirm-title { font-size:.9rem; font-weight:700; color:var(--text); margin-bottom:12px; }
 .sub-confirm-rows { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
