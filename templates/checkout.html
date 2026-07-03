@@ -80,7 +80,7 @@
       <option value="">{{ '— اختر قضاءك —' if lang == 'ar' else '— Select your district —' }}</option>
       {% for area_name, fee in delivery_fees.items() %}
       <option value="{{ area_name }}" {% if form.get('area') == area_name %}selected{% endif %}>
-        {{ area_name }} — {{ currency }}{{ '%.2f'|format(fee) }}
+        {{ area_name }}
       </option>
       {% endfor %}
     </select>

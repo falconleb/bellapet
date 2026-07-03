@@ -104,11 +104,6 @@
     {% block content %}{% endblock %}
   </main>
 
-  {# ══ Cart Strip ══ #}
-  <div class="cart-strip" id="cart-strip">
-    <div class="cs-inner" id="cs-inner"></div>
-  </div>
-
   <nav class="bottom-nav">
     <a href="{{ url_for('index') }}" class="nav-item {{ 'is-active' if active_tab == 'home' else '' }}">
       {{ icons.icon_home("nav-icon") }}
@@ -176,87 +171,12 @@
   <script src="{{ url_for('static', filename='js/analytics.js') }}" defer></script>
   {% block scripts %}{% endblock %}
 <script>
-/* ── Cart Strip ── */
-var _CS_LANG = '{{ lang }}';
-var _CS_CUR  = '{{ config.CURRENCY_SYMBOL }}';
-
-function _csUpdate(d) {
-  var strip = document.getElementById('cart-strip');
-  var inner = document.getElementById('cs-inner');
-  var isAr  = _CS_LANG === 'ar';
-
-  if (!d.items || d.items.length === 0) {
-    if (!d.promos || d.promos.length === 0) { strip.classList.remove('visible'); return; }
-    var p    = d.promos[0];
-    var icon = p.offer_type === 'free_shipping' ? '🚚' : '🎁';
-    var msg  = isAr
-      ? 'اشتري بـ <strong>' + _CS_CUR + p.threshold.toFixed(2) + '</strong> ' + (p.offer_type === 'free_shipping' ? 'واحصل على شحن مجاني' : 'واحصل على هدية')
-      : 'Spend <strong>' + _CS_CUR + p.threshold.toFixed(2) + '</strong> ' + (p.offer_type === 'free_shipping' ? 'for free shipping' : 'for a free gift');
-    inner.innerHTML =
-      '<div class="cs-promo">'
-      + '<span class="cs-promo-icon">' + icon + '</span>'
-      + '<span class="cs-promo-text">' + msg + '</span>'
-      + '</div>'
-      + '<div class="cs-bar-wrap"><div class="cs-bar" style="width:0%"></div></div>';
-    strip.classList.add('visible');
-    return;
-  }
-
-  var thumbs = d.items.slice(0,3).map(function(it){
-    var src = it.img ? '/static/img/products/'+it.img : '/static/img/placeholder.webp';
-    return '<img class="cs-thumb" src="'+src+'" alt="" onerror="this.src=\'/static/img/placeholder.webp\'">';
-  }).join('');
-
-  var countTxt = isAr ? d.count+' منتج' : d.count+(d.count===1?' item':' items');
-  var actPr = d.promos ? d.promos.find(function(x){return !x.unlocked;}) : null;
-  var bar   = actPr ? '<div class="cs-bar-wrap"><div class="cs-bar" style="width:'+actPr.pct+'%"></div></div>' : '';
-
-  inner.innerHTML =
-    '<div class="cs-summary">'
-    + '<div class="cs-thumbs">'+thumbs+'</div>'
-    + '<div class="cs-info"><div class="cs-count">'+countTxt+'</div><div class="cs-total">'+_CS_CUR+d.total.toFixed(2)+'</div></div>'
-    + '<a href="/checkout" class="cs-btn">'+(isAr?'اكمل الشراء':'Checkout')+'</a>'
-    + '</div>' + bar;
-
-  strip.classList.add('visible');
-  _csFabPush();
-}
-
-function _csFabPush() {
-  var fab = document.getElementById('advisor-fab-wrap');
-  if (!fab) return;
-  var strip = document.getElementById('cart-strip');
-  if (strip && strip.classList.contains('visible')) {
-    var h = document.getElementById('cs-inner').offsetHeight || 72;
-    fab.style.bottom = (68 + h + 6) + 'px';
-  } else {
-    fab.style.bottom = '';
-  }
-}
-
-function csLoad() {
-  fetch('/cart/mini')
-    .then(function(r){ return r.json(); })
-    .then(_csUpdate)
-    .catch(function(e){ console.error('[CartStrip] fetch error:', e); });
-}
-
 function mcAfterAdd(count) {
   var badge = document.getElementById('cart-badge');
   badge.textContent = count; badge.style.display = '';
   badge.classList.add('badge-pop');
   setTimeout(function(){badge.classList.remove('badge-pop');},400);
-  csLoad();
 }
-
-/* تشغيل بعد تحميل الصفحة — لا يزاحم الـ LCP */
-(function(){
-  if (document.readyState === 'complete') {
-    setTimeout(csLoad, 300);
-  } else {
-    window.addEventListener('load', function(){ setTimeout(csLoad, 300); });
-  }
-})();
 </script>
   <script>
   (function(){
@@ -889,7 +809,6 @@ function removeFromSubCart(idx) {
     var cart = JSON.parse(localStorage.getItem('sub_cart') || '[]');
     cart.splice(idx, 1);
     localStorage.setItem('sub_cart', JSON.stringify(cart));
-    if (cart.length === 0) localStorage.removeItem('sub_customer');
   } catch(e) {}
   updateSubCartBadge();
   openSubCart();
@@ -898,7 +817,6 @@ function removeFromSubCart(idx) {
 function clearSubCart() {
   try {
     localStorage.removeItem('sub_cart');
-    localStorage.removeItem('sub_customer');
   } catch(e) {}
   updateSubCartBadge();
   openSubCart();
@@ -933,7 +851,6 @@ async function confirmSubCart() {
     var j = await r.json();
     if (j.ok) {
       localStorage.removeItem('sub_cart');
-      localStorage.removeItem('sub_customer');
       updateSubCartBadge();
       document.getElementById('sub-cart-items').innerHTML   = '';
       document.getElementById('sub-cart-customer').innerHTML = '';
