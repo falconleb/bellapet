@@ -67,7 +67,7 @@
   <link rel="dns-prefetch" href="https://api.groq.com">
 
   {# ── CSS: render-critical أولاً ── #}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=50">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=51">
 
   {# ── Google Fonts: non-blocking — media=print trick ── #}
   <link rel="stylesheet" media="print" onload="this.media='all'"
@@ -791,6 +791,10 @@ function openSubCart() {
           '<span>📞 ' + customer.phone + '</span>' +
           (customer.area ? '<span>📍 ' + customer.area + (customer.address ? ' · ' + customer.address : '') + '</span>' : '') +
           '</div>';
+      } else {
+        custEl.innerHTML = '<div class="sub-cart-cust-row sub-cart-cust-missing">' +
+          '<span>⚠️ ' + (isAr ? 'أضف منتجاً من صفحته لتسجيل بياناتك' : 'Add a product from its page to enter your info') + '</span>' +
+          '</div>';
       }
 
       // Read config
@@ -829,32 +833,35 @@ function openSubCart() {
         '</div>';
       }).join('');
 
-      // Totals + shipping
+      // Totals + shipping — always show when cart has items
       var totalsEl = document.getElementById('sub-cart-totals');
-      if (subtotal > 0) {
-        var shipping = 0;
-        var shipLabel = '';
-        if (freeMin > 0 && subtotal >= freeMin) {
-          shipLabel = '<span style="color:#4caf50">🎁 ' + (isAr ? 'شحن مجاني' : 'Free shipping') + '</span>';
-        } else {
-          var area = (customer && customer.area) ? customer.area : '';
-          var fee  = area && deliveryFees[area] != null ? deliveryFees[area] : null;
-          if (fee != null) {
-            shipping  = fee;
-            shipLabel = cur + fee.toFixed(2) + ' &nbsp;<small style="color:var(--muted)">' + (isAr ? '2-4 أيام عمل' : '2-4 business days') + '</small>';
-          } else {
-            shipLabel = isAr ? 'يُحدَّد بعد اختيار القضاء' : 'Determined after area selection';
-          }
-        }
-        var grandTotal = subtotal + shipping;
-        totalsEl.innerHTML =
-          '<div class="sub-cart-total-row"><span>' + (isAr ? 'المجموع الفرعي' : 'Subtotal') + '</span><span>' + cur + subtotal.toFixed(2) + '</span></div>' +
-          '<div class="sub-cart-total-row"><span>' + (isAr ? 'الشحن' : 'Shipping') + '</span><span>' + shipLabel + '</span></div>' +
-          '<div class="sub-cart-total-row sub-cart-grand"><span>' + (isAr ? 'الإجمالي' : 'Total') + '</span><span>' + cur + grandTotal.toFixed(2) + '</span></div>';
-        totalsEl.style.display = '';
+      var shipping = 0;
+      var shipLabel = '';
+      if (freeMin > 0 && subtotal > 0 && subtotal >= freeMin) {
+        shipLabel = '<span style="color:#4caf50">🎁 ' + (isAr ? 'شحن مجاني' : 'Free shipping') + '</span>';
       } else {
-        totalsEl.style.display = 'none';
+        var area = (customer && customer.area) ? customer.area : '';
+        var fee  = (area && deliveryFees[area] != null) ? deliveryFees[area] : null;
+        if (fee == null && area) fee = 4.0;          // fallback flat fee when area known
+        if (fee == null && !Object.keys(deliveryFees).length) fee = 4.0; // config not loaded yet
+        if (fee != null) {
+          shipping  = fee;
+          shipLabel = cur + fee.toFixed(2) + ' &nbsp;<small style="color:var(--muted)">' + (isAr ? '2-4 أيام عمل' : '2-4 business days') + '</small>';
+        } else {
+          shipLabel = '<span style="color:var(--muted)">' + (isAr ? 'يُحدَّد بعد اختيار القضاء' : 'Select district to see fee') + '</span>';
+        }
       }
+      var grandTotal = subtotal + shipping;
+      var tHtml = '';
+      if (subtotal > 0) {
+        tHtml += '<div class="sub-cart-total-row"><span>' + (isAr ? 'المجموع الفرعي' : 'Subtotal') + '</span><span>' + cur + subtotal.toFixed(2) + '</span></div>';
+      }
+      tHtml += '<div class="sub-cart-total-row"><span>' + (isAr ? 'الشحن' : 'Shipping') + '</span><span>' + shipLabel + '</span></div>';
+      if (subtotal > 0) {
+        tHtml += '<div class="sub-cart-total-row sub-cart-grand"><span>' + (isAr ? 'الإجمالي' : 'Total') + '</span><span>' + cur + grandTotal.toFixed(2) + '</span></div>';
+      }
+      totalsEl.innerHTML = tHtml;
+      totalsEl.style.display = '';
     }
   } catch(e) {}
 
