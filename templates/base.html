@@ -796,9 +796,9 @@ function openSubCart() {
       // Read config
       var subCfg = {};
       try { subCfg = JSON.parse(localStorage.getItem('sub_config') || '{}'); } catch(e2) {}
-      var freeMin      = subCfg.free_min      || 0;
-      var deliveryFees = subCfg.delivery_fees || {};
-      var cur          = subCfg.currency      || '$';
+      var freeMin     = subCfg.free_min          || 0;
+      var flatFee     = subCfg.flat_delivery_fee != null ? subCfg.flat_delivery_fee : 4;
+      var cur         = subCfg.currency          || '$';
 
       // Items + subtotal
       var subtotal = 0;
@@ -832,19 +832,13 @@ function openSubCart() {
       // Totals + shipping
       var totalsEl = document.getElementById('sub-cart-totals');
       if (subtotal > 0) {
-        var area = (customer && customer.area) ? customer.area : '';
         var shipping = 0;
         var shipLabel = '';
         if (freeMin > 0 && subtotal >= freeMin) {
           shipLabel = '<span style="color:#4caf50">🎁 ' + (isAr ? 'شحن مجاني' : 'Free shipping') + '</span>';
         } else {
-          var fee = deliveryFees[area] || 0;
-          if (fee > 0) {
-            shipping = fee;
-            shipLabel = cur + fee.toFixed(2);
-          } else {
-            shipLabel = isAr ? 'يُحدَّد لاحقاً' : 'TBD';
-          }
+          shipping  = flatFee;
+          shipLabel = cur + flatFee.toFixed(2) + ' &nbsp;<small style="color:var(--muted)">' + (isAr ? '2-4 أيام عمل' : '2-4 business days') + '</small>';
         }
         var grandTotal = subtotal + shipping;
         totalsEl.innerHTML =

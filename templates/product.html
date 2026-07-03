@@ -1019,21 +1019,21 @@ function _updateSubNote(elId) {
   var html;
   if (freeMin > 0 && total >= freeMin) {
     html = isAr
-      ? '🚚 أيام الشحن من ' + daysMin + ' إلى ' + daysMax + ' أيام · <strong style="color:#4ade80">مبروك حصلت على الشحن المجاني 🎉</strong>'
-      : '🚚 Delivery in ' + daysMin + '–' + daysMax + ' days · <strong style="color:#4ade80">You got free shipping! 🎉</strong>';
+      ? '🚚 التوصيل من ' + daysMin + ' إلى ' + daysMax + ' أيام عمل · <strong style="color:#4ade80">مبروك! حصلت على الشحن المجاني 🎉</strong>'
+      : '🚚 Delivery in ' + daysMin + '–' + daysMax + ' business days · <strong style="color:#4ade80">You got free shipping! 🎉</strong>';
     el.style.borderColor = 'rgba(74,222,128,.35)';
     el.style.background  = 'rgba(74,222,128,.07)';
   } else if (freeMin > 0) {
     var need = (freeMin - total).toFixed(0);
     html = isAr
-      ? '🚚 أيام الشحن من ' + daysMin + ' إلى ' + daysMax + ' أيام · أضف ' + curr + need + ' وتحصل على الشحن المجاني'
-      : '🚚 Delivery in ' + daysMin + '–' + daysMax + ' days · Add ' + curr + need + ' for free shipping';
+      ? '🚚 التوصيل من ' + daysMin + ' إلى ' + daysMax + ' أيام عمل · رسوم الشحن ' + curr + '4 · أضف ' + curr + need + ' للشحن المجاني'
+      : '🚚 Delivery in ' + daysMin + '–' + daysMax + ' business days · $4 shipping · Add ' + curr + need + ' for free shipping';
     el.style.borderColor = 'rgba(212,167,44,.25)';
     el.style.background  = 'rgba(212,167,44,.06)';
   } else {
     html = isAr
-      ? '🚚 أيام الشحن من ' + daysMin + ' إلى ' + daysMax + ' أيام'
-      : '🚚 Delivery in ' + daysMin + '–' + daysMax + ' days';
+      ? '🚚 رسوم الشحن ' + curr + '4 · التوصيل من ' + daysMin + ' إلى ' + daysMax + ' أيام عمل'
+      : '🚚 $4 shipping · Delivery in ' + daysMin + '–' + daysMax + ' business days';
     el.style.borderColor = 'rgba(212,167,44,.25)';
     el.style.background  = 'rgba(212,167,44,.06)';
   }
@@ -1118,9 +1118,9 @@ function submitSubscription(pid, pNameAr, pNameEn) {
     localStorage.setItem('sub_customer', JSON.stringify({ name: name, phone: phone, area: area, notes: notes, interval_days: days }));
     // Save delivery config for cart calculations
     localStorage.setItem('sub_config', JSON.stringify({
-      free_min: {{ sub_cfg.free_min }},
-      currency: '{{ currency }}',
-      delivery_fees: {{ config.DELIVERY_FEES | tojson }}
+      free_min:          {{ sub_cfg.free_min }},
+      currency:          '{{ currency }}',
+      flat_delivery_fee: {{ config.FLAT_DELIVERY_FEE }}
     }));
   } catch(e) {}
 
