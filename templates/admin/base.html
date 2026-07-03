@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}الأدمن{% endblock %} — لوحة التحكم</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}?v=4">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <style>
+    body { font-family: 'Cairo', system-ui, sans-serif; }
+    .adm-table th, .adm-table td { text-align: right; }
+  </style>
+</head>
+<body>
+
+<div class="adm-layout">
+
+  <aside class="adm-sidebar">
+    <a href="{{ url_for('admin_dashboard') }}" class="adm-logo">🐾 Bella Pet</a>
+    <nav class="adm-nav">
+      <span class="adm-nav-group">عام</span>
+      <a href="{{ url_for('admin_dashboard') }}"  class="{{ 'active' if active_admin == 'dashboard' }}">📋 الداشبورد</a>
+      <a href="{{ url_for('admin_homepage') }}"   class="{{ 'active' if active_admin == 'homepage' }}">🏠 الرئيسية</a>
+      <a href="{{ url_for('admin_products') }}"   class="{{ 'active' if active_admin == 'products' }}">📦 المنتجات</a>
+      <a href="{{ url_for('admin_orders') }}"     class="{{ 'active' if active_admin == 'orders' }}">🛒 الطلبات</a>
+      <a href="{{ url_for('admin_subscriptions') }}" class="{{ 'active' if active_admin == 'subscriptions' }}">🔄 الاشتراكات</a>
+      <a href="{{ url_for('admin_collections') }}" class="{{ 'active' if active_admin == 'collections' }}">🗂 المجموعات</a>
+      <a href="{{ url_for('admin_blog') }}"        class="{{ 'active' if active_admin == 'blog' }}">✏️ المدونة</a>
+      <a href="{{ url_for('admin_content') }}"    class="{{ 'active' if active_admin == 'content' }}">📄 المحتوى</a>
+
+      <a href="{{ url_for('admin_promotions') }}"   class="{{ 'active' if active_admin == 'promotions' }}">🎯 العروض العامة</a>
+      <a href="{{ url_for('admin_loyalty') }}"      class="{{ 'active' if active_admin == 'loyalty' }}">🎁 الولاء</a>
+      <a href="{{ url_for('admin_customers') }}"     class="{{ 'active' if active_admin == 'customers' }}">👥 الزبائن</a>
+      <a href="{{ url_for('admin_notify_leads') }}"  class="{{ 'active' if active_admin == 'notify' }}">
+        🔔 طلبات الإشعار
+        {% if pending_notify_count > 0 %}<span class="adm-nav-badge">{{ pending_notify_count }}</span>{% endif %}
+      </a>
+      <a href="{{ url_for('admin_automations') }}"  class="{{ 'active' if active_admin == 'automations' }}">⚙️ الأتمتة</a>
+      <a href="{{ url_for('admin_pwa') }}"          class="{{ 'active' if active_admin == 'pwa' }}">📱 التطبيق (PWA)</a>
+
+      <span class="adm-nav-group">تسويق & ذكاء</span>
+      <a href="{{ url_for('admin_analytics') }}"   class="{{ 'active' if active_admin == 'analytics' }}">📊 تحليلات</a>
+      <a href="{{ url_for('admin_links') }}"       class="{{ 'active' if active_admin == 'links' }}">🔗 روابط مختصرة</a>
+      <a href="{{ url_for('admin_ai_insights') }}" class="{{ 'active' if active_admin == 'insights' }}">🧠 AI Insights</a>
+      <a href="{{ url_for('admin_ai_suggestions') }}" class="{{ 'active' if active_admin == 'suggestions' }}">💡 مقترحات AI</a>
+      <a href="{{ url_for('admin_ai_describe') }}" class="{{ 'active' if active_admin == 'describe' }}">✍️ وصف المنتج</a>
+      <a href="{{ url_for('admin_ai_campaigns') }}" class="{{ 'active' if active_admin == 'campaigns' }}">💡 حملات</a>
+      <a href="{{ url_for('admin_seo') }}"         class="{{ 'active' if active_admin == 'seo' }}">⚡ SEO</a>
+
+      <span class="adm-nav-group">إعدادات</span>
+      <a href="{{ url_for('admin_api_keys') }}"  class="{{ 'active' if active_admin == 'api_keys' }}">🔌 API Keys</a>
+      <a href="{{ url_for('admin_monitor') }}"   class="{{ 'active' if active_admin == 'monitor' }}">🤖 مراقبة</a>
+      <a href="{{ url_for('admin_settings') }}"  class="{{ 'active' if active_admin == 'settings' }}">⚙️ الإعدادات</a>
+    </nav>
+    <div class="adm-sidebar-footer">
+      <a href="{{ url_for('index') }}" target="_blank" class="adm-view-site">عرض الموقع ↗</a>
+      <a href="{{ url_for('admin_logout') }}" class="adm-logout">تسجيل الخروج</a>
+    </div>
+  </aside>
+
+  <main class="adm-main">
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+
+{% block scripts %}{% endblock %}
+<script>
+(function(){
+  var _tok = document.querySelector('meta[name="csrf-token"]').content;
+
+  // Inject into all HTML forms
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('form').forEach(function(f){
+      if(!f.querySelector('[name="_csrf_token"]')){
+        var h=document.createElement('input');
+        h.type='hidden'; h.name='_csrf_token'; h.value=_tok;
+        f.appendChild(h);
+      }
+    });
+  });
+
+  // Inject into fetch
+  var _fetch=window.fetch;
+  window.fetch=function(url,opts){
+    opts=opts||{};
+    if(!opts.method||opts.method.toUpperCase()==='GET') return _fetch(url,opts);
+    opts.headers=opts.headers||{};
+    if(opts.headers instanceof Headers){
+      if(!opts.headers.has('X-CSRF-Token')) opts.headers.set('X-CSRF-Token',_tok);
+    } else {
+      opts.headers['X-CSRF-Token']=opts.headers['X-CSRF-Token']||_tok;
+    }
+    return _fetch(url,opts);
+  };
+
+  // Inject into XMLHttpRequest
+  var _open=XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open=function(m){
+    this._method=m;
+    return _open.apply(this,arguments);
+  };
+  var _send=XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send=function(){
+    if(this._method&&this._method.toUpperCase()!=='GET')
+      this.setRequestHeader('X-CSRF-Token',_tok);
+    return _send.apply(this,arguments);
+  };
+})();
+</script>
+</body>
+</html>

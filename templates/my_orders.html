@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{{ pick('My Orders', 'طلباتي') }}{% endblock %}
+{% block content %}
+
+<div class="my-orders-page">
+
+  <div class="my-orders-hero">
+    <h1>{{ pick('Track Your Orders', 'تتبع طلباتك') }}</h1>
+    <p>{{ pick('Enter your phone number to see your orders.', 'أدخل رقم هاتفك لتعرف حالة طلباتك.') }}</p>
+  </div>
+
+  <form method="post" class="orders-search-form">
+    <div class="orders-search-row">
+      <input type="tel" name="phone" value="{{ phone }}"
+             placeholder="{{ pick('03 123 456', '03 123 456') }}"
+             class="orders-phone-input" inputmode="tel" autocomplete="tel" required>
+      <button type="submit" class="btn-primary orders-search-btn">
+        {{ pick('Search', 'بحث') }}
+      </button>
+    </div>
+  </form>
+
+  {% if searched %}
+    {% if orders %}
+    <div class="orders-list">
+      {% for entry in orders %}
+      {% set o = entry.order %}
+      {% set log = entry.log %}
+
+      {% set status_ar = {'new':'استلمنا طلبك','confirmed':'تم التأكيد','shipped':'في الطريق','delayed':'تأخير مؤقت','delivered':'تم التسليم','cancelled':'ملغى'} %}
+      {% set status_en = {'new':'Order Received','confirmed':'Confirmed','shipped':'On the Way','delayed':'Slight Delay','delivered':'Delivered','cancelled':'Cancelled'} %}
+      {% set status_icon = {'new':'📋','confirmed':'✅','shipped':'🚚','delayed':'⏳','delivered':'📦','cancelled':'❌'} %}
+
+      <div class="order-card">
+
+        {# ── رأس الكارد ── #}
+        <div class="order-card-head">
+          <div class="order-meta">
+            <span class="order-num">#{{ o.id }}</span>
+            <span class="order-date text-muted">{{ o.created_at[:10] }}</span>
+          </div>
+          <span class="order-status-badge status-{{ o.status }}">
+            {{ status_icon.get(o.status,'') }} {{ pick(status_en.get(o.status,o.status), status_ar.get(o.status,o.status)) }}
+          </span>
+        </div>
+
+        {# ── Timeline ── #}
+        {% if o.status != 'cancelled' %}
+        {% set steps = ['new','confirmed','shipped','delivered'] %}
+        <div class="order-timeline">
+          {% for step in steps %}
+          {% set step_idx = steps.index(step) %}
+          {% set cur_idx  = steps.index(o.status) if o.status in steps else -1 %}
+          {% set is_done  = step_idx <= cur_idx %}
+          {% set is_cur   = step_idx == cur_idx %}
+
+          {# ابحث عن إدخال السجل لهاد الـ step #}
+          {% set step_log = namespace(entry=none) %}
+          {% for l in log %}{% if l.status == step %}{% set step_log.entry = l %}{% endif %}{% endfor %}
+
+          <div class="otl-step {{ 'done' if is_done else '' }} {{ 'current' if is_cur else '' }}">
+            <div class="otl-dot">
+              {% if is_done %}✓{% else %}{{ step_idx + 1 }}{% endif %}
+            </div>
+            {% if not loop.last %}<div class="otl-line {{ 'done' if step_idx < cur_idx else '' }}"></div>{% endif %}
+            <div class="otl-content">
+              <span class="otl-label">{{ pick(status_en[step], status_ar[step]) }}</span>
+              {% if step_log.entry %}
+              <span class="otl-time">{{ step_log.entry.created_at[:16].replace('T',' ') }}</span>
+              {% if step_log.entry.note %}
+              <span class="otl-note">{{ step_log.entry.note }}</span>
+              {% endif %}
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if o.tracking_number %}
+        <div class="order-tracking-num">
+          🔖 {{ pick('Tracking #', 'رقم التتبع:') }} <code>{{ o.tracking_number }}</code>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="order-cancelled-note">
+          ❌ {{ pick('This order has been cancelled.', 'تم إلغاء هذا الطلب.') }}
+        </div>
+        {% endif %}
+
+        {# ── المنتجات ── #}
+        <div class="order-items">
+          {% for item in entry.items %}
+          <div class="order-item-row">
+            <span class="order-item-name">{{ pick(item.name_en, item.name_ar) }}</span>
+            <span class="order-item-qty text-muted">× {{ item.qty }}</span>
+            <span class="order-item-price">${{ '%.2f'|format(item.price_at_order * item.qty) }}</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="order-card-foot">
+          <span class="text-muted">{{ pick('Total', 'المجموع') }}</span>
+          <span class="order-total">${{ '%.2f'|format(o.total) }}</span>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="orders-empty">
+      <div class="orders-empty-icon">📦</div>
+      <h2>{{ pick('No orders found', 'ما في طلبات') }}</h2>
+      <p>{{ pick("We couldn't find any orders for this number.", 'ما لقينا أي طلب مرتبط بهاد الرقم.') }}</p>
+      <a href="{{ url_for('index') }}" class="btn-primary">{{ pick('Start Shopping', 'تسوق هلق') }}</a>
+    </div>
+    {% endif %}
+  {% endif %}
+
+</div>
+{% endblock %}

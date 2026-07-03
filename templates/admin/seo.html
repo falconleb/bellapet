@@ -1,0 +1,213 @@
+{% extends "admin/base.html" %}
+{% block title %}SEO{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>أدوات SEO <span class="adm-count">ذكي</span></h1>
+  <div style="display:flex;gap:10px;align-items:center">
+    {% if seo_api_ready %}
+    <span style="font-size:0.78rem;color:#4ade80">✓ API جاهز</span>
+    <button onclick="generateAll()" class="btn-adm-primary" id="gen-all-btn">
+      ⚡ توليد الكل تلقائياً
+    </button>
+    {% else %}
+    <span style="font-size:0.78rem;color:#f87171">✗ ANTHROPIC_API_KEY غير موجود</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if not seo_api_ready %}
+<div class="adm-card" style="margin-bottom:20px;border-color:rgba(248,113,113,0.3)">
+  <p style="font-size:0.88rem">لتفعيل التوليد الذكي، افتح <code>config.py</code> وضع مفتاحك:</p>
+  <code style="display:block;margin-top:8px;padding:10px;background:var(--surface2);border-radius:6px;font-size:0.82rem">
+    ANTHROPIC_API_KEY = 'sk-ant-api03-...'
+  </code>
+  <p style="font-size:0.78rem;color:var(--muted);margin-top:8px">أو عبر Terminal: <code>set ANTHROPIC_API_KEY=sk-ant-...</code> ثم أعد تشغيل Flask</p>
+</div>
+{% endif %}
+
+{# ── الصفحة الرئيسية ── #}
+<div class="adm-section" style="margin-bottom:16px">
+  <div class="adm-section-head">
+    <h2>الصفحة الرئيسية</h2>
+    <button class="btn-adm-sm" onclick="generate('static', null, 'home', this)" {{ 'disabled' if not seo_api_ready }}>
+      ⚡ توليد
+    </button>
+  </div>
+  <div class="seo-row" id="seo-static-home">
+    {% if home_seo %}
+    <div class="seo-preview">
+      <div class="seo-google-preview">
+        <div class="gp-title">{{ home_seo.meta_title_ar }}</div>
+        <div class="gp-url">{{ request.host }}/</div>
+        <div class="gp-desc">{{ home_seo.meta_desc_ar }}</div>
+      </div>
+      <div class="seo-keywords">{{ home_seo.keywords_ar }}</div>
+      <div class="seo-generated-at text-muted">آخر توليد: {{ home_seo.generated_at[:16].replace('T',' ') }}</div>
+    </div>
+    {% else %}
+    <p class="adm-empty">لم يُولَّد بعد</p>
+    {% endif %}
+  </div>
+</div>
+
+{# ── التصنيفات ── #}
+<div class="adm-section" style="margin-bottom:16px">
+  <div class="adm-section-head"><h2>التصنيفات</h2></div>
+  <table class="adm-table">
+    <thead><tr><th>التصنيف</th><th>عنوان Google</th><th>آخر توليد</th><th></th></tr></thead>
+    <tbody>
+      {% for c in categories %}
+      <tr id="seo-category-{{ c.id }}">
+        <td>{{ c.name_ar }}</td>
+        <td class="seo-title-cell">{{ c.meta_title_ar or '—' }}</td>
+        <td class="text-muted">{{ c.generated_at[:10] if c.generated_at else '—' }}</td>
+        <td>
+          <button class="btn-adm-sm" onclick="generate('category', {{ c.id }}, null, this)"
+                  {{ 'disabled' if not seo_api_ready }}>⚡ توليد</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# ── المنتجات ── #}
+<div class="adm-section" style="margin-bottom:16px">
+  <div class="adm-section-head">
+    <h2>المنتجات <span class="adm-count">{{ products|length }}</span></h2>
+  </div>
+  <table class="adm-table">
+    <thead><tr><th>المنتج</th><th>عنوان Google</th><th>آخر توليد</th><th></th></tr></thead>
+    <tbody>
+      {% for p in products %}
+      <tr id="seo-product-{{ p.id }}">
+        <td>{{ p.name_ar }}</td>
+        <td class="seo-title-cell">{{ p.meta_title_ar or '—' }}</td>
+        <td class="text-muted">{{ p.generated_at[:10] if p.generated_at else '—' }}</td>
+        <td>
+          <button class="btn-adm-sm" onclick="generate('product', {{ p.id }}, null, this)"
+                  {{ 'disabled' if not seo_api_ready }}>⚡ توليد</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# ── المدونة ── #}
+{% if blog_posts %}
+<div class="adm-section">
+  <div class="adm-section-head"><h2>المدونة</h2></div>
+  <table class="adm-table">
+    <thead><tr><th>المقالة</th><th>عنوان Google</th><th>آخر توليد</th><th></th></tr></thead>
+    <tbody>
+      {% for b in blog_posts %}
+      <tr id="seo-blog-{{ b.id }}">
+        <td>{{ b.title_ar }}</td>
+        <td class="seo-title-cell">{{ b.meta_title_ar or '—' }}</td>
+        <td class="text-muted">{{ b.generated_at[:10] if b.generated_at else '—' }}</td>
+        <td>
+          <button class="btn-adm-sm" onclick="generate('blog', {{ b.id }}, null, this)"
+                  {{ 'disabled' if not seo_api_ready }}>⚡ توليد</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{# ── Sitemap ── #}
+<div class="adm-card" style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+  <div>
+    <div style="font-weight:600;margin-bottom:4px">Sitemap.xml & Robots.txt</div>
+    <div class="text-muted" style="font-size:0.82rem">يتولّد تلقائياً من كل المنتجات والتصنيفات والمقالات المنشورة</div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="/sitemap.xml" target="_blank" class="btn-adm-sm">عرض sitemap.xml</a>
+    <a href="/robots.txt"  target="_blank" class="btn-adm-sm">عرض robots.txt</a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+.seo-preview   { padding: 14px 16px; }
+.seo-google-preview { background: #fff; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+.gp-title { font-size: 1rem; color: #1a0dab; font-weight: 600; }
+.gp-url   { font-size: 0.78rem; color: #006621; margin: 2px 0; }
+.gp-desc  { font-size: 0.84rem; color: #545454; line-height: 1.5; }
+.seo-keywords { font-size: 0.76rem; color: var(--muted); margin-top: 6px; }
+.seo-generated-at { font-size: 0.72rem; margin-top: 4px; }
+.seo-title-cell { font-size: 0.82rem; max-width: 260px; }
+</style>
+
+<script>
+async function generate(type, id, slug, btn) {
+  btn.textContent = '⏳ جاري...';
+  btn.disabled = true;
+
+  const body = new FormData();
+  body.append('page_type', type);
+  if (id)   body.append('page_id', id);
+  if (slug) body.append('page_slug', slug);
+
+  const res  = await fetch('{{ url_for("admin_seo_generate") }}', { method: 'POST', body });
+  const json = await res.json();
+
+  if (json.ok) {
+    const d = json.data;
+    // حدّث الخلية في الجدول
+    const rowId = id ? `seo-${type}-${id}` : `seo-${type}-${slug}`;
+    const row = document.getElementById(rowId);
+    if (row) {
+      const cell = row.querySelector('.seo-title-cell');
+      if (cell) cell.textContent = d.meta_title_ar || d.meta_title_en || '✓';
+      const dateCell = row.querySelectorAll('td')[2];
+      if (dateCell) dateCell.textContent = new Date().toISOString().slice(0,10);
+    }
+    // للصفحة الرئيسية أعد تحميل المعاينة
+    if (type === 'static') {
+      const preview = document.getElementById('seo-static-home');
+      if (preview) preview.innerHTML = `
+        <div class="seo-preview">
+          <div class="seo-google-preview">
+            <div class="gp-title">${d.meta_title_ar}</div>
+            <div class="gp-url">${location.host}/</div>
+            <div class="gp-desc">${d.meta_desc_ar}</div>
+          </div>
+          <div class="seo-keywords">${d.keywords_ar}</div>
+        </div>`;
+    }
+    btn.textContent = '✓ تم';
+    btn.style.color = 'var(--green)';
+  } else {
+    btn.textContent = '✗ خطأ';
+    btn.style.color = 'var(--red)';
+    alert(json.error || 'فشل التوليد');
+  }
+
+  setTimeout(() => { btn.textContent = '⚡ توليد'; btn.disabled = false; btn.style.color = ''; }, 3000);
+}
+
+async function generateAll() {
+  const btn = document.getElementById('gen-all-btn');
+  btn.textContent = '⏳ جاري توليد الكل...';
+  btn.disabled = true;
+
+  const res  = await fetch('{{ url_for("admin_seo_generate_all") }}', { method: 'POST' });
+  const json = await res.json();
+
+  if (json.ok) {
+    btn.textContent = `✓ تم توليد ${json.done} منتج`;
+    setTimeout(() => location.reload(), 1500);
+  } else {
+    btn.textContent = '✗ خطأ';
+    alert(json.error);
+    setTimeout(() => { btn.textContent = '⚡ توليد الكل تلقائياً'; btn.disabled = false; }, 2000);
+  }
+}
+</script>
+{% endblock %}

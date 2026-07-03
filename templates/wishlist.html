@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ 'المفضلة' if lang == 'ar' else 'Wishlist' }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+
+{% block content %}
+<div class="wish-page">
+  <h1>
+    <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    {{ 'مفضلتي' if lang == 'ar' else 'My Wishlist' }}
+    <span id="wish-count-label" style="font-size:.8rem;font-weight:400;color:var(--text-muted);margin-inline-start:4px;"></span>
+  </h1>
+
+  <div id="wish-empty" class="wish-empty" style="display:none;">
+    <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    <p>{{ 'ما في منتجات في مفضلتك بعد' if lang == 'ar' else "Your wishlist is empty" }}</p>
+    <a href="{{ url_for('index') }}">{{ 'تصفح المنتجات' if lang == 'ar' else 'Browse products' }}</a>
+  </div>
+
+  <div id="wish-grid" class="wish-grid"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var lang = '{{ lang }}';
+  var currency = '{{ currency }}';
+  var items = wlGet();
+  var grid = document.getElementById('wish-grid');
+  var empty = document.getElementById('wish-empty');
+  var countLabel = document.getElementById('wish-count-label');
+
+  function render() {
+    items = wlGet();
+    grid.innerHTML = '';
+    if (items.length === 0) {
+      empty.style.display = '';
+      grid.style.display = 'none';
+      countLabel.textContent = '';
+    } else {
+      empty.style.display = 'none';
+      grid.style.display = '';
+      countLabel.textContent = '(' + items.length + ')';
+      items.forEach(function(p) {
+        var card = document.createElement('a');
+        card.href = '/product/' + p.slug;
+        card.className = 'wish-card';
+        var imgHtml = p.img
+          ? '<img src="/static/img/products/' + p.img + '" alt="' + p.name + '" loading="lazy">'
+          : '<span class="wc-placeholder">🐾</span>';
+        card.innerHTML =
+          '<div class="wc-thumb">' + imgHtml + '</div>' +
+          '<div class="wc-info">' +
+            '<span class="wc-name">' + p.name + '</span>' +
+            '<span class="wc-price">' + currency + parseFloat(p.price).toFixed(2) + '</span>' +
+          '</div>' +
+          '<button class="wc-remove" title="' + (lang === 'ar' ? 'إزالة' : 'Remove') + '" data-slug="' + p.slug + '">✕</button>';
+        grid.appendChild(card);
+      });
+
+      grid.querySelectorAll('.wc-remove').forEach(function(btn){
+        btn.addEventListener('click', function(e){
+          e.preventDefault(); e.stopPropagation();
+          var slug = btn.getAttribute('data-slug');
+          var a = wlGet().filter(function(x){ return x.slug !== slug; });
+          wlSave(a);
+          wlSyncBadges();
+          render();
+        });
+      });
+    }
+  }
+
+  render();
+});
+</script>
+{% endblock %}

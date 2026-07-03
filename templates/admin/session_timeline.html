@@ -1,0 +1,57 @@
+{% extends "admin/base.html" %}
+{% block title %}مسار الجلسة{% endblock %}
+
+{% block content %}
+<div class="adm-page-head">
+  <a href="{{ url_for('admin_analytics') }}" class="adm-btn-secondary">← التحليلات</a>
+  <h1>🔍 مسار الزبون</h1>
+</div>
+
+{# معلومات الجلسة #}
+<div class="tl-info-bar">
+  <div class="tl-info-item">
+    <span class="tl-info-label">الجهاز</span>
+    <span>{{ {'mobile':'📱','tablet':'📟','desktop':'💻'}.get(session.device_type,'📱') }} {{ session.device_type }} / {{ session.os }}</span>
+  </div>
+  <div class="tl-info-item">
+    <span class="tl-info-label">المصدر</span>
+    <span>{{ session.referrer or 'مباشر' }}</span>
+  </div>
+  <div class="tl-info-item">
+    <span class="tl-info-label">الصفحة الأولى</span>
+    <span>{{ session.landing_page }}</span>
+  </div>
+  <div class="tl-info-item">
+    <span class="tl-info-label">الصفحات</span>
+    <span>{{ session.page_count }}</span>
+  </div>
+  <div class="tl-info-item">
+    <span class="tl-info-label">النتيجة</span>
+    {% if session.converted %}
+    <span class="tl-badge tl-badge--buy">✅ اشترى</span>
+    {% else %}
+    <span class="tl-badge tl-badge--no">لم يشتر</span>
+    {% endif %}
+  </div>
+  <div class="tl-info-item">
+    <span class="tl-info-label">البداية</span>
+    <span>{{ session.started_at }}</span>
+  </div>
+</div>
+
+{# Timeline #}
+<div class="tl-wrap">
+  {% for ev in timeline %}
+  <div class="tl-event tl-event--{{ ev.type }}">
+    <div class="tl-dot">{{ ev.icon }}</div>
+    <div class="tl-body">
+      <div class="tl-label">{{ ev.label }}</div>
+      <div class="tl-time">{{ ev.time.split(' ')[1] if ' ' in ev.time else ev.time }}</div>
+    </div>
+  </div>
+  {% else %}
+  <p style="color:var(--muted);padding:20px;">لا يوجد أحداث مسجّلة لهذه الجلسة.</p>
+  {% endfor %}
+</div>
+
+{% endblock %}

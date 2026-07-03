@@ -1,0 +1,143 @@
+{% extends "admin/base.html" %}
+{% block title %}الطلبات{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>الطلبات <span class="adm-count">{{ orders|length }}</span></h1>
+</div>
+
+{# ── بحث سريع ── #}
+<form method="get" style="margin-bottom:12px">
+  <div style="display:flex;gap:8px">
+    <input type="text" name="search" value="{{ search }}"
+           placeholder="🔍 ابحث باسم الزبون أو رقم الهاتف..."
+           style="flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:0.9rem;font-family:inherit">
+    <button type="submit" class="btn-adm-primary">بحث</button>
+    {% if search %}
+    <a href="{{ url_for('admin_orders') }}" class="btn-adm-secondary" style="text-decoration:none;padding:8px 14px">✕</a>
+    {% endif %}
+  </div>
+</form>
+
+{# ── فلاتر متقدمة ── #}
+<form method="get" class="adm-card" style="margin-bottom:20px;padding:14px">
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;font-weight:600">فلاتر متقدمة</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:flex-end">
+
+    <div class="adm-field" style="margin:0">
+      <label>الحالة</label>
+      <select name="status">
+        {% set labels = {'':'الكل','new':'جديد','confirmed':'مؤكد','shipped':'مُرسل','delayed':'تأخير','delivered':'مُسلَّم','cancelled':'ملغى','returned':'مُرجَع'} %}
+        {% for s, l in labels.items() %}
+        <option value="{{ s }}" {{ 'selected' if status_filter == s }}>{{ l }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="adm-field" style="margin:0">
+      <label>تقييم الزبون</label>
+      <select name="rating">
+        <option value="" {{ 'selected' if not rating_filter }}>الكل</option>
+        {% for i in [5,4,3,2,1] %}
+        <option value="{{ i }}" {{ 'selected' if rating_filter == i|string }}>
+          {% for j in range(1,6) %}{{ '★' if j <= i else '☆' }}{% endfor %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="adm-field" style="margin:0">
+      <label>من تاريخ</label>
+      <input type="date" name="date_from" value="{{ date_from }}">
+    </div>
+
+    <div class="adm-field" style="margin:0">
+      <label>إلى تاريخ</label>
+      <input type="date" name="date_to" value="{{ date_to }}">
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button type="submit" class="btn-adm-primary" style="flex:1">فلترة</button>
+      <a href="{{ url_for('admin_orders') }}" class="btn-adm-secondary" style="flex:1;text-align:center;text-decoration:none;padding:8px 0">مسح</a>
+    </div>
+
+  </div>
+</form>
+
+{# ── جدول الطلبات ── #}
+{% if orders %}
+<table class="adm-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>الزبون</th>
+      <th>الهاتف</th>
+      <th>المنطقة</th>
+      <th>المجموع</th>
+      <th>الحالة</th>
+      <th>التاريخ</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for o in orders %}
+    {% set ar = {'new':'جديد','confirmed':'مؤكد','shipped':'مُرسل','delayed':'تأخير','delivered':'مُسلَّم','cancelled':'ملغى','returned':'🔄 مُرجَع'} %}
+    <tr>
+      <td><a href="{{ url_for('admin_order_detail', oid=o.id) }}" class="adm-link">#{{ o.id }}</a></td>
+      <td>
+        {{ o.customer_name }}
+        {% if o['behavior_rating'] %}
+        <span class="cust-star-badge rating-{{ o['behavior_rating'] }}">
+          {% for i in range(1,6) %}{{ '★' if i <= o['behavior_rating'] else '☆' }}{% endfor %}
+        </span>
+        {% endif %}
+        {% if o['behavior_note'] %}
+        <span class="cust-note-tip" title="{{ o['behavior_note'] }}">💬</span>
+        {% endif %}
+      </td>
+      <td>{{ o.phone }}</td>
+      <td>{{ o.area }}</td>
+      <td>${{ '%.2f'|format(o.total) }}</td>
+      <td><span class="status-badge status-{{ o.status }}">{{ ar.get(o.status, o.status) }}</span></td>
+      <td class="text-muted">{{ o.created_at[:10] }}</td>
+      <td>
+        {% if o.review_token %}
+        {% set phone_clean = o.phone|replace(' ','')|replace('-','')|replace('+','') %}
+        {% set review_url = request.host_url.rstrip('/') + url_for('product_review', token=o.review_token) %}
+        {% set wa_msg = 'أهلاً ' + o.customer_name + ' 😊\nشكراً لطلبك من بيلا بت!\nنتمنى تقيّملنا المنتجات اللي طلبتها، ما بياخد دقيقة 🙏\n' + review_url %}
+        <a href="https://wa.me/961{{ phone_clean }}?text={{ wa_msg|urlencode }}"
+           target="_blank" class="btn-adm-sm" title="إرسال رابط التقييم">⭐ تقييم</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="adm-card" style="text-align:center;color:var(--muted);padding:40px">
+  لا توجد طلبات بهذه الفلاتر
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+.cust-star-badge {
+  font-size: 0.72rem;
+  margin-inline-start: 6px;
+  vertical-align: middle;
+}
+.cust-star-badge.rating-5 { color: #22c55e; }
+.cust-star-badge.rating-4 { color: #86efac; }
+.cust-star-badge.rating-3 { color: #d4a72c; }
+.cust-star-badge.rating-2 { color: #fb923c; }
+.cust-star-badge.rating-1 { color: #f87171; }
+.cust-note-tip {
+  cursor: help;
+  font-size: 0.8rem;
+  margin-inline-start: 3px;
+  vertical-align: middle;
+}
+</style>
+{% endblock %}

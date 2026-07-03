@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ 'الصفحة مش موجودة' if lang == 'ar' else 'Page Not Found' }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+{% block content %}
+
+<div class="error-page">
+  <div class="error-animal">🐾</div>
+  <h1 class="error-code">404</h1>
+  <h2 class="error-title">
+    {{ 'آخ! الصفحة هربت مع القطة 😅' if lang == 'ar' else 'Oops! This page ran off with the cat 😅' }}
+  </h2>
+  <p class="error-body">
+    {% if lang == 'ar' %}
+      الرابط اللي دخلت عليه ما بيوجد، ربما تغيّر أو انحذف.
+    {% else %}
+      The link you followed doesn't exist — it may have moved or been removed.
+    {% endif %}
+  </p>
+  <div class="error-actions">
+    <a href="{{ url_for('index') }}" class="btn-back-home">
+      {{ '🏠 العودة للرئيسية' if lang == 'ar' else '🏠 Back to Home' }}
+    </a>
+    <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="btn-wa-confirm">
+      {{ '💬 تواصل معنا' if lang == 'ar' else '💬 Contact Us' }}
+    </a>
+  </div>
+</div>
+
+{% endblock %}

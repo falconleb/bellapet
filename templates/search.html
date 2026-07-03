@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% from "_components.html" import product_img, preload_hint %}
+{% block title %}{{ 'بحث: ' + query if query else 'البحث' }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+
+{% block content %}
+<div class="search-page">
+
+  <form class="search-form" action="{{ url_for('search') }}" method="get">
+    <div class="search-input-wrap">
+      <input type="text" name="q" value="{{ query }}"
+             placeholder="{{ 'اكتب ما تبحث عنه... مثلاً: أكل لقطة عمرها 4 شهور' if lang == 'ar' else 'Search... e.g. food for 4 month old kitten' }}"
+             autofocus autocomplete="off" class="search-input">
+      <button type="submit" class="search-btn">{{ icons.icon_search("search-icon") }}</button>
+    </div>
+    <p class="search-hint">
+      {{ 'جرّب: "بسيتي عم يهر الوبر" أو "أكل للجراء الصغار" أو "سرير للكلاب الكبيرة"' if lang == 'ar'
+         else 'Try: "food for senior cats" or "puppy treats small breed"' }}
+    </p>
+  </form>
+
+  {% if query %}
+    {% if results %}
+    <div class="search-results-head">
+      <span class="search-count">{{ results|length }} {{ 'نتيجة' if lang == 'ar' else 'results' }}</span>
+      <span class="search-query-label">« {{ query }} »</span>
+    </div>
+    <div class="product-grid">
+      {% for p in results %}
+      <a href="{{ url_for('product', slug=p['slug']) }}" class="product-card-grid">
+        <div class="thumb">
+          {% if p['discount_price'] %}
+          <span class="badge-gold">{{ icons.icon_seal("b-icon") }} {{ 'عرض' if lang == 'ar' else 'Sale' }}</span>
+          {% endif %}
+          {{ product_img(p['primary_img'], pick(p['name_en'], p['name_ar']), loop.index0) }}
+          {% if not p['primary_img'] %}
+          <span class="thumb-placeholder">{{ icons.icon_by_name(p['cat_slug'], "thumb-icon") }}</span>
+          {% endif %}
+        </div>
+        <div class="info">
+          <span class="p-name">{{ pick(p['name_en'], p['name_ar']) }}</span>
+          <span class="p-price">
+            {{ currency }}{{ '%.2f'|format(p['discount_price'] if p['discount_price'] else p['price']) }}
+            {% if p['discount_price'] %}
+            <span class="old">{{ currency }}{{ '%.2f'|format(p['price']) }}</span>
+            {% endif %}
+          </span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="search-empty">
+      <div class="search-empty-icon">🔍</div>
+      <h2>{{ 'ما لقينا نتائج' if lang == 'ar' else 'No results found' }}</h2>
+      <p>{{ 'جرّب تكتب بطريقة تانية أو اسأل المستشار' if lang == 'ar' else 'Try a different search or ask our advisor' }}</p>
+      <button class="advisor-trigger-btn" onclick="openAdvisor()">
+        🐾 {{ 'اسأل مستشار المتجر' if lang == 'ar' else 'Ask our pet advisor' }}
+      </button>
+    </div>
+    {% endif %}
+  {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if query %}
+if (window.psTrack) psTrack('search', { search_query: {{ query|tojson }} });
+{% endif %}
+// auto-open المستشار لما يجي من الـ picker
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(location.search);
+  if (params.get('advisor') === '1') setTimeout(() => openAdvisor(), 600);
+});
+</script>
+{% endblock %}

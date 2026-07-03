@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الدخول — لوحة التحكم</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <style>body { font-family: 'Cairo', system-ui, sans-serif; }</style>
+</head>
+<body class="login-body">
+<div class="login-card">
+  <div class="login-title">🐾 لوحة التحكم</div>
+  {% if error %}
+  <div class="login-error">اسم المستخدم أو كلمة المرور غير صحيحة</div>
+  {% endif %}
+  <form method="post" class="login-form">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <div class="adm-field">
+      <label>اسم المستخدم</label>
+      <input type="text" name="username" autofocus autocomplete="username">
+    </div>
+    <div class="adm-field">
+      <label>كلمة المرور</label>
+      <input type="password" name="password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn-adm-primary" style="width:100%;justify-content:center">دخول</button>
+  </form>
+</div>
+</body>
+</html>

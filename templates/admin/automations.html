@@ -1,0 +1,305 @@
+{% extends "admin/base.html" %}
+{% block title %}الأتمتة{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>⚙️ مركز الأتمتة</h1>
+</div>
+
+{% if msg %}
+<div class="adm-flash {{ 'success' if msg in ('saved_webhooks','saved_builtin','test_sent','logs_cleared') else 'error' }}">
+  {% if msg == 'saved_webhooks' %}✅ تم حفظ الـ Webhooks
+  {% elif msg == 'saved_builtin' %}✅ تم حفظ الإعدادات المدمجة
+  {% elif msg == 'test_sent' %}📤 تم إرسال الـ Test — تحقق من n8n
+  {% elif msg == 'test_no_url' %}⚠️ لا يوجد URL لهذا الـ Webhook
+  {% elif msg == 'logs_cleared' %}🗑️ تم مسح السجل
+  {% endif %}
+</div>
+{% endif %}
+
+{# ── Stats bar ── #}
+<div class="auto-stats">
+  {% for s in stats %}
+  <div class="auto-stat {{ 'stat-ok' if s.status == 'ok' else 'stat-err' }}">
+    <span class="stat-val">{{ s.cnt }}</span>
+    <span class="stat-lbl">{{ s.event_type }}<br><small>{{ s.status }}</small></span>
+  </div>
+  {% endfor %}
+  <div class="auto-stat stat-warn">
+    <span class="stat-val">{{ notify_count }}</span>
+    <span class="stat-lbl">بانتظار إشعار<br><small>notify leads</small></span>
+  </div>
+</div>
+
+{# ════════════════════════════════════════════
+   القسم 1: Webhooks n8n
+════════════════════════════════════════════ #}
+<div class="adm-card">
+  <h2 class="adm-section-title">🔗 Webhooks — n8n</h2>
+  <p class="adm-section-sub">روابط الـ n8n اللي ببعتلها الأحداث تلقائياً</p>
+  <form method="POST">
+    <input type="hidden" name="action" value="save_webhooks">
+    <table class="adm-table auto-table">
+      <thead><tr><th>الحدث</th><th>Webhook URL</th><th>اختبار</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>طلب جديد</b><br><small>يُطلق عند كل checkout</small></td>
+          <td><input type="url" name="n8n_order_webhook" value="{{ settings.n8n_order_webhook }}" class="adm-input" placeholder="https://n8n.io/webhook/..."></td>
+          <td>
+            <form method="POST" style="display:inline">
+              <input type="hidden" name="action" value="test_webhook">
+              <input type="hidden" name="webhook_key" value="n8n_order_webhook">
+              <button class="btn-adm-sm">📤 Test</button>
+            </form>
+          </td>
+        </tr>
+        <tr>
+          <td><b>تغيير حالة الطلب</b><br><small>new→confirmed→shipped…</small></td>
+          <td><input type="url" name="n8n_status_webhook" value="{{ settings.n8n_status_webhook }}" class="adm-input" placeholder="https://n8n.io/webhook/..."></td>
+          <td>
+            <form method="POST" style="display:inline">
+              <input type="hidden" name="action" value="test_webhook">
+              <input type="hidden" name="webhook_key" value="n8n_status_webhook">
+              <button class="btn-adm-sm">📤 Test</button>
+            </form>
+          </td>
+        </tr>
+        <tr>
+          <td><b>أعلمني (Notify Me)</b><br><small>زبون سجّل طلب إشعار</small></td>
+          <td><input type="url" name="n8n_notify_webhook" value="{{ settings.n8n_notify_webhook }}" class="adm-input" placeholder="https://n8n.io/webhook/..."></td>
+          <td>
+            <form method="POST" style="display:inline">
+              <input type="hidden" name="action" value="test_webhook">
+              <input type="hidden" name="webhook_key" value="n8n_notify_webhook">
+              <button class="btn-adm-sm">📤 Test</button>
+            </form>
+          </td>
+        </tr>
+        <tr>
+          <td><b>مخزون منخفض</b><br><small>عند تحديث stock أقل من العتبة</small></td>
+          <td><input type="url" name="n8n_low_stock_webhook" value="{{ settings.n8n_low_stock_webhook }}" class="adm-input" placeholder="https://n8n.io/webhook/..."></td>
+          <td>
+            <form method="POST" style="display:inline">
+              <input type="hidden" name="action" value="test_webhook">
+              <input type="hidden" name="webhook_key" value="n8n_low_stock_webhook">
+              <button class="btn-adm-sm">📤 Test</button>
+            </form>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Webhook Secret</b><br><small>للـ incoming webhooks من n8n</small></td>
+          <td colspan="2"><input type="text" name="webhook_secret" value="{{ settings.webhook_secret }}" class="adm-input" placeholder="مفتاح سري..."></td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="submit" class="btn-adm-primary" style="margin-top:12px">💾 حفظ الـ Webhooks</button>
+  </form>
+</div>
+
+{# ════════════════════════════════════════════
+   القسم 2: الأتمتة المدمجة
+════════════════════════════════════════════ #}
+<div class="adm-card">
+  <h2 class="adm-section-title">🤖 الأتمتة المدمجة</h2>
+  <p class="adm-section-sub">تعمل تلقائياً داخل المتجر بدون n8n</p>
+  <form method="POST">
+    <input type="hidden" name="action" value="save_builtin">
+    <div class="auto-builtin-grid">
+
+      <div class="auto-builtin-item">
+        <div class="auto-builtin-head">
+          <span>🔔 إشعار تلقائي لما البضاعة ترجع</span>
+          <label class="toggle-switch">
+            <input type="checkbox" name="auto_notify_stock" value="1" {{ 'checked' if settings.auto_notify_stock == '1' }}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p class="auto-builtin-desc">لما تحدّث مخزون منتج من 0 إلى أكثر، يبعت تلقائياً webhook لـ n8n لكل الزبائن المسجّلين — وبيحدّث حالتهم "تم الإشعار"</p>
+        <div class="auto-builtin-stat">
+          <span class="badge {{ 'badge-gold' if notify_count > 0 else 'badge-gray' }}">{{ notify_count }} زبون بانتظار إشعار</span>
+          <a href="{{ url_for('admin_notify_leads') }}" class="btn-adm-sm">عرض الكل</a>
+        </div>
+      </div>
+
+      <div class="auto-builtin-item">
+        <div class="auto-builtin-head">
+          <span>⚠️ تحذير مخزون منخفض</span>
+        </div>
+        <p class="auto-builtin-desc">عند تحديث المخزون، لو وصل لهالعتبة أو أقل، يبعت تحذير لـ n8n</p>
+        <div class="auto-builtin-field">
+          <label>العتبة (عدد القطع)</label>
+          <input type="number" name="low_stock_threshold" value="{{ settings.low_stock_threshold }}" min="1" max="100" class="adm-input" style="width:80px" placeholder="5">
+        </div>
+      </div>
+
+      <div class="auto-builtin-item">
+        <div class="auto-builtin-head">
+          <span>📱 Telegram</span>
+        </div>
+        <p class="auto-builtin-desc">إشعارات فورية على تيليجرام</p>
+        <div class="auto-builtin-field">
+          <label>Bot Token</label>
+          <input type="text" name="telegram_token" value="{{ settings.telegram_token }}" class="adm-input" placeholder="12345:AAFxx...">
+        </div>
+        <div class="auto-builtin-field" style="margin-top:6px">
+          <label>Chat ID</label>
+          <input type="text" name="telegram_chat_id" value="{{ settings.telegram_chat_id }}" class="adm-input" placeholder="-100123456">
+        </div>
+      </div>
+
+    </div>
+    <button type="submit" class="btn-adm-primary" style="margin-top:16px">💾 حفظ الإعدادات</button>
+  </form>
+</div>
+
+{# ════════════════════════════════════════════
+   القسم 3: إشعارات Push — بث يدوي
+════════════════════════════════════════════ #}
+<div class="adm-card">
+  <h2 class="adm-section-title">📣 إشعارات Push — بث يدوي</h2>
+  <p class="adm-section-sub">بيوصل لكل من سمح بالإشعارات من المتجر (منتجات جديدة، خصومات، إعلانات)</p>
+
+  <div id="push-stats-bar" style="margin-bottom:14px;font-size:.82rem;color:var(--adm-muted);">
+    جاري تحميل عدد المشتركين…
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div>
+      <label style="font-size:.78rem;color:var(--adm-muted);display:block;margin-bottom:4px;">عنوان الإشعار *</label>
+      <input type="text" id="push-title" class="adm-input" placeholder="مثال: 🎉 عرض خاص لعيد الأم">
+    </div>
+    <div>
+      <label style="font-size:.78rem;color:var(--adm-muted);display:block;margin-bottom:4px;">رابط (اختياري)</label>
+      <input type="text" id="push-url" class="adm-input" placeholder="/ أو /product/...">
+    </div>
+  </div>
+  <div style="margin-top:10px;">
+    <label style="font-size:.78rem;color:var(--adm-muted);display:block;margin-bottom:4px;">نص الإشعار</label>
+    <input type="text" id="push-body" class="adm-input" placeholder="مثال: خصم 20% على كل أكل القطط — اليوم فقط!">
+  </div>
+
+  <div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button class="btn-adm-primary" onclick="sendBroadcast()">📤 إرسال للكل</button>
+    <span id="push-result" style="font-size:.82rem;"></span>
+  </div>
+
+  <div style="margin-top:16px;border-top:1px solid var(--adm-border);padding-top:14px;">
+    <p style="font-size:.78rem;color:var(--adm-muted);margin:0 0 8px;">إشعارات جاهزة — اضغط لملء الحقول:</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <button class="btn-adm-sm" onclick="fillPreset('🆕 منتجات جديدة!','شوف آخر إضافاتنا لحيوانك الأليف','/');"> 🆕 منتج جديد</button>
+      <button class="btn-adm-sm" onclick="fillPreset('🎁 عرض اليوم','خصم حصري لفترة محدودة — تسوّق هلق!','/');"> 🎁 عرض</button>
+      <button class="btn-adm-sm" onclick="fillPreset('📦 طلبك على الطريق!','تابع حالة طلبك من المتجر','/');"> 📦 تذكير طلب</button>
+      <button class="btn-adm-sm" onclick="fillPreset('⚠️ آخر قطع!','بعض المنتجات رح تنفد قريباً — لا تفوّتها','/');"> ⚠️ آخر قطع</button>
+    </div>
+  </div>
+</div>
+
+<script>
+async function loadPushStats() {
+  try {
+    const r = await fetch('/admin/push/stats');
+    const d = await r.json();
+    document.getElementById('push-stats-bar').innerHTML =
+      `👥 <b>${d.general}</b> مشترك عام &nbsp;|&nbsp; 🔔 <b>${d.product}</b> مشترك بمنتجات محددة &nbsp;|&nbsp; <b>${d.total}</b> إجمالي`;
+  } catch(e) {
+    document.getElementById('push-stats-bar').textContent = 'تعذّر تحميل الإحصائيات';
+  }
+}
+loadPushStats();
+
+function fillPreset(title, body, url) {
+  document.getElementById('push-title').value = title;
+  document.getElementById('push-body').value  = body;
+  document.getElementById('push-url').value   = url;
+}
+
+async function sendBroadcast() {
+  const title = document.getElementById('push-title').value.trim();
+  const body  = document.getElementById('push-body').value.trim();
+  const url   = document.getElementById('push-url').value.trim() || '/';
+  const res   = document.getElementById('push-result');
+  if (!title) { res.textContent = '⚠️ العنوان مطلوب'; return; }
+  res.textContent = '⏳ جاري الإرسال…';
+  try {
+    const fd = new FormData();
+    fd.append('push_title', title);
+    fd.append('push_body',  body);
+    fd.append('push_url',   url);
+    const r = await fetch('/admin/push/broadcast', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (d.ok) {
+      res.innerHTML = `✅ تم الإرسال لـ <b>${d.recipients}</b> مشترك`;
+      res.style.color = '#4ade80';
+    } else {
+      res.textContent = '❌ ' + (d.error || 'خطأ');
+      res.style.color = '#f87171';
+    }
+  } catch(e) {
+    res.textContent = '❌ فشل الإرسال';
+    res.style.color = '#f87171';
+  }
+}
+</script>
+
+{# ════════════════════════════════════════════
+   القسم 4: سجل الأحداث
+════════════════════════════════════════════ #}
+<div class="adm-card">
+  <div class="adm-card-head">
+    <h2 class="adm-section-title">📋 سجل الأحداث</h2>
+    <form method="POST" style="display:inline">
+      <input type="hidden" name="action" value="clear_logs">
+      <button class="btn-adm-sm btn-danger-sm" onclick="return confirm('مسح كل السجل؟')">🗑️ مسح</button>
+    </form>
+  </div>
+  {% if logs %}
+  <table class="adm-table">
+    <thead><tr><th>الحدث</th><th>الحالة</th><th>التفاصيل</th><th>الوقت</th></tr></thead>
+    <tbody>
+      {% for l in logs %}
+      <tr>
+        <td><code>{{ l.event_type }}</code></td>
+        <td><span class="badge {{ 'badge-green' if l.status == 'ok' else 'badge-red' }}">{{ l.status }}</span></td>
+        <td class="text-muted small">{{ l.summary or '—' }}</td>
+        <td class="text-muted small" dir="ltr">{{ l.created_at[:16] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="adm-empty">لا يوجد أحداث مسجّلة بعد.</div>
+  {% endif %}
+</div>
+
+<style>
+.auto-stats { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+.auto-stat { background:var(--adm-surface); border:1px solid var(--adm-border); border-radius:10px; padding:12px 16px; display:flex; align-items:center; gap:12px; min-width:140px; }
+.stat-ok { border-color:#2d6a3f; }
+.stat-err { border-color:#7a2222; }
+.stat-warn { border-color:#7a5c00; }
+.stat-val { font-size:1.5rem; font-weight:700; color:var(--adm-text); }
+.stat-lbl { font-size:0.72rem; color:var(--adm-muted); line-height:1.4; }
+.adm-card { background:var(--adm-surface); border:1px solid var(--adm-border); border-radius:12px; padding:20px; margin-bottom:20px; }
+.adm-card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.adm-section-title { font-size:1rem; font-weight:600; margin:0 0 4px; }
+.adm-section-sub { font-size:0.78rem; color:var(--adm-muted); margin:0 0 16px; }
+.auto-table td { vertical-align:middle; }
+.auto-table td:first-child { font-size:0.82rem; white-space:nowrap; }
+.adm-input { background:var(--adm-bg); border:1px solid var(--adm-border); border-radius:6px; padding:7px 10px; color:var(--adm-text); font-size:0.82rem; width:100%; }
+.auto-builtin-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+@media(max-width:700px){ .auto-builtin-grid{ grid-template-columns:1fr; } }
+.auto-builtin-item { background:var(--adm-bg); border:1px solid var(--adm-border); border-radius:10px; padding:14px; }
+.auto-builtin-head { display:flex; align-items:center; justify-content:space-between; font-size:0.88rem; font-weight:600; margin-bottom:8px; }
+.auto-builtin-desc { font-size:0.75rem; color:var(--adm-muted); margin:0 0 10px; line-height:1.5; }
+.auto-builtin-stat { display:flex; align-items:center; gap:8px; }
+.auto-builtin-field label { font-size:0.72rem; color:var(--adm-muted); display:block; margin-bottom:3px; }
+.toggle-switch { position:relative; display:inline-block; width:40px; height:22px; }
+.toggle-switch input { opacity:0; width:0; height:0; }
+.toggle-slider { position:absolute; cursor:pointer; inset:0; background:#444; border-radius:22px; transition:.3s; }
+.toggle-slider:before { position:absolute; content:""; height:16px; width:16px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
+input:checked + .toggle-slider { background:#d4a72c; }
+input:checked + .toggle-slider:before { transform:translateX(18px); }
+.btn-danger-sm { background:#7a2222 !important; color:#fff !important; }
+</style>
+
+{% endblock %}

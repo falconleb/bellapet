@@ -1,0 +1,231 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'PWA App Stats' if lang == 'en' else 'إحصائيات التطبيق' }}{% endblock %}
+{% block content %}
+
+{% set ar = lang == 'ar' %}
+
+<div class="adm-page-head">
+  <h1>📱 {{ 'PWA App Statistics' if not ar else 'إحصائيات التطبيق (PWA)' }}</h1>
+</div>
+
+{# ── Stats cards ── #}
+<div class="pwa-stats-grid">
+  <div class="pwa-stat-card">
+    <div class="psc-icon">📲</div>
+    <div class="psc-val">{{ total_installed }}</div>
+    <div class="psc-lbl">{{ 'Total Installs' if not ar else 'تثبيت كلي' }}</div>
+    <div class="psc-sub">{{ 'From Android & Desktop' if not ar else 'من Android & Desktop' }}</div>
+  </div>
+  <div class="pwa-stat-card">
+    <div class="psc-icon">🚀</div>
+    <div class="psc-val">{{ total_launches }}</div>
+    <div class="psc-lbl">{{ 'Home Screen Launches' if not ar else 'فتح من الشاشة الرئيسية' }}</div>
+    <div class="psc-sub">Standalone sessions</div>
+  </div>
+  <div class="pwa-stat-card">
+    <div class="psc-icon">🔔</div>
+    <div class="psc-val">{{ push_general }}</div>
+    <div class="psc-lbl">{{ 'Push Subscribers' if not ar else 'مشترك بالإشعارات العامة' }}</div>
+    <div class="psc-sub">{{ 'Offers & new products' if not ar else 'عروض & منتجات جديدة' }}</div>
+  </div>
+  <div class="pwa-stat-card">
+    <div class="psc-icon">📦</div>
+    <div class="psc-val">{{ push_product }}</div>
+    <div class="psc-lbl">{{ 'Product Alerts' if not ar else 'مشترك بمنتج محدد' }}</div>
+    <div class="psc-sub">Notify Me {{ '(مخزون)' if ar else '(stock)' }}</div>
+  </div>
+</div>
+
+{# ── Chart ── #}
+{% if chart_days %}
+<div class="adm-card">
+  <h2 class="adm-section-title">📊 {{ 'Activity — Last 30 Days' if not ar else 'النشاط — آخر 30 يوم' }}</h2>
+  <div style="overflow-x:auto;">
+    <table class="adm-table">
+      <thead>
+        <tr>
+          <th>{{ 'Date' if not ar else 'اليوم' }}</th>
+          <th>📲 {{ 'Installs' if not ar else 'تثبيت' }}</th>
+          <th>🚀 {{ 'Launches' if not ar else 'فتح من الهوم' }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for day in chart_days|reverse %}
+        <tr>
+          <td dir="ltr" class="text-muted">{{ day }}</td>
+          <td>
+            {% set n = days_map[day].installed %}
+            {% if n > 0 %}<span class="badge badge-green">+{{ n }}</span>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% set n = days_map[day].launch %}
+            {% if n > 0 %}<span class="badge badge-gold">{{ n }}</span>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="adm-card">
+  <div class="adm-empty">
+    <p>{{ 'No data yet.' if not ar else 'لا يوجد بيانات بعد.' }}</p>
+    <p class="text-muted small">
+      {{ 'Numbers will appear once a customer installs or launches the app from their home screen.' if not ar
+         else 'بيبدأ يجمع أرقام لما زبون يثبّت التطبيق أو يفتحه من شاشته الرئيسية.' }}
+    </p>
+  </div>
+</div>
+{% endif %}
+
+{# ── دليل التثبيت ── #}
+<div class="adm-card">
+  <h2 class="adm-section-title">📥 {{ 'Installation Guide — How does a customer install the app?' if not ar else 'دليل التثبيت — كيف يثبّت الزبون التطبيق؟' }}</h2>
+  <div class="pwa-install-grid">
+
+    <div class="pwa-install-box pwa-install-android">
+      <div class="pib-header">
+        <span class="pib-icon">🤖</span>
+        <strong>Android (Chrome)</strong>
+      </div>
+      <ol class="pib-steps">
+        {% if ar %}
+        <li>افتح <strong>bellapetstore.com</strong> بـ Chrome</li>
+        <li>اضغط على <strong>⋮</strong> (ثلاث نقاط) بزاوية الشاشة</li>
+        <li>اختر <strong>"إضافة إلى الشاشة الرئيسية"</strong></li>
+        <li>اضغط <strong>إضافة</strong> وتأكيد</li>
+        {% else %}
+        <li>Open <strong>bellapetstore.com</strong> in Chrome</li>
+        <li>Tap <strong>⋮</strong> (three dots) in the corner</li>
+        <li>Select <strong>"Add to Home Screen"</strong></li>
+        <li>Tap <strong>Add</strong> to confirm</li>
+        {% endif %}
+      </ol>
+      <div class="pib-note">✅ {{ 'Automatically records install stats' if not ar else 'يسجّل إحصائيات التثبيت تلقائياً' }}</div>
+    </div>
+
+    <div class="pwa-install-box pwa-install-ios">
+      <div class="pib-header">
+        <span class="pib-icon">🍎</span>
+        <strong>iPhone / iPad (Safari)</strong>
+      </div>
+      <ol class="pib-steps">
+        {% if ar %}
+        <li>افتح <strong>bellapetstore.com</strong> بـ <strong>Safari</strong> (مش Chrome)</li>
+        <li>اضغط على زر <strong>Share</strong> 〔□↑〕</li>
+        <li>اختر <strong>"Add to Home Screen"</strong></li>
+        <li>اضغط <strong>Add</strong> بزاوية اليمين</li>
+        {% else %}
+        <li>Open <strong>bellapetstore.com</strong> in <strong>Safari</strong> (not Chrome)</li>
+        <li>Tap the <strong>Share</strong> button 〔□↑〕</li>
+        <li>Select <strong>"Add to Home Screen"</strong></li>
+        <li>Tap <strong>Add</strong> in the top right</li>
+        {% endif %}
+      </ol>
+      <div class="pib-note">⚠️ {{ 'iOS does not record install events — numbers won\'t appear here' if not ar else 'iOS ما بيسجّل أحداث التثبيت — الأرقام مش مرئية هون' }}</div>
+    </div>
+
+    <div class="pwa-install-box pwa-install-desktop">
+      <div class="pib-header">
+        <span class="pib-icon">🖥️</span>
+        <strong>Desktop (Chrome / Edge)</strong>
+      </div>
+      <ol class="pib-steps">
+        {% if ar %}
+        <li>افتح <strong>bellapetstore.com</strong> بالمتصفح</li>
+        <li>اضغط أيقونة التثبيت <strong>⊕</strong> بشريط العنوان</li>
+        <li>أو من القائمة: <strong>المزيد ← تثبيت BellaPet</strong></li>
+        <li>اضغط <strong>تثبيت</strong></li>
+        {% else %}
+        <li>Open <strong>bellapetstore.com</strong> in your browser</li>
+        <li>Click the install icon <strong>⊕</strong> in the address bar</li>
+        <li>Or from menu: <strong>More → Install BellaPet</strong></li>
+        <li>Click <strong>Install</strong></li>
+        {% endif %}
+      </ol>
+      <div class="pib-note">✅ {{ 'Automatically records install stats' if not ar else 'يسجّل إحصائيات التثبيت تلقائياً' }}</div>
+    </div>
+
+  </div>
+</div>
+
+{# ── iOS Note ── #}
+<div class="adm-card" style="border-color:#7a5c00;">
+  <h2 class="adm-section-title">⚠️ {{ 'iOS Note' if not ar else 'ملاحظة iOS' }}</h2>
+  <p style="font-size:.82rem;color:var(--muted);margin:0;line-height:1.8;">
+    {% if ar %}
+    iPhone & iPad لا يدعمون <code>appinstalled</code> event — التثبيت يدوي عبر
+    <strong>Safari ← Share ← Add to Home Screen</strong>.
+    بسبب هيك، الأرقام بتعكس <strong>Android وـ Desktop فقط</strong>.
+    فتحات الـ Standalone (🚀) بتشتغل على iOS أيضاً.
+    {% else %}
+    iPhone & iPad do not support the <code>appinstalled</code> event — installation is manual via
+    <strong>Safari → Share → Add to Home Screen</strong>.
+    As a result, the numbers only reflect <strong>Android and Desktop</strong> installs.
+    Standalone launches (🚀) are tracked on iOS as well.
+    {% endif %}
+  </p>
+</div>
+
+{# ── آخر الأحداث / Recent Events ── #}
+{% if recent %}
+<div class="adm-card">
+  <h2 class="adm-section-title">🕐 {{ 'Recent Events' if not ar else 'آخر الأحداث' }}</h2>
+  <table class="adm-table">
+    <thead>
+      <tr>
+        <th>{{ 'Event' if not ar else 'الحدث' }}</th>
+        <th>{{ 'Device' if not ar else 'الجهاز' }}</th>
+        <th>{{ 'Time' if not ar else 'الوقت' }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in recent %}
+      <tr>
+        <td>
+          {% if r.event == 'installed' %}
+            <span class="badge badge-green">📲 {{ 'Install' if not ar else 'تثبيت' }}</span>
+          {% else %}
+            <span class="badge badge-gold">🚀 {{ 'Launch' if not ar else 'فتح' }}</span>
+          {% endif %}
+        </td>
+        <td class="text-muted small" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" dir="ltr" title="{{ r.ua }}">
+          {{ r.ua[:80] if r.ua else '—' }}
+        </td>
+        <td class="text-muted small" dir="ltr">{{ r.created_at[:16] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<style>
+.pwa-stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+@media(max-width:700px){ .pwa-stats-grid{ grid-template-columns:1fr 1fr; } }
+.pwa-stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 14px; text-align:center; }
+.psc-icon { font-size:1.8rem; margin-bottom:6px; }
+.psc-val  { font-size:2rem; font-weight:700; color:var(--text); }
+.psc-lbl  { font-size:.8rem; font-weight:600; margin-top:4px; color:var(--text); }
+.psc-sub  { font-size:.68rem; color:var(--muted); margin-top:2px; }
+
+/* ── Install guide ── */
+.pwa-install-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+@media(max-width:900px){ .pwa-install-grid{ grid-template-columns:1fr; } }
+.pwa-install-box { border-radius:10px; padding:16px; border:1px solid var(--border); background:var(--surface2); }
+.pwa-install-android { border-top:3px solid #4ade80; }
+.pwa-install-ios     { border-top:3px solid #60a5fa; }
+.pwa-install-desktop { border-top:3px solid #d4a72c; }
+.pib-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.pib-icon   { font-size:1.4rem; }
+.pib-header strong { font-size:.9rem; }
+.pib-steps  { padding-inline-start:18px; margin:0 0 10px; display:flex; flex-direction:column; gap:6px; }
+.pib-steps li { font-size:.82rem; color:var(--muted); line-height:1.5; }
+.pib-steps li strong { color:var(--text); }
+.pib-note { font-size:.75rem; padding:6px 10px; border-radius:6px; background:var(--surface); }
+</style>
+
+{% endblock %}

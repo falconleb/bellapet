@@ -1,0 +1,62 @@
+{% extends "admin/base.html" %}
+{% block title %}الرئيسية{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>لوحة التحكم</h1>
+</div>
+
+<div class="adm-stats">
+  <div class="adm-stat">
+    <span class="stat-val">{{ stats.products }}</span>
+    <span class="stat-label">منتج نشط</span>
+  </div>
+  <div class="adm-stat highlight">
+    <span class="stat-val">{{ stats.orders_new }}</span>
+    <span class="stat-label">طلب جديد</span>
+  </div>
+  <div class="adm-stat">
+    <span class="stat-val">{{ stats.orders_total }}</span>
+    <span class="stat-label">إجمالي الطلبات</span>
+  </div>
+  <div class="adm-stat">
+    <span class="stat-val">{{ stats.blog }}</span>
+    <span class="stat-label">مقالة في المدونة</span>
+  </div>
+</div>
+
+<div class="adm-section">
+  <div class="adm-section-head">
+    <h2>آخر الطلبات</h2>
+    <a href="{{ url_for('admin_orders') }}" class="adm-link">عرض الكل</a>
+  </div>
+  {% if recent %}
+  <table class="adm-table">
+    <thead>
+      <tr><th>#</th><th>الاسم</th><th>الهاتف</th><th>المنطقة</th><th>المجموع</th><th>الحالة</th><th>التاريخ</th></tr>
+    </thead>
+    <tbody>
+      {% for o in recent %}
+      <tr>
+        <td><a href="{{ url_for('admin_order_detail', oid=o.id) }}" class="adm-link">#{{ o.id }}</a></td>
+        <td>{{ o.customer_name }}</td>
+        <td>{{ o.phone }}</td>
+        <td>{{ o.area }}</td>
+        <td>${{ '%.2f'|format(o.total) }}</td>
+        <td><span class="status-badge status-{{ o.status }}">{{ o.status }}</span></td>
+        <td class="text-muted">{{ o.created_at[:10] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="adm-empty">لا يوجد طلبات بعد.</p>
+  {% endif %}
+</div>
+
+<div class="adm-quick-links">
+  <a href="{{ url_for('admin_product_new') }}" class="btn-adm-primary">+ منتج جديد</a>
+  <a href="{{ url_for('admin_blog_new') }}" class="btn-adm-secondary">+ مقالة جديدة</a>
+</div>
+
+{% endblock %}

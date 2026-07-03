@@ -1,0 +1,114 @@
+{% extends "admin/base.html" %}
+{% block title %}مقترحات AI{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>💡 مقترحات AI
+    {% if suggestions %}<span class="adm-count">{{ suggestions|length }}</span>{% endif %}
+  </h1>
+  <form method="post" action="{{ url_for('admin_ai_suggestions_generate') }}">
+    <button type="submit" class="btn-adm-primary">🔄 تحليل جديد</button>
+  </form>
+</div>
+
+<p style="color:var(--muted);font-size:0.82rem;margin-bottom:20px">
+  AI يقترح — أنت تقرر. لا شيء ينفّذ بدون موافقتك.
+</p>
+
+{% set type_meta = {
+  'promo':        ('⬇️', 'rgba(212,167,44,.08)',  'rgba(212,167,44,.3)'),
+  'reactivate':   ('📱', 'rgba(56,189,248,.08)',  'rgba(56,189,248,.3)'),
+  'review_insight':('⭐', 'rgba(139,92,246,.08)', 'rgba(139,92,246,.3)'),
+} %}
+
+{% if suggestions %}
+<div class="sugg-list">
+  {% for s in suggestions %}
+  {% set icon, bg, border = type_meta.get(s.type, ('💡','rgba(100,100,100,.08)','rgba(100,100,100,.2)')) %}
+  <div class="sugg-card" style="background:{{ bg }};border-color:{{ border }}">
+    <div class="sugg-head">
+      <span class="sugg-icon">{{ icon }}</span>
+      <span class="sugg-title">{{ s.title }}</span>
+      <span class="sugg-date">{{ s.created_at[:10] }}</span>
+    </div>
+    <div class="sugg-body">{{ s.body | replace('\n','<br>') | safe }}</div>
+    <div class="sugg-actions">
+      {% if s.type != 'review_insight' %}
+      <form method="post" action="{{ url_for('admin_suggestion_execute', sid=s.id) }}" style="display:inline">
+        <button type="submit" class="btn-adm-primary">
+          {% if s.type == 'promo' %}✅ طبّق العرض
+          {% elif s.type == 'reactivate' %}📱 افتح واتساب
+          {% else %}✅ نفّذ{% endif %}
+        </button>
+      </form>
+      {% endif %}
+      <form method="post" action="{{ url_for('admin_suggestion_dismiss', sid=s.id) }}" style="display:inline">
+        <button type="submit" class="btn-adm-secondary">تجاهل</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="adm-card" style="text-align:center;padding:50px;color:var(--muted)">
+  <div style="font-size:2.5rem;margin-bottom:12px">🤖</div>
+  <p>ما في مقترحات حالياً — اضغط "تحليل جديد" ليراجع AI المتجر</p>
+</div>
+{% endif %}
+
+{% if done %}
+<details style="margin-top:28px">
+  <summary style="cursor:pointer;font-size:0.82rem;color:var(--muted);padding:8px 0">
+    📁 السابقة ({{ done|length }})
+  </summary>
+  <div class="sugg-list" style="margin-top:12px;opacity:0.6">
+    {% for s in done %}
+    {% set icon, bg, border = type_meta.get(s.type, ('💡','rgba(100,100,100,.05)','rgba(100,100,100,.1)')) %}
+    <div class="sugg-card" style="background:{{ bg }};border-color:{{ border }}">
+      <div class="sugg-head">
+        <span class="sugg-icon">{{ icon }}</span>
+        <span class="sugg-title">{{ s.title }}</span>
+        <span class="sugg-date">
+          {% if s.status == 'executed' %}<span style="color:#34d399">✅ نُفِّذ</span>
+          {% else %}<span style="color:var(--muted)">تجاهل</span>{% endif %}
+          · {{ s.created_at[:10] }}
+        </span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</details>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+.sugg-list { display:flex; flex-direction:column; gap:14px; }
+.sugg-card {
+  border: 1px solid;
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+.sugg-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.sugg-icon  { font-size: 1.3rem; flex-shrink:0; }
+.sugg-title { font-weight: 700; font-size: 0.95rem; flex:1; }
+.sugg-date  { font-size: 0.72rem; color: var(--muted); white-space:nowrap; }
+.sugg-body  {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: rgba(0,0,0,.15);
+  border-radius: 8px;
+}
+.sugg-actions { display:flex; gap:8px; }
+</style>
+{% endblock %}

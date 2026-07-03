@@ -1,0 +1,246 @@
+{% extends "admin/base.html" %}
+{% block title %}نظام الولاء{% endblock %}
+
+{% block content %}
+<div class="adm-page-header">
+  <h1>🎁 نظام الولاء</h1>
+  <p style="color:var(--muted);font-size:0.85rem;margin-top:4px">أضف ميزات خاصة لزبائن محددين بحسب رقم الهاتف</p>
+</div>
+
+{% if msg %}
+<div class="adm-alert {{ 'adm-alert-success' if msg == 'تم الحفظ' else 'adm-alert-info' }}">{{ msg }}</div>
+{% endif %}
+
+{# ── فورم الإضافة / التعديل ── #}
+<div class="adm-card" style="margin-bottom:28px">
+  <h3 style="margin-bottom:16px">إضافة أو تعديل ميزة</h3>
+  <form method="post" id="perk-form">
+    <input type="hidden" name="action" value="save">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="adm-field">
+        <label>رقم الهاتف <span style="color:#f87171">*</span></label>
+        <input type="text" name="phone" id="phone-input" placeholder="مثال: 70123456"
+               required dir="ltr" style="text-align:left">
+      </div>
+      <div class="adm-field">
+        <label>اسم الزبون</label>
+        <input type="text" name="customer_name" id="customer-name" placeholder="مثال: أحمد">
+      </div>
+      <div class="adm-field">
+        <label>نوع الميزة <span style="color:#f87171">*</span></label>
+        <select name="perk_type" id="perk-type" onchange="updateValueLabel()">
+          <option value="free_shipping">🚚 شحن مجاني</option>
+          <option value="discount_pct">💸 خصم نسبة مئوية</option>
+          <option value="discount_fixed">💵 خصم مبلغ ثابت</option>
+          <option value="voucher">🎟 قسيمة شرائية</option>
+          <option value="blocked">🚫 محظور</option>
+        </select>
+      </div>
+      <div class="adm-field" id="value-field">
+        <label id="value-label">القيمة</label>
+        <input type="text" name="perk_value" id="perk-value" placeholder="مثال: 15"
+               dir="ltr" style="text-align:left">
+      </div>
+      <div class="adm-field">
+        <label>تاريخ الانتهاء <span style="color:var(--muted);font-size:0.75rem">(اختياري)</span></label>
+        <input type="date" name="expires_at">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="adm-field">
+        <label>شرط التفعيل <span style="color:var(--muted);font-size:0.75rem">(اتركه فاضي = بلا شرط)</span></label>
+        <select name="condition_type" id="cond-type" onchange="updateCondLabel()">
+          <option value="">— بلا شرط —</option>
+          <option value="min_order">💰 فاتورة بحد أدنى</option>
+          <option value="before_date">📅 قبل تاريخ معين</option>
+          <option value="social">📲 متابعة سوشل ميديا</option>
+        </select>
+      </div>
+      <div class="adm-field" id="cond-value-field" style="display:none">
+        <label id="cond-value-label">القيمة</label>
+        <input type="text" name="condition_value" id="cond-value"
+               dir="ltr" style="text-align:left">
+      </div>
+    </div>
+
+    <div class="adm-field">
+      <label>ملاحظة داخلية <span style="color:var(--muted);font-size:0.75rem">(اختياري)</span></label>
+      <input type="text" name="note" placeholder="مثال: زبون VIP — طلب 10 مرات">
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap">
+      <button type="submit" class="btn-adm-primary">💾 حفظ الميزة</button>
+      <button type="button" class="btn-adm-secondary" onclick="previewWa()">📱 معاينة رسالة واتساب</button>
+    </div>
+  </form>
+</div>
+
+{# ── جدول الزبائن ── #}
+<div class="adm-card">
+  <h3 style="margin-bottom:16px">قائمة الزبائن ({{ perks|length }})</h3>
+  {% if perks %}
+  <table class="adm-table">
+    <thead>
+      <tr>
+        <th>رقم الهاتف</th>
+        <th>الاسم</th>
+        <th>الميزة</th>
+        <th>القيمة</th>
+        <th>الشرط</th>
+        <th>ملاحظة</th>
+        <th>تنتهي</th>
+        <th>إجراء</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in perks %}
+      <tr>
+        <td dir="ltr" style="text-align:left;font-weight:600">{{ p['phone'] }}</td>
+        <td>{{ p['customer_name'] or '—' }}</td>
+        <td>
+          {% if p['perk_type'] == 'free_shipping' %}🚚 شحن مجاني
+          {% elif p['perk_type'] == 'discount_pct' %}💸 خصم %
+          {% elif p['perk_type'] == 'discount_fixed' %}💵 خصم ثابت
+          {% elif p['perk_type'] == 'voucher' %}🎟 قسيمة
+          {% elif p['perk_type'] == 'blocked' %}🚫 محظور
+          {% endif %}
+        </td>
+        <td>{{ p['perk_value'] or '—' }}</td>
+        <td style="font-size:0.78rem;color:var(--muted)">
+          {% if p['condition_type'] == 'min_order' %}💰 فاتورة ${{ p['condition_value'] }}+
+          {% elif p['condition_type'] == 'before_date' %}📅 قبل {{ p['condition_value'] }}
+          {% elif p['condition_type'] == 'social' %}📲 سوشل
+          {% else %}—{% endif %}
+        </td>
+        <td style="color:var(--muted);font-size:0.8rem">{{ p['note'] or '—' }}</td>
+        <td style="font-size:0.8rem">{{ p['expires_at'] or 'لا تنتهي' }}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button type="button" class="btn-adm-sm"
+                    onclick="sendWa('{{ p['phone'] }}','{{ p['perk_type'] }}','{{ p['perk_value'] or '' }}','{{ p['condition_type'] or '' }}','{{ p['condition_value'] or '' }}','{{ p['customer_name'] or '' }}')">
+              📱 واتساب
+            </button>
+            <button type="button" class="btn-adm-sm"
+                    onclick="editPerk('{{ p['phone'] }}','{{ p['perk_type'] }}','{{ p['perk_value'] or '' }}','{{ p['note'] or '' }}','{{ p['expires_at'] or '' }}','{{ p['condition_type'] or '' }}','{{ p['condition_value'] or '' }}','{{ p['customer_name'] or '' }}')">
+              ✏️
+            </button>
+            <form method="post" style="display:inline"
+                  onsubmit="return confirm('حذف الميزة لـ {{ p['phone'] }}؟')">
+              <input type="hidden" name="action" value="delete">
+              <input type="hidden" name="perk_id" value="{{ p['id'] }}">
+              <button type="submit" class="btn-adm-sm danger">✕</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--muted);text-align:center;padding:32px">لا يوجد زبائن بميزات خاصة حتى الآن</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const STORE_WA = '{{ config.WHATSAPP_NUMBER if config is defined else "" }}';
+
+function updateValueLabel() {
+  const type  = document.getElementById('perk-type').value;
+  const field = document.getElementById('value-field');
+  const label = document.getElementById('value-label');
+  const input = document.getElementById('perk-value');
+  if (type === 'discount_pct') {
+    field.style.display = ''; label.textContent = 'نسبة الخصم (%)';
+    input.placeholder = 'مثال: 15';
+  } else if (type === 'discount_fixed') {
+    field.style.display = ''; label.textContent = 'مبلغ الخصم ($)';
+    input.placeholder = 'مثال: 5';
+  } else if (type === 'voucher') {
+    field.style.display = ''; label.textContent = 'كود القسيمة';
+    input.placeholder = 'مثال: LOYAL2024';
+  } else {
+    field.style.display = 'none';
+  }
+}
+
+function buildMsg(phone, perkType, perkValue, condType, condValue, customerName) {
+  let offer = '';
+  if (perkType === 'free_shipping')       offer = 'شحن مجاني على طلبك 🚚';
+  else if (perkType === 'discount_pct')   offer = `خصم ${perkValue}% على طلبك 💸`;
+  else if (perkType === 'discount_fixed') offer = `خصم $${perkValue} على طلبك 💵`;
+  else if (perkType === 'voucher')        offer = `قسيمة شرائية بقيمة $${perkValue} 🎟`;
+  else return null;
+
+  let condLine = '';
+  if (condType === 'min_order' && condValue)
+    condLine = `\n📌 الشرط: فاتورتك تكون $${condValue} أو أكثر`;
+  else if (condType === 'before_date' && condValue)
+    condLine = `\n📌 العرض ساري لغاية: ${condValue}`;
+  else if (condType === 'social' && condValue)
+    condLine = `\n📌 ${condValue}`;
+
+  const greeting = customerName ? `أهلاً ${customerName}! 🐾` : 'أهلاً! 🐾';
+  return `${greeting}\nبما إنك من زبائننا المميزين، عندنا هدية خاصة إلك:\n✨ ${offer}${condLine}\n\nالميزة بتتطبق تلقائياً لما تطلب بهاي الرقم.\nشكراً لثقتك بـ Bella Pet! 💛`;
+}
+
+function sendWa(phone, perkType, perkValue, condType, condValue, customerName) {
+  const msg = buildMsg(phone, perkType, perkValue, condType, condValue, customerName);
+  if (!msg) { alert('لا يوجد رسالة للإرسال لهذا النوع'); return; }
+  const num = phone.replace(/\D/g, '');
+  const intl = num.startsWith('0') ? '961' + num.slice(1) : (num.startsWith('961') ? num : '961' + num);
+  window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function previewWa() {
+  const phone        = document.getElementById('phone-input').value.trim();
+  const perkType     = document.getElementById('perk-type').value;
+  const perkValue    = document.getElementById('perk-value').value.trim();
+  const condType     = document.getElementById('cond-type').value;
+  const condValue    = document.getElementById('cond-value').value.trim();
+  const customerName = document.getElementById('customer-name').value.trim();
+  if (!phone) { alert('أدخل رقم الهاتف أولاً'); return; }
+  sendWa(phone, perkType, perkValue, condType, condValue, customerName);
+}
+
+function updateCondLabel() {
+  const type  = document.getElementById('cond-type').value;
+  const field = document.getElementById('cond-value-field');
+  const label = document.getElementById('cond-value-label');
+  const input = document.getElementById('cond-value');
+  if (!type) { field.style.display = 'none'; return; }
+  field.style.display = '';
+  if (type === 'min_order') {
+    label.textContent = 'الحد الأدنى للفاتورة ($)';
+    input.placeholder = 'مثال: 50';
+  } else if (type === 'before_date') {
+    label.textContent = 'قبل تاريخ';
+    input.type = 'date';
+    input.placeholder = '';
+  } else if (type === 'social') {
+    label.textContent = 'التعليمات للزبون';
+    input.placeholder = 'مثال: تابع صفحتنا على انستغرام @bellapetlb';
+  }
+}
+
+function editPerk(phone, type, value, note, expires, condType, condValue, custName) {
+  document.getElementById('phone-input').value    = phone;
+  document.getElementById('customer-name').value  = custName || '';
+  document.getElementById('perk-type').value      = type;
+  document.getElementById('perk-value').value     = value;
+  document.querySelector('[name=note]').value      = note;
+  document.querySelector('[name=expires_at]').value = expires;
+  document.getElementById('cond-type').value      = condType || '';
+  document.getElementById('cond-value').value     = condValue || '';
+  updateValueLabel();
+  updateCondLabel();
+  document.getElementById('perk-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+updateValueLabel();
+updateCondLabel();
+</script>
+{% endblock %}

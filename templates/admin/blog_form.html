@@ -1,0 +1,61 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'تعديل مقالة' if post else 'مقالة جديدة' }}{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>{{ 'تعديل مقالة' if post else 'مقالة جديدة' }}</h1>
+  <a href="{{ url_for('admin_blog') }}" class="btn-adm-secondary">← رجوع</a>
+</div>
+
+<form method="post" class="adm-form" novalidate>
+
+  <div class="adm-form-section">
+    <h3>العناوين</h3>
+    <div class="adm-grid-2">
+      <div class="adm-field {{ 'has-error' if errors.get('title_ar') }}">
+        <label>العنوان بالعربي *</label>
+        <input type="text" name="title_ar" dir="rtl" value="{{ form.get('title_ar', '') }}">
+      </div>
+      <div class="adm-field {{ 'has-error' if errors.get('title_en') }}">
+        <label>العنوان بالإنجليزي *</label>
+        <input type="text" name="title_en" value="{{ form.get('title_en', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>الرابط (Slug) <span class="hint">يُولَّد تلقائياً إن تُرك فارغاً</span></label>
+        <input type="text" name="slug" value="{{ form.get('slug', '') }}"
+               placeholder="مثال: how-to-feed-your-cat">
+      </div>
+    </div>
+  </div>
+
+  <div class="adm-form-section">
+    <h3>المحتوى</h3>
+    <div class="adm-grid-2">
+      <div class="adm-field">
+        <label>المحتوى بالعربي</label>
+        <textarea name="content_ar" dir="rtl" rows="8">{{ form.get('content_ar', '') }}</textarea>
+      </div>
+      <div class="adm-field">
+        <label>المحتوى بالإنجليزي</label>
+        <textarea name="content_en" rows="8">{{ form.get('content_en', '') }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="adm-form-section">
+    <label class="adm-checkbox">
+      <input type="checkbox" name="is_published" {{ 'checked' if form.get('is_published', True) }}>
+      منشور (ظاهر على الموقع)
+    </label>
+  </div>
+
+  <div class="adm-form-actions">
+    <button type="submit" class="btn-adm-primary">
+      {{ 'حفظ التعديلات' if post else 'نشر المقالة' }}
+    </button>
+    <a href="{{ url_for('admin_blog') }}" class="btn-adm-ghost">إلغاء</a>
+  </div>
+
+</form>
+
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title_ar if lang == 'ar' else page.title_en }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+
+{% block content %}
+<div class="content-page-wrap">
+  <h1 class="cp-title">{{ page.title_ar if lang == 'ar' else page.title_en }}</h1>
+  <div class="cp-body">
+    {% set body = page.body_ar if lang == 'ar' else page.body_en %}
+    {% if body %}
+      {{ body | nl2br }}
+    {% else %}
+      <p class="cp-empty">{{ 'قريباً...' if lang == 'ar' else 'Coming soon...' }}</p>
+    {% endif %}
+  </div>
+  <div class="cp-footer-links">
+    <a href="{{ url_for('index') }}" class="cp-back">← {{ 'الرئيسية' if lang == 'ar' else 'Home' }}</a>
+    <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="btn-wa-confirm">
+      💬 {{ 'واتساب' if lang == 'ar' else 'WhatsApp' }}
+    </a>
+  </div>
+</div>
+{% endblock %}

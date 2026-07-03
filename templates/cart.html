@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+
+{% block title %}{{ 'السلة' if lang == 'ar' else 'Cart' }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+
+{% block content %}
+
+<div class="cart-page">
+
+{% if items %}
+
+  <h1 class="cart-title">{{ 'سلة التسوق' if lang == 'ar' else 'Your Cart' }}</h1>
+
+  {# ── قائمة المنتجات ── #}
+  <ul class="cart-list">
+    {% for item in items %}
+    <li class="cart-item" id="item-{{ item.product.id }}">
+      <div class="ci-thumb">
+        <span class="ci-thumb-icon">{{ icons.icon_by_name(item.product.category_id|string, "ci-icon") }}</span>
+      </div>
+      <div class="ci-info">
+        <span class="ci-name">{{ pick(item.product.name_en, item.product.name_ar) }}</span>
+        <span class="ci-brand">{{ item.product.brand }}</span>
+        <div class="ci-price-wrap">
+          {% if item.has_tier %}
+          <span class="ci-price ci-price-old">{{ currency }}{{ '%.2f'|format(item.base_price) }}</span>
+          <span class="ci-price ci-price-tier">{{ currency }}{{ '%.2f'|format(item.price) }}</span>
+          <span class="ci-tier-badge">{{ '💰 سعر الكمية' if lang == 'ar' else '💰 Bulk price' }}</span>
+          {% else %}
+          <span class="ci-price">{{ currency }}{{ '%.2f'|format(item.price) }}</span>
+          {% endif %}
+        </div>
+        {% if item.free_qty > 0 %}
+        <span class="ci-promo-tag ci-promo-free">
+          🎁 {{ item.free_qty }} {{ 'قطعة مجانية — وفّرت ' if lang == 'ar' else 'free — saved ' }}{{ currency }}{{ '%.2f'|format(item.promo_saved) }}
+        </span>
+        {% elif item.product.promo_label_ar %}
+        <span class="ci-promo-tag">🏷 {{ pick(item.product.promo_label_en, item.product.promo_label_ar) }}</span>
+        {% endif %}
+      </div>
+      <div class="ci-right">
+        <div class="ci-qty">
+          <button class="qty-btn" onclick="updateItem({{ item.product.id }}, {{ item.qty - 1 }})">−</button>
+          <span class="qty-val">{{ item.qty }}</span>
+          <button class="qty-btn" onclick="updateItem({{ item.product.id }}, {{ item.qty + 1 }})">+</button>
+        </div>
+        <span class="ci-subtotal" data-subtotal="{{ item.subtotal }}">{{ currency }}{{ '%.2f'|format(item.subtotal) }}</span>
+        <button class="ci-remove" onclick="updateItem({{ item.product.id }}, 0)" title="{{ 'حذف' if lang == 'ar' else 'Remove' }}">✕</button>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+
+  {# ── شرائط العروض العامة ── #}
+  {% if cart_promos %}
+  <div class="promo-bars" id="promo-bars">
+    {% for cp in cart_promos %}
+    {% set p = cp.promo %}
+    <div class="promo-bar-card {{ 'unlocked' if cp.unlocked else '' }}" id="promo-bar-{{ p.id }}">
+      {% if cp.unlocked %}
+        {# مفعّل #}
+        <div class="pb-unlocked-row">
+          <span class="pb-check">✅</span>
+          <span class="pb-unlocked-text">
+          {{- pick(p['unlocked_en'], p['unlocked_ar'])
+              or pick(p['title_en'], p['title_ar'])
+              or ('مفعّل! 🎉' if lang == 'ar' else 'Unlocked! 🎉') -}}
+        </span>
+        </div>
+        {% if p.offer_type == 'free_gift' and cp.gifts %}
+        <div class="pb-gift-trigger" onclick="openGiftModal({{ p.id }})">
+          {% if selected_gift and selected_gift.promo_id == p.id %}
+          🎁 {{ 'هديتك: ' if lang == 'ar' else 'Your gift: ' }}<strong>{{ pick(selected_gift.name_en, selected_gift.name_ar) }}</strong>
+          <span class="pb-change">{{ 'تغيير' if lang == 'ar' else 'Change' }}</span>
+          {% else %}
+          🎁 {{ 'اختار هديتك!' if lang == 'ar' else 'Pick your gift!' }} <span class="pb-arrow">→</span>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% if p.offer_type == 'social_follow' and p.social_url %}
+        <a href="{{ p.social_url }}" target="_blank" class="pb-social-btn">
+          📲 {{ 'تابعنا الآن' if lang == 'ar' else 'Follow us now' }}
+        </a>
+        {% endif %}
+      {% else %}
+        {# شريط التقدم #}
+        {% set tmpl = pick(p.progress_en, p.progress_ar) or pick(p.title_en, p.title_ar) %}
+        <div class="pb-text">
+          {{ tmpl
+             .replace('{remaining}', currency + ('%.2f'|format(cp.remaining)))
+             .replace('{threshold}', currency + ('%.2f'|format(p.threshold_amount))) }}
+        </div>
+        <div class="pb-track">
+          <div class="pb-fill" style="width:{{ cp.pct }}%"></div>
+        </div>
+        <div class="pb-pct">{{ cp.pct }}%</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ── حاسبة السعر الكاملة ── #}
+  <div class="cart-calculator">
+
+    {# اختيار المنطقة #}
+    <div class="calc-area-row">
+      <label class="calc-label">
+        {{ '📍 منطقة التوصيل' if lang == 'ar' else '📍 Delivery Area' }}
+      </label>
+      <select id="area-select" class="calc-area-select" onchange="recalc()">
+        <option value="">{{ '— اختر منطقتك —' if lang == 'ar' else '— Select your area —' }}</option>
+        {% for area, fee in delivery_fees.items() %}
+        <option value="{{ fee }}" data-area="{{ area }}">{{ area }} — {{ currency }}{{ '%.1f'|format(fee) }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {# تفاصيل السعر #}
+    <div class="calc-breakdown">
+      <div class="calc-row">
+        <span>{{ 'قيمة المنتجات' if lang == 'ar' else 'Items subtotal' }}</span>
+        <span class="calc-val" id="calc-subtotal">{{ currency }}{{ '%.2f'|format(total) }}</span>
+      </div>
+      <div class="calc-row calc-delivery-row" id="delivery-row" style="display:none">
+        <span>{{ 'رسوم التوصيل' if lang == 'ar' else 'Delivery fee' }}
+          <span class="calc-area-name" id="calc-area-name"></span>
+        </span>
+        <span class="calc-val" id="calc-delivery">—</span>
+      </div>
+      <div class="calc-row calc-row-hint" id="no-area-hint">
+        <span class="text-muted" style="font-size:0.8rem">
+          {{ '← اختر منطقتك لمعرفة رسوم التوصيل' if lang == 'ar' else '← Select your area to see delivery fee' }}
+        </span>
+      </div>
+      <div class="calc-divider"></div>
+      <div class="calc-row calc-total-row">
+        <span>{{ 'المجموع الكلي' if lang == 'ar' else 'Total' }}</span>
+        <span class="calc-total-val" id="calc-total">{{ currency }}{{ '%.2f'|format(total) }}</span>
+      </div>
+      <div id="calc-savings" class="calc-savings" style="display:none"></div>
+    </div>
+
+    {# أزرار الطلب #}
+    <div class="calc-actions">
+      <a class="btn-wa-cart" id="wa-order-btn"
+         href="https://wa.me/{{ whatsapp_number }}?text={{ ('أهلاً، بدي أطلب:\n')|urlencode }}"
+         target="_blank" onclick="buildWaLink(event)">
+        {{ icons.icon_chat("btn-icon") }}
+        {{ 'اطلب عبر واتساب' if lang == 'ar' else 'Order via WhatsApp' }}
+      </a>
+      <a class="btn-checkout" href="{{ url_for('checkout') }}">
+        {{ 'إتمام الطلب' if lang == 'ar' else 'Checkout' }}
+      </a>
+    </div>
+
+    <form method="post" action="{{ url_for('cart_clear') }}" style="margin-top:10px;text-align:center">
+      <button type="submit" class="btn-clear-cart">
+        {{ 'إفراغ السلة' if lang == 'ar' else 'Clear cart' }}
+      </button>
+    </form>
+  </div>
+
+{% else %}
+
+  <div class="empty-state">
+    {{ icons.icon_cart("empty-icon") }}
+    <h2>{{ 'سلتك فاضية' if lang == 'ar' else 'Your cart is empty' }}</h2>
+    <p>{{ 'ابدأ بالتسوق من فئة حيوانك' if lang == 'ar' else 'Start shopping by selecting your pet' }}</p>
+    <div class="empty-links">
+      <a href="{{ url_for('index') }}" class="btn-ghost">
+        {{ icons.icon_home("btn-icon") }}{{ 'الصفحة الرئيسية' if lang == 'ar' else 'Go to Home' }}
+      </a>
+    </div>
+  </div>
+
+{% endif %}
+
+</div>
+
+{# ── Modal اختيار الهدية ── #}
+{% if cart_promos %}
+{% for cp in cart_promos %}
+{% if cp.promo.offer_type == 'free_gift' and cp.gifts %}
+<div class="gift-modal-overlay" id="gift-modal-{{ cp.promo.id }}" onclick="closeGiftModal({{ cp.promo.id }})">
+  <div class="gift-modal" onclick="event.stopPropagation()">
+    <div class="gift-modal-head">
+      <span>🎁 {{ 'اختار هديتك المجانية' if lang == 'ar' else 'Choose your free gift' }}</span>
+      <button onclick="closeGiftModal({{ cp.promo.id }})" class="gift-modal-close">✕</button>
+    </div>
+    <div class="gift-modal-list">
+      {% for g in cp.gifts %}
+      <button class="gift-option {{ 'selected' if selected_gift and selected_gift.gift_id == g.id else '' }}"
+              onclick="selectGift({{ cp.promo.id }}, {{ g.id }}, this)">
+        🎀 {{ pick(g.name_en, g.name_ar) }}
+        <span class="gift-free-badge">{{ 'مجاناً' if lang == 'ar' else 'FREE' }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+.cart-calculator {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  margin-top: 20px;
+  max-width: 520px;
+}
+
+.calc-area-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.calc-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.calc-area-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.calc-area-select:focus {
+  outline: none;
+  border-color: rgba(212,167,44,.6);
+}
+
+.calc-breakdown {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+}
+.calc-row-hint { justify-content: flex-start; }
+.calc-val { font-weight: 600; }
+.calc-area-name {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-inline-start: 6px;
+}
+.calc-delivery-row .calc-val { color: var(--muted); }
+.calc-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2px 0;
+}
+.calc-total-row {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.calc-total-val {
+  color: var(--gold);
+  font-size: 1.15rem;
+}
+.calc-savings {
+  font-size: 0.78rem;
+  color: #4ade80;
+  text-align: center;
+  background: rgba(74,222,128,.08);
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+
+.calc-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.calc-actions .btn-wa-cart  { flex: 1; min-width: 160px; text-align: center; }
+.calc-actions .btn-checkout { flex: 1; min-width: 120px; text-align: center; }
+</style>
+
+<script>
+const SUBTOTAL = {{ total }};
+const CUR      = '{{ currency }}';
+const LANG     = document.documentElement.lang;
+const WA_NUM   = '{{ whatsapp_number }}';
+
+/* العروض العامة */
+const FREE_SHIPPING_UNLOCKED = {{ 'true' if free_shipping_unlocked else 'false' }};
+const SELECTED_GIFT = {{ selected_gift | tojson if selected_gift else 'null' }};
+
+/* بيانات المنتجات لرسالة واتساب */
+const ITEMS = [
+  {% for item in items %}
+  {
+    name_ar:  {{ item.product.name_ar | tojson }},
+    name_en:  {{ item.product.name_en | tojson }},
+    qty:      {{ item.qty }},
+    price:    {{ item.price }},
+    subtotal: {{ item.subtotal }},
+    free_qty: {{ item.free_qty }}
+  },
+  {% endfor %}
+];
+
+function fmt(n) { return CUR + n.toFixed(2); }
+
+function recalc() {
+  const sel      = document.getElementById('area-select');
+  const fee      = sel.value ? parseFloat(sel.value) : null;
+  const areaName = sel.selectedOptions[0]?.dataset.area || '';
+
+  const deliveryRow = document.getElementById('delivery-row');
+  const noAreaHint  = document.getElementById('no-area-hint');
+  const calcDel     = document.getElementById('calc-delivery');
+  const calcTotal   = document.getElementById('calc-total');
+  const areaSpan    = document.getElementById('calc-area-name');
+  const savings     = document.getElementById('calc-savings');
+
+  if (fee !== null) {
+    const actualFee = FREE_SHIPPING_UNLOCKED ? 0 : fee;
+    deliveryRow.style.display = '';
+    noAreaHint.style.display  = 'none';
+    if (FREE_SHIPPING_UNLOCKED) {
+      calcDel.innerHTML = `<s style="color:var(--muted);font-size:0.8rem">${fmt(fee)}</s> <span style="color:#4ade80;font-weight:700">${LANG==='ar'?'مجاناً 🎉':'FREE 🎉'}</span>`;
+    } else {
+      calcDel.textContent = fmt(fee);
+    }
+    areaSpan.textContent = '(' + areaName + ')';
+    calcTotal.textContent = fmt(SUBTOTAL + actualFee);
+
+    const savingsMsgs = [];
+    if (FREE_SHIPPING_UNLOCKED)
+      savingsMsgs.push(LANG==='ar' ? '🚚 شحن مجاني مفعّل!' : '🚚 Free shipping unlocked!');
+    if (SELECTED_GIFT)
+      savingsMsgs.push(LANG==='ar'
+        ? `🎁 هديتك: ${SELECTED_GIFT.name_ar}`
+        : `🎁 Your gift: ${SELECTED_GIFT.name_en}`);
+    if (savingsMsgs.length) {
+      savings.style.display = '';
+      savings.innerHTML = savingsMsgs.join('<br>');
+    } else {
+      savings.style.display = 'none';
+    }
+  } else {
+    deliveryRow.style.display = 'none';
+    noAreaHint.style.display  = '';
+    calcTotal.textContent = fmt(SUBTOTAL);
+    savings.style.display = 'none';
+  }
+}
+
+function buildWaLink(e) {
+  e.preventDefault();
+  const sel       = document.getElementById('area-select');
+  const rawFee    = sel.value ? parseFloat(sel.value) : null;
+  const actualFee = (rawFee !== null && FREE_SHIPPING_UNLOCKED) ? 0 : rawFee;
+  const areaName  = sel.selectedOptions[0]?.dataset.area || '';
+  const grandTotal = SUBTOTAL + (actualFee ?? 0);
+
+  /* ── 1. منتجات السلة + عروض المنتج (B2G1F) ── */
+  const lines = ITEMS.map(it => {
+    const name = LANG === 'ar' ? it.name_ar : it.name_en;
+    let line = `- ${name} × ${it.qty} = ${fmt(it.subtotal)}`;
+    if (it.free_qty > 0)
+      line += LANG === 'ar'
+        ? ` (${it.free_qty} قطعة مجانية 🎁)`
+        : ` (${it.free_qty} free 🎁)`;
+    return line;
+  });
+
+  /* ── 2. هدية العرض العام ── */
+  if (SELECTED_GIFT) {
+    const gName = LANG === 'ar' ? SELECTED_GIFT.name_ar : SELECTED_GIFT.name_en;
+    lines.push(LANG === 'ar'
+      ? `- 🎀 ${gName} × 1 = مجاناً`
+      : `- 🎀 ${gName} × 1 = FREE`);
+  }
+
+  /* ── بناء الرسالة ── */
+  let msg;
+  if (LANG === 'ar') {
+    msg  = 'أهلاً، بدي أطلب:\n';
+    msg += lines.join('\n') + '\n';
+    msg += '──────────────\n';
+    msg += `المجموع: ${fmt(SUBTOTAL)}\n`;
+    if (rawFee !== null) {
+      if (FREE_SHIPPING_UNLOCKED)
+        msg += `التوصيل: مجاناً 🚚\n`;
+      else
+        msg += `التوصيل (${areaName}): ${fmt(rawFee)}\n`;
+    }
+    msg += `الإجمالي: ${fmt(grandTotal)}`;
+    if (!sel.value) msg += '\n(لم تُحدَّد منطقة التوصيل بعد)';
+  } else {
+    msg  = "Hi, I'd like to order:\n";
+    msg += lines.join('\n') + '\n';
+    msg += '──────────────\n';
+    msg += `Subtotal: ${fmt(SUBTOTAL)}\n`;
+    if (rawFee !== null) {
+      if (FREE_SHIPPING_UNLOCKED)
+        msg += `Delivery: FREE 🚚\n`;
+      else
+        msg += `Delivery (${areaName}): ${fmt(rawFee)}\n`;
+    }
+    msg += `Total: ${fmt(grandTotal)}`;
+    if (!sel.value) msg += '\n(Delivery area not selected yet)';
+  }
+
+  window.open(`https://wa.me/${WA_NUM}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function updateItem(productId, newQty) {
+  const form = new FormData();
+  form.append('product_id', productId);
+  form.append('qty', newQty);
+  fetch('/cart/update', { method: 'POST', body: form })
+    .then(r => r.json())
+    .then(data => { if (data.ok) location.reload(); });
+}
+
+function openGiftModal(promoId) {
+  document.getElementById('gift-modal-' + promoId).classList.add('active');
+}
+function closeGiftModal(promoId) {
+  document.getElementById('gift-modal-' + promoId).classList.remove('active');
+}
+
+function selectGift(promoId, giftId, btn) {
+  const form = new FormData();
+  form.append('promo_id', promoId);
+  form.append('gift_id', giftId);
+  fetch('/cart/select-gift', { method: 'POST', body: form })
+    .then(r => r.json())
+    .then(() => location.reload());
+}
+</script>
+{% endblock %}

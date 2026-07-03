@@ -1,0 +1,55 @@
+{% extends "admin/base.html" %}
+{% block title %}المنتجات{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>المنتجات <span class="adm-count">{{ products|length }}</span></h1>
+  <a href="{{ url_for('admin_product_new') }}" class="btn-adm-primary">+ منتج جديد</a>
+</div>
+
+{% if products %}
+<table class="adm-table">
+  <thead>
+    <tr>
+      <th>المنتج</th><th>التصنيف</th><th>السعر</th><th>المخزون</th>
+      <th>مميز</th><th>نشط</th><th>إجراءات</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in products %}
+    <tr class="{{ 'row-inactive' if not p.is_active }}">
+      <td>
+        <div class="p-name-cell">
+          <span>{{ p.name_ar or p.name_en }}</span>
+          <span class="text-muted small">{{ p.brand or '' }}</span>
+        </div>
+      </td>
+      <td class="text-muted">{{ p.cat_name }}</td>
+      <td>
+        ${{ '%.2f'|format(p.price) }}
+        {% if p.discount_price %}
+        <span class="discount-tag">${{ '%.2f'|format(p.discount_price) }}</span>
+        {% endif %}
+      </td>
+      <td class="{{ 'text-danger' if p.stock_qty == 0 else '' }}">{{ p.stock_qty }}</td>
+      <td>{{ '★' if p.is_featured else '—' }}</td>
+      <td><span class="dot {{ 'dot-on' if p.is_active else 'dot-off' }}"></span></td>
+      <td class="actions-cell">
+        <a href="{{ url_for('admin_product_edit', pid=p.id) }}" class="btn-adm-sm">تعديل</a>
+        <form method="post" action="{{ url_for('admin_product_delete', pid=p.id) }}"
+              onsubmit="return confirm('حذف {{ p.name_ar or p.name_en }}؟')">
+          <button type="submit" class="btn-adm-sm danger">حذف</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="adm-empty-state">
+  <p>لا يوجد منتجات بعد.</p>
+  <a href="{{ url_for('admin_product_new') }}" class="btn-adm-primary">أضف أول منتج</a>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+
+{% block title %}{{ 'إتمام الطلب' if lang == 'ar' else 'Checkout' }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+
+{% block content %}
+
+<h1 class="page-h1">{{ 'إتمام الطلب' if lang == 'ar' else 'Checkout' }}</h1>
+
+{# ── ملخص الطلب ── #}
+<div class="co-summary">
+  {% for item in items %}
+  <div class="co-item">
+    <span class="co-item-name">{{ pick(item.product.name_en, item.product.name_ar) }}</span>
+    <span class="co-item-right">
+      <span class="co-item-qty">× {{ item.qty }}</span>
+      <span class="co-item-sub">{{ currency }}{{ '%.2f'|format(item.subtotal) }}</span>
+    </span>
+  </div>
+  {% endfor %}
+  {% if selected_gift %}
+  <div class="co-item co-gift-item">
+    <span class="co-item-name">🎁 {{ pick(selected_gift.name_en, selected_gift.name_ar) }}</span>
+    <span class="co-item-right">
+      <span class="co-item-qty">× 1</span>
+      <span class="co-item-sub co-gift-free">{{ 'مجاناً' if lang == 'ar' else 'FREE' }}</span>
+    </span>
+  </div>
+  {% endif %}
+  <div class="co-total-row">
+    <span>{{ 'المجموع' if lang == 'ar' else 'Subtotal' }}</span>
+    <span class="co-total-val {{ 'co-total-crossed' if perk_savings > 0 else '' }}">{{ currency }}{{ '%.2f'|format(total) }}</span>
+  </div>
+  {% if perk_label %}
+  <div class="co-perk-row">
+    <span>✨ {{ perk_label }}</span>
+    {% if perk_savings > 0 %}<span class="co-perk-save">− {{ currency }}{{ '%.2f'|format(perk_savings) }}</span>{% endif %}
+  </div>
+  <div class="co-total-row co-final-row">
+    <span>{{ 'الإجمالي' if lang == 'ar' else 'Total' }}</span>
+    <span class="co-total-val">{{ currency }}{{ '%.2f'|format(final_total) }}</span>
+  </div>
+  {% endif %}
+  {% if errors.get('blocked') %}
+  <div class="co-blocked-msg">🚫 {{ 'عذراً، هذا الرقم غير مسموح له بالطلب. تواصل معنا.' if lang == 'ar' else 'Sorry, this number is blocked. Contact us for more info.' }}</div>
+  {% endif %}
+  <p class="co-delivery-note">
+    {{ '+ رسوم التوصيل تنضاف حسب منطقتك' if lang == 'ar' else '+ Delivery fee added based on your area' }}
+  </p>
+</div>
+
+{# ── فورم البيانات ── #}
+<form method="post" class="co-form" novalidate>
+
+  <div class="co-field {{ 'has-error' if errors.get('name') else '' }}">
+    <label for="co-name">{{ 'الاسم الكامل *' if lang == 'ar' else 'Full name *' }}</label>
+    <input type="text" id="co-name" name="name"
+           value="{{ form.get('name', '') }}"
+           placeholder="{{ 'مثال: أحمد حكيم' if lang == 'ar' else 'e.g. Ahmad Hakim' }}"
+           autocomplete="name">
+    {% if errors.get('name') %}
+    <span class="field-error">{{ 'مطلوب' if lang == 'ar' else 'Required' }}</span>
+    {% endif %}
+  </div>
+
+  <div class="co-field {{ 'has-error' if errors.get('phone') else '' }}">
+    <label for="co-phone">{{ 'رقم الهاتف *' if lang == 'ar' else 'Phone number *' }}</label>
+    <input type="tel" id="co-phone" name="phone"
+           value="{{ form.get('phone', '') }}"
+           placeholder="{{ 'مثال: 03 123 456' if lang == 'ar' else 'e.g. 03 123 456' }}"
+           autocomplete="tel" inputmode="tel">
+    {% if errors.get('phone') %}
+    <span class="field-error">{{ 'مطلوب' if lang == 'ar' else 'Required' }}</span>
+    {% endif %}
+  </div>
+
+  <div class="co-field {{ 'has-error' if errors.get('area') else '' }}">
+    <label for="co-area">{{ 'المنطقة *' if lang == 'ar' else 'Area *' }}</label>
+    <input type="text" id="co-area" name="area"
+           value="{{ form.get('area', '') }}"
+           placeholder="{{ 'مثال: بيروت - الحمرا' if lang == 'ar' else 'e.g. Beirut - Hamra' }}"
+           autocomplete="address-level2">
+    {% if errors.get('area') %}
+    <span class="field-error">{{ 'مطلوب' if lang == 'ar' else 'Required' }}</span>
+    {% endif %}
+  </div>
+
+  <div class="co-field">
+    <label for="co-note">{{ 'ملاحظة للتوصيل (اختياري)' if lang == 'ar' else 'Delivery note (optional)' }}</label>
+    <textarea id="co-note" name="note" rows="2"
+              placeholder="{{ 'مثال: الطابق الثالث، اتصل عند الوصول' if lang == 'ar' else 'e.g. 3rd floor, call on arrival' }}">{{ form.get('note', '') }}</textarea>
+  </div>
+
+  <div class="co-cod-badge">
+    {{ icons.icon_cash("cod-icon") }}
+    <div>
+      <strong>{{ 'الدفع نقداً عند الاستلام' if lang == 'ar' else 'Cash on delivery' }}</strong>
+      <p>{{ 'لا حاجة لبطاقة بنكية — تدفع لما يوصلك طلبك' if lang == 'ar' else 'No card needed — pay when your order arrives' }}</p>
+    </div>
+  </div>
+
+  <button type="submit" class="btn-place-order">
+    {{ icons.icon_package("btn-icon") }}
+    {{ 'تأكيد الطلب' if lang == 'ar' else 'Place Order' }}
+  </button>
+
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+if (window.psTrack) psTrack('begin_checkout', {
+  extra: JSON.stringify({ total: {{ total }} })
+});
+</script>
+{% endblock %}

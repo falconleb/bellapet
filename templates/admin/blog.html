@@ -1,0 +1,40 @@
+{% extends "admin/base.html" %}
+{% block title %}المدونة{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>مقالات المدونة <span class="adm-count">{{ posts|length }}</span></h1>
+  <a href="{{ url_for('admin_blog_new') }}" class="btn-adm-primary">+ مقالة جديدة</a>
+</div>
+
+{% if posts %}
+<table class="adm-table">
+  <thead>
+    <tr><th>العنوان بالعربي</th><th>العنوان بالإنجليزي</th><th>منشور</th><th>التاريخ</th><th>إجراءات</th></tr>
+  </thead>
+  <tbody>
+    {% for p in posts %}
+    <tr class="{{ 'row-inactive' if not p.is_published }}">
+      <td dir="rtl">{{ p.title_ar }}</td>
+      <td>{{ p.title_en }}</td>
+      <td><span class="dot {{ 'dot-on' if p.is_published else 'dot-off' }}"></span></td>
+      <td class="text-muted">{{ p.created_at[:10] }}</td>
+      <td class="actions-cell">
+        <a href="{{ url_for('admin_blog_edit', bid=p.id) }}" class="btn-adm-sm">تعديل</a>
+        <form method="post" action="{{ url_for('admin_blog_delete', bid=p.id) }}"
+              onsubmit="return confirm('حذف هذه المقالة؟')">
+          <button type="submit" class="btn-adm-sm danger">حذف</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="adm-empty-state">
+  <p>لا يوجد مقالات بعد.</p>
+  <a href="{{ url_for('admin_blog_new') }}" class="btn-adm-primary">اكتب أول مقالة</a>
+</div>
+{% endif %}
+
+{% endblock %}

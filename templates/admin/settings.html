@@ -1,0 +1,90 @@
+{% extends "admin/base.html" %}
+{% block title %}الإعدادات{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>إعدادات المتجر</h1>
+</div>
+
+{% if msg == 'api_key_saved' %}
+<div class="adm-alert-ok">✓ تم حفظ مفتاح API بنجاح — التوليد الذكي جاهز الآن</div>
+{% elif msg == 'whatsapp_saved' %}
+<div class="adm-alert-ok">✓ تم حفظ رقم واتساب بنجاح</div>
+{% endif %}
+
+{# ── Gemini API Key (SEO + وصف) ── #}
+<div class="adm-form-section" style="margin-bottom:14px">
+  <h3>🆓 مفتاح Gemini API — لتوليد SEO والوصف <span style="color:#4ade80;font-size:.75rem">(مجاني)</span></h3>
+  <form method="post" class="adm-form" style="gap:12px">
+    <input type="hidden" name="action" value="gemini_key">
+    <div class="adm-field">
+      <label>المفتاح <span class="hint">يبدأ بـ AIza...</span></label>
+      <input type="password" name="gemini_key"
+             placeholder="AIzaSy..."
+             autocomplete="off"
+             style="font-family:monospace;direction:ltr">
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button type="submit" class="btn-adm-primary">حفظ المفتاح</button>
+      {% if gemini_api_ready %}
+      <span style="font-size:0.82rem;color:#4ade80">✓ مفتاح محفوظ ونشط</span>
+      {% else %}
+      <span style="font-size:0.82rem;color:#f87171">✗ لا يوجد مفتاح بعد</span>
+      {% endif %}
+    </div>
+  </form>
+  <p class="text-muted" style="font-size:0.76rem;margin-top:10px">
+    احصل على مفتاحك المجاني من
+    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="adm-link">aistudio.google.com</a>
+  </p>
+</div>
+
+{# ── Anthropic API Key (المستشار) ── #}
+<div class="adm-form-section" style="margin-bottom:14px">
+  <h3>💬 مفتاح Anthropic API — للمستشار الذكي <span style="color:#aaa;font-size:.75rem">(اختياري)</span></h3>
+  <form method="post" class="adm-form" style="gap:12px">
+    <input type="hidden" name="action" value="api_key">
+    <div class="adm-field">
+      <label>المفتاح <span class="hint">يبدأ بـ sk-ant-...</span></label>
+      <input type="password" name="api_key"
+             placeholder="sk-ant-api03-..."
+             autocomplete="off"
+             style="font-family:monospace;direction:ltr">
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button type="submit" class="btn-adm-primary">حفظ المفتاح</button>
+      {% if seo_api_ready %}
+      <span style="font-size:0.82rem;color:#4ade80">✓ مفتاح محفوظ ونشط</span>
+      {% else %}
+      <span style="font-size:0.82rem;color:#aaa">✗ لا يوجد — المستشار يشتغل بـ Groq</span>
+      {% endif %}
+    </div>
+  </form>
+  <p class="text-muted" style="font-size:0.76rem;margin-top:10px">
+    احصل على مفتاحك من
+    <a href="https://console.anthropic.com/settings/keys" target="_blank" class="adm-link">console.anthropic.com</a>
+  </p>
+</div>
+
+{# ── WhatsApp ── #}
+<div class="adm-form-section" style="margin-bottom:14px">
+  <h3>رقم واتساب المتجر</h3>
+  <form method="post" class="adm-form" style="gap:12px">
+    <input type="hidden" name="action" value="whatsapp">
+    <div class="adm-field">
+      <label>الرقم <span class="hint">بالصيغة الدولية بدون + (مثال: 96181680729)</span></label>
+      <input type="tel" name="whatsapp_number"
+             value="{{ whatsapp_number }}"
+             placeholder="96181680729"
+             style="direction:ltr">
+    </div>
+    <button type="submit" class="btn-adm-primary">حفظ الرقم</button>
+  </form>
+</div>
+
+{# ── روابط سريعة ── #}
+<div class="adm-quick-links" style="margin-top:4px">
+  <a href="{{ url_for('admin_seo') }}" class="btn-adm-secondary">← العودة لـ SEO</a>
+</div>
+
+{% endblock %}

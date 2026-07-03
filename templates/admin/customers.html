@@ -1,0 +1,98 @@
+{% extends "admin/base.html" %}
+{% block title %}الزبائن{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>👥 الزبائن <span class="adm-count">{{ total_customers }}</span></h1>
+</div>
+
+<div class="cust-stats">
+  <div class="cust-stat">
+    <span class="cstat-val">{{ total_customers }}</span>
+    <span class="cstat-lbl">إجمالي الزبائن</span>
+  </div>
+  <div class="cust-stat">
+    <span class="cstat-val">${{ total_revenue }}</span>
+    <span class="cstat-lbl">إجمالي المبيعات</span>
+  </div>
+  <div class="cust-stat {{ 'cstat-warn' if notify_count > 0 }}">
+    <span class="cstat-val">{{ notify_count }}</span>
+    <span class="cstat-lbl">بانتظار إشعار مخزون</span>
+  </div>
+</div>
+
+{% if customers %}
+<table class="adm-table">
+  <thead>
+    <tr>
+      <th>الاسم</th>
+      <th>الهاتف</th>
+      <th>المنطقة</th>
+      <th>الطلبات</th>
+      <th>المجموع</th>
+      <th>آخر طلب</th>
+      <th>ينتظر</th>
+      <th>إجراء</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in customers %}
+    <tr>
+      <td>
+        <div class="cust-name">{{ c.name }}</div>
+        {% if c.source == 'notify' %}
+          <span class="badge badge-gray" style="font-size:0.65rem">notify only</span>
+        {% endif %}
+      </td>
+      <td dir="ltr" style="font-family:monospace">{{ c.phone }}</td>
+      <td class="text-muted">{{ c.area }}</td>
+      <td>
+        {% if c.order_count > 0 %}
+          <span class="badge badge-green">{{ c.order_count }} طلب{% if c.order_count > 1 %}ات{% endif %}</span>
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if c.total_spent > 0 %}
+          <b>${{ c.total_spent }}</b>
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+      <td class="text-muted small" dir="ltr">{{ c.last_order[:10] if c.last_order else '—' }}</td>
+      <td>
+        {% if c.notify %}
+          <span class="badge badge-gold" title="{{ c.notify.products_watching or '' }}">
+            🔔 {{ c.notify.notify_count }}
+          </span>
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+      <td>
+        <a href="https://wa.me/{{ c.phone|replace(' ','')|replace('+','')|replace('-','') }}"
+           target="_blank" class="btn-adm-sm btn-wa-sm">واتساب</a>
+        {% if c.order_count > 0 %}
+        <a href="{{ url_for('admin_orders') }}?phone={{ c.phone }}" class="btn-adm-sm">طلباته</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="adm-empty">لا يوجد زبائن بعد.</div>
+{% endif %}
+
+<style>
+.cust-stats { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.cust-stat { background:var(--adm-surface); border:1px solid var(--adm-border); border-radius:10px; padding:14px 20px; min-width:130px; }
+.cstat-warn { border-color:#7a5c00 !important; }
+.cstat-val { display:block; font-size:1.6rem; font-weight:700; color:var(--adm-text); }
+.cstat-lbl { font-size:0.72rem; color:var(--adm-muted); }
+.cust-name { font-weight:500; font-size:0.9rem; }
+.btn-wa-sm { background:#1a7a3c !important; color:#fff !important; }
+</style>
+
+{% endblock %}

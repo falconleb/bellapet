@@ -1,0 +1,159 @@
+{% extends "admin/base.html" %}
+{% block title %}تعديل الرئيسية{% endblock %}
+
+{% block content %}
+<div class="adm-page-head">
+  <h1>🏠 تعديل الصفحة الرئيسية</h1>
+</div>
+
+<!-- ══════════════════════════════════════════
+     قسم 1: ترتيب وظهور الأقسام
+══════════════════════════════════════════ -->
+<div class="adm-card" style="margin-bottom:2rem">
+  <div class="adm-card-head">
+    <h2>📋 ترتيب وظهور الأقسام</h2>
+    <p class="adm-hint">رتّب الأقسام كما تريد بالسحب أو السهمين، وفعّل/أخفِ كل قسم</p>
+  </div>
+
+  <form method="POST" id="sections-form">
+    <input type="hidden" name="action" value="sections">
+    <ul class="hp-sections-list" id="sections-list">
+      {% set section_labels = {
+          'offers':   ('عروض حالية',             'Current Offers'),
+          'featured': ('منتجات مختارة بعناية',   'Carefully Selected'),
+          'blog':     ('من المدونة',              'From the Blog'),
+          'why':      ('ليش تختارنا',             'Why Choose Us')
+      } %}
+      {% for s in sections %}
+      {% set lbl = section_labels.get(s['section_id'], (s['section_id'], s['section_id'])) %}
+      <li class="hp-section-row" data-id="{{ s['section_id'] }}">
+        <span class="hp-drag-handle" title="اسحب للترتيب">⠿</span>
+        <div class="hp-section-info">
+          <strong>{{ lbl[0] }}</strong>
+          <small>{{ lbl[1] }}</small>
+        </div>
+        <label class="hp-toggle">
+          <input type="checkbox" name="vis_{{ s['section_id'] }}"
+                 value="1" {{ 'checked' if s['is_visible'] }}>
+          <span class="hp-toggle-track"></span>
+          <span class="hp-toggle-label">{{ 'ظاهر' if s['is_visible'] else 'مخفي' }}</span>
+        </label>
+        <input type="hidden" name="sort_{{ s['section_id'] }}" class="sort-input" value="{{ loop.index0 }}">
+      </li>
+      {% endfor %}
+    </ul>
+    <div style="margin-top:1.2rem;text-align:left">
+      <button type="submit" class="adm-btn adm-btn-primary">💾 حفظ الترتيب</button>
+    </div>
+  </form>
+</div>
+
+<!-- ══════════════════════════════════════════
+     قسم 2: صور بطاقات الأقسام
+══════════════════════════════════════════ -->
+<div class="adm-card">
+  <div class="adm-card-head">
+    <h2>🖼 صور بطاقات الأقسام</h2>
+    <p class="adm-hint">ارفع صورة لكل قسم تظهر خلفية البطاقة على الصفحة الرئيسية</p>
+  </div>
+
+  <div class="hp-cat-grid">
+    {% for c in categories %}
+    {% set img = cat_images.get(c['slug']) %}
+    <div class="hp-cat-card">
+      <div class="hp-cat-thumb">
+        {% if img %}
+        <img src="{{ url_for('static', filename='img/categories/' + img) }}" alt="{{ c['name_ar'] }}">
+        {% else %}
+        <span class="hp-cat-empty">{{ c['name_ar'] }}<br><small>لا توجد صورة</small></span>
+        {% endif %}
+      </div>
+      <div class="hp-cat-info">
+        <strong>{{ c['name_ar'] }}</strong>
+        <small>{{ c['slug'] }}</small>
+      </div>
+      <form method="POST" enctype="multipart/form-data" class="hp-cat-upload-form">
+        <input type="hidden" name="action" value="cat_image">
+        <input type="hidden" name="cat_slug" value="{{ c['slug'] }}">
+        <label class="hp-file-label">
+          <input type="file" name="cat_img" accept="image/*" class="hp-file-input"
+                 onchange="this.closest('form').submit()">
+          📤 {{ 'تغيير الصورة' if img else 'رفع صورة' }}
+        </label>
+      </form>
+      {% if img %}
+      <form method="POST">
+        <input type="hidden" name="action" value="del_cat_image">
+        <input type="hidden" name="cat_slug" value="{{ c['slug'] }}">
+        <button type="submit" class="hp-del-btn"
+                onclick="return confirm('حذف صورة {{ c['name_ar'] }}؟')">🗑 حذف</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Drag-and-drop reorder with SortableJS loaded inline via CDN-free approach
+// Simple ↑↓ button approach (no external lib needed)
+(function(){
+  const list = document.getElementById('sections-list');
+  if (!list) return;
+
+  // Add ↑↓ buttons dynamically
+  list.querySelectorAll('.hp-section-row').forEach((row, i, rows) => {
+    const btns = document.createElement('div');
+    btns.className = 'hp-sort-btns';
+    if (i > 0) {
+      const up = document.createElement('button');
+      up.type = 'button'; up.textContent = '↑'; up.title = 'للأعلى';
+      up.onclick = () => { list.insertBefore(row, rows[i-1]); updateSortInputs(); };
+      btns.appendChild(up);
+    }
+    if (i < rows.length - 1) {
+      const dn = document.createElement('button');
+      dn.type = 'button'; dn.textContent = '↓'; dn.title = 'للأسفل';
+      dn.onclick = () => { list.insertBefore(rows[i+1], row); updateSortInputs(); };
+      btns.appendChild(dn);
+    }
+    row.appendChild(btns);
+  });
+
+  function updateSortInputs() {
+    list.querySelectorAll('.hp-section-row').forEach((row, idx) => {
+      row.querySelector('.sort-input').value = idx;
+    });
+    // refresh buttons after reorder
+    list.querySelectorAll('.hp-sort-btns').forEach(b => b.remove());
+    list.querySelectorAll('.hp-section-row').forEach((row, i, rows) => {
+      const btns = document.createElement('div');
+      btns.className = 'hp-sort-btns';
+      if (i > 0) {
+        const up = document.createElement('button');
+        up.type = 'button'; up.textContent = '↑';
+        up.onclick = () => { list.insertBefore(row, rows[i-1]); updateSortInputs(); };
+        btns.appendChild(up);
+      }
+      if (i < rows.length - 1) {
+        const dn = document.createElement('button');
+        dn.type = 'button'; dn.textContent = '↓';
+        dn.onclick = () => { list.insertBefore(rows[i+1], row); updateSortInputs(); };
+        btns.appendChild(dn);
+      }
+      row.appendChild(btns);
+    });
+  }
+
+  // toggle label update
+  list.querySelectorAll('.hp-toggle input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', function(){
+      this.closest('.hp-toggle').querySelector('.hp-toggle-label').textContent =
+        this.checked ? 'ظاهر' : 'مخفي';
+    });
+  });
+})();
+</script>
+{% endblock %}

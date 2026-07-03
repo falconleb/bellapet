@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% block title %}حملات إعلانية{% endblock %}
+
+{% block content %}
+<div class="adm-page-head">
+  <h1>💡 حملات إعلانية مقترحة</h1>
+  <a href="{{ url_for('admin_ai_describe') }}" class="adm-btn-secondary">✍️ كاتب الوصف</a>
+</div>
+
+<div class="camp-hint">
+  الذكاء الاصطناعي حلّل بيانات الزيارات، المبيعات، والبحث خلال آخر 14-30 يوم واقترح هذه الحملات.
+</div>
+
+<div class="camp-card">
+  <div class="camp-body">{{ ideas | replace('\n', '<br>') | safe }}</div>
+</div>
+
+<div class="camp-refresh">
+  <form method="get">
+    <button type="submit" class="adm-btn-secondary">🔄 حدّث الاقتراحات</button>
+  </form>
+  <span class="camp-note">النتائج محفوظة cache لـ 24 ساعة — اضغط تحديث لإعادة التوليد</span>
+</div>
+{% endblock %}

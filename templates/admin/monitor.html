@@ -1,0 +1,63 @@
+{% extends "admin/base.html" %}
+{% block title %}مراقبة المتجر{% endblock %}
+
+{% block content %}
+<div class="adm-page-head">
+  <h1>🤖 مراقبة المتجر — Telegram Bot</h1>
+  <div style="display:flex;gap:10px;">
+    <a href="{{ url_for('admin_monitor_test') }}" class="adm-btn-secondary">📨 اختبار</a>
+    <a href="{{ url_for('admin_monitor_run_now') }}" class="adm-btn">🔍 فحص الآن</a>
+  </div>
+</div>
+
+{% with msgs = get_flashed_messages(with_categories=true) %}
+{% for cat, msg in msgs %}
+<div class="adm-flash adm-flash--{{ cat }}">{{ msg }}</div>
+{% endfor %}
+{% endwith %}
+
+<div class="mon-grid">
+
+  {# إعدادات الـ Bot #}
+  <div class="mon-card">
+    <h3>⚙️ إعدادات التيليغرام</h3>
+    <form method="POST" action="{{ url_for('admin_monitor_save') }}">
+      <div class="adm-form-row">
+        <label>Bot Token</label>
+        <input class="adm-input" type="text" name="telegram_token"
+               value="{{ telegram_token }}" placeholder="123456:ABC...">
+      </div>
+      <div class="adm-form-row">
+        <label>Chat ID</label>
+        <input class="adm-input" type="text" name="telegram_chat_id"
+               value="{{ telegram_chat_id }}" placeholder="991560539">
+      </div>
+      <button type="submit" class="adm-btn">💾 حفظ</button>
+    </form>
+  </div>
+
+  {# جدول التنبيهات #}
+  <div class="mon-card">
+    <h3>🔔 شو بيراقبه النظام</h3>
+    <table class="adm-table">
+      <thead><tr><th>الفحص</th><th>التكرار</th><th>الشرط</th></tr></thead>
+      <tbody>
+        <tr><td>🔴 خطأ 500</td><td>كل 30 دقيقة</td><td>أي خطأ بالساعة الأخيرة</td></tr>
+        <tr><td>🚀 ضغط مفاجئ</td><td>كل 30 دقيقة</td><td>4x المعدل العادي</td></tr>
+        <tr><td>⚠️ مخزون صفر</td><td>كل 30 دقيقة</td><td>أي منتج نفد</td></tr>
+        <tr><td>😴 ما في طلبات</td><td>مرة كل 6 ساعات</td><td>خلال ساعات العمل (10ص–10م)</td></tr>
+        <tr><td>📦 محتوى ناقص</td><td>كل 6 ساعات</td><td>منتج بدون صورة أو وصف</td></tr>
+        <tr><td>☀️ تقرير صباحي</td><td>يومياً 8:00ص</td><td>دائماً</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<style>
+.mon-grid { display: grid; gap: 20px; grid-template-columns: 1fr 1fr; }
+.mon-card { background: var(--surface); border-radius: 14px; padding: 20px; }
+.mon-card h3 { font-size: .95rem; color: var(--gold); margin-bottom: 16px; }
+@media(max-width:700px){ .mon-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}

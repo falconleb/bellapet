@@ -1,0 +1,338 @@
+{% extends "admin/base.html" %}
+{% block title %}الاشتراكات الدورية{% endblock %}
+{% block content %}
+
+{% set ar = lang == 'ar' %}
+
+<div class="adm-page-head">
+  <h1>🔄 {{ 'Recurring Subscriptions' if not ar else 'الاشتراكات الدورية' }}</h1>
+</div>
+
+{# ── Delivery Settings ── #}
+<div class="adm-card" style="margin-bottom:20px;">
+  <h2 class="adm-section-title">⚙️ {{ 'Subscription Delivery Settings' if not ar else 'إعدادات شحن الاشتراكات' }}</h2>
+  <form id="sub-settings-form" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;">
+    <div>
+      <label class="sub-set-label">{{ 'Min. order for FREE delivery ($)' if not ar else 'حد التوصيل المجاني ($) — 0 = معطّل' }}</label>
+      <input class="sub-set-input" name="sub_free_delivery_min" type="number" min="0" step="0.01"
+             value="{{ sub_cfg.free_min|int if sub_cfg.free_min == sub_cfg.free_min|int else sub_cfg.free_min }}"
+             placeholder="0">
+    </div>
+    <div>
+      <label class="sub-set-label">{{ 'Delivery days (min)' if not ar else 'أيام التوصيل (أدنى)' }}</label>
+      <input class="sub-set-input" name="sub_delivery_days_min" type="number" min="1" max="30"
+             value="{{ sub_cfg.days_min }}" style="width:70px;">
+    </div>
+    <div>
+      <label class="sub-set-label">{{ 'Delivery days (max)' if not ar else 'أيام التوصيل (أقصى)' }}</label>
+      <input class="sub-set-input" name="sub_delivery_days_max" type="number" min="1" max="30"
+             value="{{ sub_cfg.days_max }}" style="width:70px;">
+    </div>
+    <button type="button" class="sub-btn sub-btn-confirm" style="padding:8px 18px;font-size:.85rem;" onclick="saveSubSettings()">
+      {{ 'Save' if not ar else 'حفظ' }}
+    </button>
+    <span id="sub-set-saved" style="color:#4ade80;font-size:.8rem;display:none;">✅ {{ 'Saved' if not ar else 'تم الحفظ' }}</span>
+  </form>
+  {% if sub_cfg.free_min > 0 %}
+  <p style="margin:12px 0 0;font-size:.78rem;color:var(--muted);">
+    🚚 {{ 'Free delivery applies to subscriptions with order total ≥ $' + sub_cfg.free_min|string if not ar else 'التوصيل مجاني للاشتراكات التي قيمتها ≥ $' + sub_cfg.free_min|string }}
+    &nbsp;·&nbsp;
+    {{ 'Delivery: ' + sub_cfg.days_min|string + '–' + sub_cfg.days_max|string + ' days' if not ar else 'التسليم: ' + sub_cfg.days_min|string + '–' + sub_cfg.days_max|string + ' أيام' }}
+  </p>
+  {% endif %}
+</div>
+
+{# ── Stats ── #}
+<div class="sub-stats-grid">
+  <div class="sub-stat-card">
+    <div class="ssc-val">{{ active_count }}</div>
+    <div class="ssc-lbl">{{ 'Active' if not ar else 'اشتراك نشط' }}</div>
+  </div>
+  <div class="sub-stat-card {{ 'ssc-urgent' if due_count > 0 }}">
+    <div class="ssc-val">{{ due_count }}</div>
+    <div class="ssc-lbl">{{ 'Due Today / Overdue' if not ar else 'مستحق اليوم أو متأخر' }}</div>
+  </div>
+  <div class="sub-stat-card">
+    <div class="ssc-val">{{ due_tom|length }}</div>
+    <div class="ssc-lbl">{{ 'Due Tomorrow' if not ar else 'مستحق غداً' }}</div>
+  </div>
+  <div class="sub-stat-card">
+    <div class="ssc-val">{{ paused_count }}</div>
+    <div class="ssc-lbl">{{ 'Paused' if not ar else 'موقوف مؤقتاً' }}</div>
+  </div>
+</div>
+
+{# ── Overdue ── #}
+{% if overdue %}
+<div class="adm-card" style="border-color:#f87171;">
+  <h2 class="adm-section-title" style="color:#f87171;">⚠️ {{ 'Overdue' if not ar else 'متأخر — يجب المعالجة' }}</h2>
+  {{ _render_rows(overdue, 'overdue') }}
+</div>
+{% endif %}
+
+{# ── Due Today ── #}
+{% if due_today %}
+<div class="adm-card" style="border-color:#d4a72c;">
+  <h2 class="adm-section-title" style="color:#d4a72c;">📅 {{ 'Due Today' if not ar else 'مستحق اليوم' }}</h2>
+  {{ _render_rows(due_today, 'today') }}
+</div>
+{% endif %}
+
+{# ── Due Tomorrow ── #}
+{% if due_tom %}
+<div class="adm-card">
+  <h2 class="adm-section-title">🌅 {{ 'Due Tomorrow' if not ar else 'مستحق غداً' }}</h2>
+  {{ _render_rows(due_tom, 'tom') }}
+</div>
+{% endif %}
+
+{# ── This Week ── #}
+{% if upcoming %}
+<div class="adm-card">
+  <h2 class="adm-section-title">📆 {{ 'This Week' if not ar else 'هذا الأسبوع' }}</h2>
+  {{ _render_rows(upcoming, 'week') }}
+</div>
+{% endif %}
+
+{# ── All subscriptions ── #}
+<div class="adm-card">
+  <h2 class="adm-section-title">📋 {{ 'All Subscriptions' if not ar else 'كل الاشتراكات' }}</h2>
+  {% if all_subs %}
+  <div style="overflow-x:auto;">
+    <table class="adm-table">
+      <thead>
+        <tr>
+          <th>{{ 'Customer' if not ar else 'الزبون' }}</th>
+          <th>{{ 'Product' if not ar else 'المنتج' }}</th>
+          <th>{{ 'Qty' if not ar else 'ك' }}</th>
+          <th>{{ 'Interval' if not ar else 'كل' }}</th>
+          <th>{{ 'Next Date' if not ar else 'الموعد القادم' }}</th>
+          <th>{{ 'Status' if not ar else 'الحالة' }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in all_subs %}
+        <tr id="row-{{ s.id }}">
+          <td>
+            <strong>{{ s.customer_name }}</strong><br>
+            <span class="text-muted small" dir="ltr">{{ s.phone }}</span>
+          </td>
+          <td class="text-muted small">
+            {{ s.name_ar if ar else s.name_en }}
+            {% set order_val = (s.discount_price or s.price) * s.qty %}
+            {% if sub_cfg.free_min > 0 and order_val >= sub_cfg.free_min %}
+              <span class="badge badge-green" style="font-size:.63rem;margin-inline-start:4px;">🚚 {{ 'مجاني' if ar else 'Free' }}</span>
+            {% endif %}
+          </td>
+          <td>{{ s.qty }}</td>
+          <td class="text-muted">{{ s.interval_days }}{{ ' يوم' if ar else 'd' }}</td>
+          <td dir="ltr" class="text-muted small">{{ s.next_renewal_date }}</td>
+          <td>{{ _status_badge(s.status, s.current_status) }}</td>
+          <td>
+            {% if s.status == 'cancelled' %}
+              <button class="sub-btn sub-btn-sm" onclick="subAction({{ s.id }},'reactivate')">{{ 'Reactivate' if not ar else 'إعادة تفعيل' }}</button>
+            {% elif s.status == 'paused' %}
+              <button class="sub-btn sub-btn-sm" onclick="subAction({{ s.id }},'reactivate')">{{ 'Resume' if not ar else 'استئناف' }}</button>
+            {% else %}
+              <button class="sub-btn sub-btn-sm sub-btn-muted" onclick="subAction({{ s.id }},'pause')">{{ 'Pause' if not ar else 'إيقاف' }}</button>
+              <button class="sub-btn sub-btn-sm sub-btn-danger" onclick="subAction({{ s.id }},'cancel')">{{ 'Cancel' if not ar else 'إلغاء' }}</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="adm-empty">
+    <p>{{ 'No subscriptions yet.' if not ar else 'لا يوجد اشتراكات بعد.' }}</p>
+    <p class="text-muted small">{{ 'Subscriptions will appear here once customers sign up from a product page.' if not ar else 'بتظهر هون لما زبون يشترك من صفحة منتج.' }}</p>
+  </div>
+  {% endif %}
+</div>
+
+{# ── Macros ── #}
+{% macro _render_rows(rows, section) %}
+<div style="overflow-x:auto;">
+  <table class="adm-table sub-table">
+    <thead>
+      <tr>
+        <th>{{ 'Customer' if not ar else 'الزبون' }}</th>
+        <th>{{ 'Product' if not ar else 'المنتج' }}</th>
+        <th>{{ 'Qty' if not ar else 'الكمية' }}</th>
+        <th>{{ 'Every' if not ar else 'كل' }}</th>
+        <th>{{ 'Date' if not ar else 'الموعد' }}</th>
+        <th>{{ 'State' if not ar else 'الحالة' }}</th>
+        <th>{{ 'Actions' if not ar else 'إجراءات' }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in rows %}
+      <tr id="row-{{ s.id }}">
+        <td>
+          <strong>{{ s.customer_name }}</strong><br>
+          <span class="text-muted small" dir="ltr">{{ s.phone }}</span>
+          {% if s.area %}<br><span class="text-muted small">{{ s.area }}</span>{% endif %}
+        </td>
+        <td>
+          <span class="small">{{ s.name_ar if ar else s.name_en }}</span>
+          {% set order_val = (s.discount_price or s.price) * s.qty %}
+          {% if sub_cfg.free_min > 0 and order_val >= sub_cfg.free_min %}
+            <br><span class="badge badge-green" style="font-size:.65rem;">🚚 {{ 'مجاني' if ar else 'Free Ship' }}</span>
+          {% endif %}
+        </td>
+        <td><strong>{{ s.qty }}</strong></td>
+        <td class="text-muted small">{{ s.interval_days }}{{ ' يوم' if ar else ' days' }}</td>
+        <td dir="ltr" class="text-muted small">{{ s.next_renewal_date }}</td>
+        <td>{{ _status_badge(s.status, s.current_status) }}</td>
+        <td>
+          <div class="sub-actions">
+            {# Push notification #}
+            <button class="sub-btn sub-btn-push" onclick="sendPush({{ s.id }}, this)"
+                    title="{{ 'إشعار push' if ar else 'Push notification' }}">
+              🔔 {{ 'Push' }}
+            </button>
+            {# WhatsApp #}
+            <a class="sub-btn sub-btn-wa"
+               href="https://wa.me/{{ whatsapp_number }}?text={{ (
+                 'أهلاً ' + s.customer_name + '! 👋\nطلبيتك الدورية جاهزة للتجديد:\n🛒 ' + s.name_ar + '\n📦 الكمية: ' + s.qty|string + '\n📅 موعد التجديد: ' + s.next_renewal_date + '\n\nتأكد؟ ردّ \"تأكيد\" أو \"أرجّئ\"\n\nBella Pet 🐾'
+               )|urlencode }}"
+               target="_blank">
+              💬 {{ 'WA' }}
+            </a>
+            {# Status actions #}
+            <button class="sub-btn sub-btn-confirm {{ 'active' if s.current_status == 'confirmed' }}"
+                    onclick="subAction({{ s.id }}, 'confirmed', this)"
+                    title="{{ 'تأكيد' if ar else 'Confirm' }}">✅</button>
+            <button class="sub-btn sub-btn-deliver"
+                    onclick="subAction({{ s.id }}, 'delivered', this)"
+                    title="{{ 'تسليم — يجدد الموعد' if ar else 'Delivered — renews date' }}">📦</button>
+            <button class="sub-btn sub-btn-skip"
+                    onclick="subAction({{ s.id }}, 'skipped', this)"
+                    title="{{ 'تخطّي — يجدد الموعد' if ar else 'Skip — renews date' }}">⏭️</button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% macro _status_badge(status, cur) %}
+  {% if status == 'cancelled' %}
+    <span class="badge badge-red">{{ 'ملغى' if ar else 'Cancelled' }}</span>
+  {% elif status == 'paused' %}
+    <span class="badge badge-blue">{{ 'موقوف' if ar else 'Paused' }}</span>
+  {% elif cur == 'confirmed' %}
+    <span class="badge badge-green">{{ 'مؤكد' if ar else 'Confirmed' }}</span>
+  {% elif cur == 'delivered' %}
+    <span class="badge badge-green">{{ 'مسلّم' if ar else 'Delivered' }}</span>
+  {% elif cur == 'notified' %}
+    <span class="badge badge-gold">{{ 'تم الإشعار' if ar else 'Notified' }}</span>
+  {% elif cur == 'skipped' %}
+    <span class="badge" style="background:rgba(255,255,255,.08);color:var(--muted)">{{ 'متخطى' if ar else 'Skipped' }}</span>
+  {% else %}
+    <span class="badge" style="background:rgba(255,255,255,.08);color:var(--text)">{{ 'معلق' if ar else 'Pending' }}</span>
+  {% endif %}
+{% endmacro %}
+
+<style>
+.sub-stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+@media(max-width:700px){ .sub-stats-grid{ grid-template-columns:1fr 1fr; } }
+.sub-stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 12px; text-align:center; }
+.sub-stat-card.ssc-urgent { border-color:#f87171; }
+.ssc-val { font-size:2rem; font-weight:700; color:var(--text); }
+.ssc-lbl { font-size:.75rem; color:var(--muted); margin-top:4px; }
+
+.sub-table td { vertical-align:middle; }
+.sub-actions { display:flex; gap:5px; flex-wrap:wrap; }
+
+.sub-btn {
+  display:inline-flex; align-items:center; gap:3px;
+  padding:4px 9px; border-radius:6px; font-size:.75rem; font-weight:600;
+  border:none; cursor:pointer; text-decoration:none;
+  background:var(--surface2); color:var(--text);
+  transition:opacity .15s;
+}
+.sub-btn:hover { opacity:.8; }
+.sub-btn-push    { background:rgba(212,167,44,.15); color:#d4a72c; }
+.sub-btn-wa      { background:rgba(37,211,102,.15); color:#25d366; }
+.sub-btn-confirm { background:rgba(74,222,128,.1);  color:#4ade80; }
+.sub-btn-confirm.active { background:rgba(74,222,128,.3); }
+.sub-btn-deliver { background:rgba(96,165,250,.15); color:#60a5fa; }
+.sub-btn-skip    { background:rgba(255,255,255,.06); color:var(--muted); }
+.sub-btn-sm      { font-size:.7rem; padding:3px 7px; }
+.sub-btn-muted   { background:rgba(255,255,255,.06); color:var(--muted); }
+.sub-btn-danger  { background:rgba(248,113,113,.15); color:#f87171; }
+
+.sub-set-label { display:block; font-size:.72rem; color:var(--muted); font-weight:600; margin-bottom:5px; }
+.sub-set-input {
+  background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+  padding:8px 11px; color:var(--text); font-size:.88rem; width:120px;
+}
+.sub-set-input:focus { border-color:#4ade80; outline:none; }
+</style>
+
+<script>
+const _csrf = document.querySelector('meta[name="csrf-token"]').content;
+
+async function subAction(id, action, btn) {
+  if (btn) { btn.disabled = true; btn.style.opacity = '.5'; }
+  const fd = new FormData();
+  fd.append('action', action);
+  fd.append('_csrf_token', _csrf);
+  const r = await fetch(`/admin/subscriptions/${id}/status`, { method:'POST', body:fd });
+  const j = await r.json();
+  if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  if (j.ok) {
+    if (action === 'delivered' || action === 'skipped') {
+      const row = document.getElementById('row-' + id);
+      if (row) row.style.opacity = '0.4';
+      setTimeout(() => location.reload(), 700);
+    } else if (action === 'confirmed') {
+      if (btn) { btn.classList.add('active'); }
+    } else {
+      location.reload();
+    }
+  } else {
+    alert('حدث خطأ');
+  }
+}
+
+async function saveSubSettings() {
+  const form = document.getElementById('sub-settings-form');
+  const fd = new FormData(form);
+  fd.append('_csrf_token', _csrf);
+  const r = await fetch('/admin/subscriptions/settings', { method:'POST', body:fd });
+  const j = await r.json();
+  if (j.ok) {
+    const saved = document.getElementById('sub-set-saved');
+    saved.style.display = 'inline';
+    setTimeout(() => { saved.style.display = 'none'; location.reload(); }, 1200);
+  }
+}
+
+async function sendPush(id, btn) {
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  const fd = new FormData();
+  fd.append('_csrf_token', _csrf);
+  const r = await fetch(`/admin/subscriptions/${id}/notify`, { method:'POST', body:fd });
+  const j = await r.json();
+  btn.disabled = false;
+  if (j.ok && j.sent > 0) {
+    btn.textContent = '✅ Push';
+    btn.style.color = '#4ade80';
+  } else if (j.ok) {
+    btn.textContent = '❌ لا push';
+    btn.title = 'لا يوجد اشتراك push لهذا الزبون';
+  } else {
+    btn.textContent = '🔔 Push';
+    alert(j.msg || 'خطأ');
+  }
+}
+</script>
+
+{% endblock %}

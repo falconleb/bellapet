@@ -1,0 +1,66 @@
+{% extends "admin/base.html" %}
+{% block title %}صفحات المحتوى{% endblock %}
+
+{% block content %}
+<div class="adm-page-head">
+  <h1>📄 صفحات المحتوى</h1>
+  <p style="color:var(--muted);font-size:.85rem;margin-top:4px;">عن المتجر • تواصل معنا • سياسة الإرجاع</p>
+</div>
+
+{% with msgs = get_flashed_messages(with_categories=true) %}
+{% for cat, msg in msgs %}
+<div class="adm-flash adm-flash--{{ cat }}">{{ msg }}</div>
+{% endfor %}
+{% endwith %}
+
+<div class="cp-admin-tabs">
+  {% for page in pages %}
+  <button class="cp-tab {{ 'is-active' if loop.first else '' }}"
+          onclick="showTab('{{ page.slug }}', this)">
+    {{ page.title_ar }}
+  </button>
+  {% endfor %}
+</div>
+
+{% for page in pages %}
+<div class="cp-panel" id="panel-{{ page.slug }}" style="{{ 'display:block' if loop.first else 'display:none' }}">
+  <form method="POST" action="{{ url_for('admin_content_save') }}">
+    <input type="hidden" name="slug" value="{{ page.slug }}">
+
+    <div class="adm-form-row">
+      <label>العنوان بالعربي</label>
+      <input class="adm-input" type="text" name="title_ar" value="{{ page.title_ar }}" required>
+    </div>
+    <div class="adm-form-row">
+      <label>العنوان بالإنجليزي</label>
+      <input class="adm-input" type="text" name="title_en" value="{{ page.title_en }}" required>
+    </div>
+    <div class="adm-form-row">
+      <label>المحتوى بالعربي</label>
+      <textarea class="adm-textarea cp-textarea" name="body_ar" placeholder="اكتب المحتوى هون...">{{ page.body_ar }}</textarea>
+    </div>
+    <div class="adm-form-row">
+      <label>المحتوى بالإنجليزي</label>
+      <textarea class="adm-textarea cp-textarea" name="body_en" placeholder="Write content here...">{{ page.body_en }}</textarea>
+    </div>
+
+    <div class="adm-form-actions">
+      <button type="submit" class="adm-btn">💾 حفظ</button>
+      <a href="{{ url_for('content_page', slug=page.slug) }}" target="_blank" class="adm-btn-secondary">👁 معاينة</a>
+    </div>
+  </form>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showTab(slug, btn) {
+  document.querySelectorAll('.cp-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.cp-tab').forEach(b => b.classList.remove('is-active'));
+  document.getElementById('panel-' + slug).style.display = 'block';
+  btn.classList.add('is-active');
+}
+</script>
+{% endblock %}

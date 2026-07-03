@@ -1,0 +1,39 @@
+{#
+  مكوّنات مشتركة — تُستورد في كل صفحة
+  الاستخدام: {% from "_components.html" import product_img, product_card_img %}
+#}
+
+{# ──────────────────────────────────────────────────────────────
+   product_img — يقرر تلقائياً fetchpriority أو lazy حسب الـ index
+   الوسائط:
+     filename  — اسم ملف الصورة
+     alt       — نص بديل
+     index     — ترتيب المنتج في الصفحة (0 = أول، >0 = lazy)
+     css_class — (اختياري) افتراضي thumb-img
+   ────────────────────────────────────────────────────────────── #}
+{% macro product_img(filename, alt, index=0, css_class='thumb-img') %}
+<img src="{{ '/static/img/products/' + filename if filename else '/static/img/placeholder.webp' }}"
+     alt="{{ alt | e }}"
+     class="{{ css_class }}"
+     width="400" height="400"
+     onerror="this.onerror=null;this.src='/static/img/placeholder.webp'"
+     {% if index == 0 %}
+     fetchpriority="high"
+     decoding="async"
+     {% else %}
+     loading="lazy"
+     decoding="async"
+     {% endif %}>
+{% endmacro %}
+
+{# ──────────────────────────────────────────────────────────────
+   preload_hint — يُحقن في <head> عبر block preload
+   يستخدم للصورة الأولى فقط (index=0)
+   ────────────────────────────────────────────────────────────── #}
+{% macro preload_hint(filename) %}
+{% if filename %}
+<link rel="preload" as="image"
+      href="/static/img/products/{{ filename }}"
+      fetchpriority="high">
+{% endif %}
+{% endmacro %}

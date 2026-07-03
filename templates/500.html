@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ 'خطأ تقني' if lang == 'ar' else 'Server Error' }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+{% block content %}
+
+<div class="error-page">
+  <div class="error-animal">🐶</div>
+  <h1 class="error-code">500</h1>
+  <h2 class="error-title">
+    {{ 'الكلب أكل الكود! 🐕 نصلح هلق' if lang == 'ar' else 'The dog ate our code! 🐕 We\'re fixing it' }}
+  </h2>
+  <p class="error-body">
+    {% if lang == 'ar' %}
+      صار خطأ تقني مؤقت. جرّب تحدّث الصفحة، لو استمر المشكلة تواصل معنا.
+    {% else %}
+      A temporary technical error occurred. Try refreshing — if it continues, reach out to us.
+    {% endif %}
+  </p>
+  <div class="error-actions">
+    <a href="{{ url_for('index') }}" class="btn-back-home">
+      {{ '🏠 العودة للرئيسية' if lang == 'ar' else '🏠 Back to Home' }}
+    </a>
+    <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="btn-wa-confirm">
+      {{ '💬 أبلغنا عن المشكلة' if lang == 'ar' else '💬 Report the issue' }}
+    </a>
+  </div>
+</div>
+
+{% endblock %}

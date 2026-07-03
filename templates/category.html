@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% from "_components.html" import product_img, preload_hint %}
+
+{% block title %}{{ pick(category['name_en'], category['name_ar']) }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+{% block og_image %}
+{% if category_image %}
+<meta property="og:image"     content="{{ request.host_url }}static/img/{{ category_image }}">
+<meta name="twitter:image"    content="{{ request.host_url }}static/img/{{ category_image }}">
+{% endif %}
+{% endblock %}
+
+{% block preload %}
+{% if products and products[0]['primary_img'] %}{{ preload_hint(products[0]['primary_img']) }}{% endif %}
+{% endblock %}
+
+{% block schema %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem", "position": 1,
+      "name": "{{ 'الرئيسية' if lang == 'ar' else 'Home' }}",
+      "item": "{{ request.host_url }}"
+    },
+    {
+      "@type": "ListItem", "position": 2,
+      "name": "{{ pick(category['name_en'], category['name_ar']) | e }}",
+      "item": "{{ request.host_url }}category/{{ category['slug'] }}"
+    }{% if active_sub %},
+    {
+      "@type": "ListItem", "position": 3,
+      "name": "{% for s in subcategories if s['slug'] == active_sub %}{{ pick(s['name_en'], s['name_ar']) | e }}{% endfor %}",
+      "item": "{{ request.url }}"
+    }
+    {% endif %}
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+
+{# ══ Hub Mode (no sub selected, has sections) ══ #}
+{% if not active_sub and sections %}
+
+<div class="cat-hub">
+
+  {# Hero bar #}
+  <div class="hub-hero">
+    <div class="hub-hero-icon">{{ icons.icon_by_name(category['slug'], "hub-icon") }}</div>
+    <div class="hub-hero-text">
+      <h1 class="hub-title">{{ pick(category['name_en'], category['name_ar']) }}</h1>
+      <p class="hub-count">{{ products|length }} {{ 'منتج' if lang == 'ar' else 'products' }}</p>
+    </div>
+  </div>
+
+  {# ── Sub-category tiles grid (كل الأقسام دائماً) ── #}
+  {% set sub_icons = {
+    'food':'🍽','wet-food':'🥫','treats':'🦴','litter':'🪣','toys':'🎾',
+    'accessories':'✨','grooming':'🛁','beds':'🛏','clothes':'👗',
+    'cages':'🏠','vitamins':'💊','filters':'🔄','decor':'🪴',
+    'lighting':'💡','water-care':'💧','bedding':'🛏',
+    'seeds':'🌾','aquarium':'🐠','bedding':'🛏'
+  } %}
+  {% if sections %}
+  <div class="hub-tiles-wrap">
+    <div class="hub-tiles">
+      {% for sec in sections %}
+      <a href="{{ url_for('category', slug=category['slug'], sub=sec.sub.slug) }}"
+         class="hub-tile {{ 'hub-tile-active' if sec.products }}">
+        <span class="hub-tile-icon">{{ sub_icons.get(sec.sub.slug, '📦') }}</span>
+        <span class="hub-tile-name">{{ pick(sec.sub.name_en, sec.sub.name_ar) }}</span>
+        {% if not sec.products %}
+        <span class="hub-tile-soon">{{ 'قريباً' if lang == 'ar' else 'Soon' }}</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Sections مع منتجات ── #}
+  {% for sec in sections %}
+  {% if sec.products %}
+  <section class="hub-section">
+    <div class="hub-sec-head">
+      <h2 class="hub-sec-title">
+        {{ sub_icons.get(sec.sub.slug, '📦') }} {{ pick(sec.sub.name_en, sec.sub.name_ar) }}
+      </h2>
+      <a href="{{ url_for('category', slug=category['slug'], sub=sec.sub.slug) }}" class="hub-sec-all">
+        {{ '← شوف الكل' if lang == 'ar' else 'See all →' }}
+      </a>
+    </div>
+    <div class="hub-sec-scroll">
+      {% for p in sec.products %}
+      <a href="{{ url_for('product', slug=p['slug']) }}" class="hub-card">
+        <div class="hub-card-thumb">
+          {% if p['discount_price'] %}
+          <span class="hub-badge-sale">{{ 'عرض' if lang == 'ar' else 'Sale' }}</span>
+          {% endif %}
+          {% if p['primary_img'] %}
+          <img src="{{ url_for('static', filename='img/products/' + p['primary_img']) }}"
+               alt="{{ pick(p['name_en'], p['name_ar'])|e }}" loading="lazy">
+          {% else %}
+          <span class="hub-thumb-ph">🐾</span>
+          {% endif %}
+          <button class="wish-btn"
+            data-slug="{{ p['slug'] }}"
+            data-name="{{ pick(p['name_en'],p['name_ar'])|e }}"
+            data-price="{{ p['discount_price'] or p['price'] }}"
+            data-img="{{ p['primary_img'] or '' }}"
+            title="{{ 'أضف للمفضلة' if lang == 'ar' else 'Add to wishlist' }}"
+            aria-label="{{ 'أضف للمفضلة' if lang == 'ar' else 'Add to wishlist' }}">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </button>
+        </div>
+        <div class="hub-card-info">
+          {% if p['brand'] %}<span class="hub-brand">{{ p['brand'] }}</span>{% endif %}
+          <span class="hub-name">{{ pick(p['name_en'], p['name_ar']) }}</span>
+          <span class="hub-price">
+            {{ currency }}{{ '%.2f'|format(p['discount_price'] if p['discount_price'] else p['price']) }}
+            {% if p['discount_price'] %}
+            <span class="hub-old">{{ currency }}{{ '%.2f'|format(p['price']) }}</span>
+            {% endif %}
+          </span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% endfor %}
+
+</div>
+
+{# ══ Sub-category view OR flat fallback ══ #}
+{% else %}
+
+<nav class="breadcrumb">
+  <a href="{{ url_for('index') }}">{{ 'الرئيسية' if lang == 'ar' else 'Home' }}</a>
+  <span class="bc-sep">›</span>
+  <a href="{{ url_for('category', slug=category['slug']) }}">{{ pick(category['name_en'], category['name_ar']) }}</a>
+  {% if active_sub %}
+    <span class="bc-sep">›</span>
+    {% for s in subcategories if s['slug'] == active_sub %}
+      <span>{{ pick(s['name_en'], s['name_ar']) }}</span>
+    {% endfor %}
+  {% endif %}
+</nav>
+
+{% if subcategories %}
+<div class="subcat-grid">
+  <a href="{{ url_for('category', slug=category['slug']) }}"
+     class="subcat-card {{ 'is-active' if not active_sub else '' }}">
+    {{ 'الكل' if lang == 'ar' else 'All' }}
+  </a>
+  {% for s in subcategories %}
+  <a href="{{ url_for('category', slug=category['slug'], sub=s['slug']) }}"
+     class="subcat-card {{ 'is-active' if active_sub == s['slug'] else '' }}">
+    {{ pick(s['name_en'], s['name_ar']) }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if products %}
+<div class="product-grid">
+  {% for p in products %}
+  <a href="{{ url_for('product', slug=p['slug']) }}" class="product-card-grid">
+    <div class="thumb">
+      {% if p['discount_price'] %}
+      <span class="badge-gold">{{ icons.icon_seal("b-icon") }} {{ 'عرض' if lang == 'ar' else 'Sale' }}</span>
+      {% elif p['promo_label_ar'] %}
+      <span class="badge-promo">🏷 {{ pick(p['promo_label_en'], p['promo_label_ar']) }}</span>
+      {% endif %}
+      {% if p['is_bundle'] %}
+      <span class="badge-bundle">📦 {{ 'حزمة' if lang == 'ar' else 'Bundle' }}</span>
+      {% endif %}
+      {{ product_img(p['primary_img'], pick(p['name_en'], p['name_ar']), loop.index0) }}
+      {% if not p['primary_img'] %}
+      <span class="thumb-placeholder">{{ icons.icon_by_name(category['icon'], "thumb-icon") }}</span>
+      {% endif %}
+      <button class="wish-btn"
+        data-slug="{{ p['slug'] }}"
+        data-name="{{ pick(p['name_en'],p['name_ar'])|e }}"
+        data-price="{{ p['discount_price'] or p['price'] }}"
+        data-img="{{ p['primary_img'] or '' }}"
+        title="{{ 'أضف للمفضلة' if lang == 'ar' else 'Add to wishlist' }}"
+        aria-label="{{ 'أضف للمفضلة' if lang == 'ar' else 'Add to wishlist' }}">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </button>
+    </div>
+    <div class="info">
+      <span class="p-brand">{{ p['brand'] }}</span>
+      <span class="p-name">{{ pick(p['name_en'], p['name_ar']) }}</span>
+      <span class="p-price">
+        {{ currency }}{{ '%.2f'|format(p['discount_price'] if p['discount_price'] else p['price']) }}
+        {% if p['discount_price'] %}
+        <span class="old">{{ currency }}{{ '%.2f'|format(p['price']) }}</span>
+        {% endif %}
+      </span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state">
+  {{ icons.icon_by_name(category['icon'], "empty-icon") }}
+  <h2>{{ 'قريباً منتجات جديدة' if lang == 'ar' else 'New products coming soon' }}</h2>
+  <p>{{ 'لسا عم نجهز الكاتالوج، تفقد قسم الكلاب والقطط بالوقت الحالي' if lang == 'ar'
+       else 'Check our Dogs & Cats sections in the meantime' }}</p>
+  <div class="empty-links">
+    <a href="{{ url_for('category', slug='dogs') }}" class="btn-ghost">
+      {{ icons.icon_dog("btn-icon") }}
+      {{ 'كلاب' if lang == 'ar' else 'Dogs' }}
+    </a>
+    <a href="{{ url_for('category', slug='cats') }}" class="btn-ghost">
+      {{ icons.icon_cat("btn-icon") }}
+      {{ 'قطط' if lang == 'ar' else 'Cats' }}
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

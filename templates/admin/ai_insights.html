@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% block title %}AI Insights{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>🧠 مركز الذكاء الاصطناعي</h1>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ url_for('admin_ai_describe') }}"  class="adm-btn-secondary">✍️ كاتب الوصف</a>
+    <a href="{{ url_for('admin_ai_campaigns') }}" class="adm-btn-secondary">💡 حملات</a>
+  </div>
+</div>
+
+{# ── تنبيهات المخزون ── #}
+{% if alerts %}
+<div class="ai-alerts-wrap">
+  <h2 class="ai-section-title">⚠️ تنبيهات المخزون</h2>
+  <div class="ai-alerts-grid">
+    {% for a in alerts %}
+    <div class="ai-alert ai-alert--{{ a.level }}">
+      <div class="ai-alert-name">
+        <a href="/admin/products/{{ a.slug }}/edit">{{ a.name_ar }}</a>
+      </div>
+      <div class="ai-alert-stats">
+        <span class="ai-alert-stock">{{ a.stock_qty }} قطعة</span>
+        {% if a.sold_30d %}
+        <span class="ai-alert-sold">{{ a.sold_30d }} مبيعة/شهر</span>
+        {% endif %}
+      </div>
+      <div class="ai-alert-label ai-alert-label--{{ a.level }}">{{ a.label }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── تحليل الطلبات ── #}
+<div class="adm-card" style="margin-top:20px;">
+  <h2 class="ai-section-title">📊 تحليل آخر 30 يوم</h2>
+  <pre class="ai-insights-text">{{ insights }}</pre>
+</div>
+<form method="GET" style="margin-top:1rem">
+  <button type="submit" class="adm-btn adm-btn-primary">🔄 تحديث التحليل</button>
+  <span class="adm-hint" style="margin-right:12px">محفوظ بالـ cache — اضغط لتحديث</span>
+</form>
+
+{% endblock %}

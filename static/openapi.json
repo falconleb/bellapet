@@ -1,0 +1,342 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Bella Pet Store API",
+    "description": "REST API for Bella Pet — Lebanon's AI-powered pet store. All endpoints require X-API-Key header.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Bella Pet Support",
+      "url": "https://wa.me/96100000000"
+    }
+  },
+  "servers": [
+    { "url": "http://127.0.0.1:5000", "description": "Local development" }
+  ],
+  "security": [{ "ApiKeyAuth": [] }],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    },
+    "schemas": {
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id":             { "type": "integer" },
+          "slug":           { "type": "string" },
+          "name_ar":        { "type": "string" },
+          "name_en":        { "type": "string" },
+          "brand":          { "type": "string" },
+          "price":          { "type": "number" },
+          "discount_price": { "type": ["number", "null"] },
+          "effective_price":{ "type": "number", "description": "discount_price if set, else price" },
+          "stock_qty":      { "type": "integer" },
+          "benefit_ar":     { "type": "string" },
+          "benefit_en":     { "type": "string" },
+          "cat_slug":       { "type": "string" },
+          "cat_en":         { "type": "string" }
+        }
+      },
+      "OrderItem": {
+        "type": "object",
+        "properties": {
+          "product_id": { "type": "integer" },
+          "qty":        { "type": "integer", "minimum": 1 }
+        },
+        "required": ["product_id", "qty"]
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id":            { "type": "integer" },
+          "customer_name": { "type": "string" },
+          "phone":         { "type": "string" },
+          "area":          { "type": "string" },
+          "address_note":  { "type": ["string", "null"] },
+          "total":         { "type": "number" },
+          "status":        { "type": "string", "enum": ["new","confirmed","shipped","delivered","cancelled"] },
+          "created_at":    { "type": "string", "format": "date-time" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or invalid API key",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/products": {
+      "get": {
+        "operationId": "listProducts",
+        "summary": "Search & filter products",
+        "description": "Returns active products. Supports free-text search, pet-type filter, category, price cap, and result limit.",
+        "parameters": [
+          { "name": "q",         "in": "query", "schema": { "type": "string" },  "description": "Free-text search (name_ar, name_en, brand)" },
+          { "name": "pet",       "in": "query", "schema": { "type": "string", "enum": ["dog","cat","bird","fish","small"] }, "description": "Filter by pet type" },
+          { "name": "category",  "in": "query", "schema": { "type": "string" },  "description": "Category slug or keyword (food, treats, accessories…)" },
+          { "name": "max_price", "in": "query", "schema": { "type": "number" },  "description": "Maximum effective price in USD" },
+          { "name": "limit",     "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of matching products",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/products/{product_id}": {
+      "get": {
+        "operationId": "getProduct",
+        "summary": "Get product details",
+        "parameters": [
+          { "name": "product_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Product details", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Product" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/products/{product_id}/stock": {
+      "put": {
+        "operationId": "updateStock",
+        "summary": "Update product stock quantity",
+        "parameters": [
+          { "name": "product_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "stock_qty": { "type": "integer", "minimum": 0 } },
+                "required": ["stock_qty"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Stock updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" }, "product_id": { "type": "integer" }, "stock_qty": { "type": "integer" } } } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/advisor": {
+      "post": {
+        "operationId": "askAdvisor",
+        "summary": "Ask the AI advisor (بيتي) for product recommendations",
+        "description": "Sends a customer message to Bella's Lebanese-dialect AI advisor. Returns a reply and suggested product list.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": { "type": "string", "description": "Customer question or request" },
+                  "history": {
+                    "type": "array",
+                    "description": "Previous conversation turns",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role":    { "type": "string", "enum": ["user","assistant"] },
+                        "content": { "type": "string" }
+                      }
+                    }
+                  },
+                  "lang": { "type": "string", "enum": ["ar","en"], "default": "ar" }
+                },
+                "required": ["message"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Advisor reply with product suggestions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reply":    { "type": "string" },
+                    "products": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } },
+                    "action":   { "type": "string", "description": "add_to_cart | ask_phone | whatsapp | (empty)" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "message field missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/promotions": {
+      "get": {
+        "operationId": "getPromotions",
+        "summary": "Get active promotions and price tiers",
+        "responses": {
+          "200": {
+            "description": "Promotions and bulk-price tiers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "promotions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "offer_type":        { "type": "string" },
+                          "threshold_amount":  { "type": ["number","null"] },
+                          "title_ar":          { "type": "string" },
+                          "title_en":          { "type": "string" }
+                        }
+                      }
+                    },
+                    "price_tiers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "product_id":     { "type": "integer" },
+                          "name_ar":        { "type": "string" },
+                          "min_qty":        { "type": "integer" },
+                          "price_per_unit": { "type": "number" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/orders": {
+      "get": {
+        "operationId": "listOrders",
+        "summary": "List orders (optionally filter by status or phone)",
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["new","confirmed","shipped","delivered","cancelled"] } },
+          { "name": "phone",  "in": "query", "schema": { "type": "string" }, "description": "Filter by customer phone number" }
+        ],
+        "responses": {
+          "200": { "description": "List of orders", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Order" } } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "operationId": "createOrder",
+        "summary": "Place a new order",
+        "description": "Creates an order directly from product IDs. Validates stock before inserting.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_name": { "type": "string" },
+                  "phone":         { "type": "string" },
+                  "area":          { "type": "string" },
+                  "address_note":  { "type": "string" },
+                  "items": {
+                    "type": "array",
+                    "items": { "$ref": "#/components/schemas/OrderItem" }
+                  }
+                },
+                "required": ["customer_name","phone","area","items"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok":       { "type": "boolean" },
+                    "order_id": { "type": "integer" },
+                    "total":    { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/orders/{order_id}": {
+      "get": {
+        "operationId": "getOrder",
+        "summary": "Get order details with line items",
+        "parameters": [
+          { "name": "order_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Order with items", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/orders/{order_id}/status": {
+      "put": {
+        "operationId": "updateOrderStatus",
+        "summary": "Update order status",
+        "parameters": [
+          { "name": "order_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string", "enum": ["new","confirmed","shipped","delivered","cancelled"] }
+                },
+                "required": ["status"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Status updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" }, "order_id": { "type": "integer" }, "status": { "type": "string" } } } } } },
+          "400": { "description": "Invalid status value", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    }
+  }
+}

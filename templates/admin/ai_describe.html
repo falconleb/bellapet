@@ -1,0 +1,194 @@
+{% extends "admin/base.html" %}
+{% block title %}كاتب الوصف الذكي{% endblock %}
+
+{% block content %}
+<div class="adm-page-head">
+  <h1>✍️ كاتب الوصف الذكي</h1>
+  <a href="{{ url_for('admin_ai_campaigns') }}" class="adm-btn-secondary">💡 حملات إعلانية</a>
+</div>
+
+{% with msgs = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in msgs %}
+  <div class="adm-flash adm-flash--{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+{# ══ Style Guide بالتصنيف ══ #}
+<div class="desc-style-card">
+  <div class="desc-style-head">
+    <h2>🎨 دليل الأسلوب</h2>
+    <small>كل تصنيف له أسلوبه الخاص — يرجع للـ Global إذا ما في خاص</small>
+  </div>
+
+  {# Tabs #}
+  <div class="desc-tabs">
+    <button class="desc-tab active" onclick="switchTab(0, this)">🌍 Global</button>
+    {% for cat in categories %}
+    <button class="desc-tab" onclick="switchTab({{ cat.id }}, this)">{{ cat.name_ar }}</button>
+    {% endfor %}
+  </div>
+
+  {% set all_cats = [{'id': 0, 'name_ar': 'Global'}] + categories|list %}
+  {% for cat in all_cats %}
+  {% set g = guides.get(cat.id) %}
+  <form method="post" action="{{ url_for('admin_ai_style_save') }}"
+        class="desc-style-form" data-cat="{{ cat.id }}"
+        style="{{ '' if loop.first else 'display:none' }}">
+    <input type="hidden" name="category_id" value="{{ cat.id }}">
+    {% if cat.id != 0 %}
+    <div class="desc-style-inherit-hint">
+      {{ '✅ له دليل خاص' if g else '⬜ يرث من Global' }}
+    </div>
+    {% endif %}
+    <div class="desc-style-grid">
+      <div class="desc-style-field">
+        <label>الأسلوب (عربي)</label>
+        <textarea name="tone_ar" rows="3" class="adm-input">{{ g.tone_ar if g else '' }}</textarea>
+      </div>
+      <div class="desc-style-field">
+        <label>الأسلوب (إنجليزي)</label>
+        <textarea name="tone_en" rows="3" class="adm-input">{{ g.tone_en if g else '' }}</textarea>
+      </div>
+    </div>
+    <div class="desc-style-field" style="margin-top:10px;">
+      <label>بنية الوصف</label>
+      <textarea name="structure" rows="5" class="adm-input">{{ g.structure if g else '' }}</textarea>
+    </div>
+    <button type="submit" class="adm-btn" style="margin-top:10px;">💾 حفظ دليل {{ cat.name_ar }}</button>
+  </form>
+  {% endfor %}
+</div>
+
+{# ══ مسودات بانتظار المراجعة ══ #}
+{% if drafts %}
+<div class="desc-review-section">
+  <h2 class="desc-review-title">📋 مسودات بانتظار اعتمادك ({{ drafts|length }})</h2>
+  <div class="desc-review-hint">راجع كل وصف قبل نشره — اضغط ✅ للاعتماد أو ❌ للرفض</div>
+
+  {% for d in drafts %}
+  <div class="desc-draft-card" id="draft-{{ d.id }}">
+    <div class="desc-draft-head">
+      <span class="desc-draft-product">{{ d.product_name }}</span>
+      <span class="desc-draft-cat">{{ d.cat_ar }}</span>
+    </div>
+    <div class="desc-draft-body">
+      <div class="desc-draft-col">
+        <div class="desc-draft-label">عربي</div>
+        <div class="desc-draft-text" id="ar-{{ d.id }}">{{ d.description_ar }}</div>
+        <div class="desc-draft-benefit">الفايدة: {{ d.benefit_ar }}</div>
+      </div>
+      <div class="desc-draft-col">
+        <div class="desc-draft-label">English</div>
+        <div class="desc-draft-text" id="en-{{ d.id }}">{{ d.description_en }}</div>
+        <div class="desc-draft-benefit">Benefit: {{ d.benefit_en }}</div>
+      </div>
+    </div>
+    <div class="desc-draft-actions">
+      <button class="adm-btn adm-btn--green" onclick="approveDraft({{ d.id }})">✅ اعتمد ونشر</button>
+      <button class="adm-btn adm-btn--red"   onclick="rejectDraft({{ d.id }})">❌ رفض</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ══ جدول المنتجات ══ #}
+<div class="desc-table-wrap">
+  {% set missing = products|selectattr('has_desc','eq',0)|list %}
+  {% if missing %}
+  <div class="desc-bulk-bar">
+    <span>⚠️ {{ missing|length }} منتج بدون وصف</span>
+    <button class="adm-btn adm-btn--accent" onclick="generateAll()">✨ اكتب الكل كمسودة</button>
+    <span id="bulk-status" class="desc-bulk-status"></span>
+  </div>
+  {% endif %}
+
+  <table class="adm-table">
+    <thead>
+      <tr><th>المنتج</th><th>التصنيف</th><th>الوصف</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for p in products %}
+    <tr id="row-{{ p.id }}">
+      <td>{{ p.name_ar }}</td>
+      <td>{{ p.cat_ar }}</td>
+      <td>
+        {% if p.has_desc %}
+        <span class="desc-status desc-status--ok">✅ موجود</span>
+        {% else %}
+        <span class="desc-status desc-status--miss">⬜ فارغ</span>
+        {% endif %}
+      </td>
+      <td>
+        <button class="adm-btn adm-btn--sm" onclick="generateOne({{ p.id }}, this)">✨ اكتب</button>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchTab(catId, btn) {
+  document.querySelectorAll('.desc-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.desc-style-form').forEach(f => f.style.display = 'none');
+  btn.classList.add('active');
+  document.querySelector(`.desc-style-form[data-cat="${catId}"]`).style.display = '';
+}
+
+async function generateOne(pid, btn) {
+  btn.disabled = true; btn.textContent = '⏳';
+  const res  = await fetch(`/api/ai-describe/${pid}`, { method: 'POST' });
+  const data = await res.json();
+  const row  = document.getElementById('row-' + pid);
+  if (data.ok) {
+    row.querySelector('.desc-status').className = 'desc-status desc-status--pending';
+    row.querySelector('.desc-status').textContent = '🕐 بانتظار المراجعة';
+    btn.textContent = '♻️ أعد';
+    // تحميل الصفحة لعرض المسودة
+    setTimeout(() => location.reload(), 800);
+  } else {
+    row.querySelector('.desc-status').textContent = '❌ خطأ';
+    btn.textContent = '✨ أعد';
+  }
+  btn.disabled = false;
+}
+
+async function generateAll() {
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ جاري الكتابة...';
+  document.getElementById('bulk-status').textContent = 'قد يستغرق دقائق...';
+  const res  = await fetch('/api/ai-describe/bulk', { method: 'POST' });
+  const data = await res.json();
+  btn.disabled = false; btn.textContent = '✨ اكتب الكل';
+  document.getElementById('bulk-status').textContent =
+    `✅ كُتبت مسودات ${data.done} منتج — راجعها أدناه`;
+  setTimeout(() => location.reload(), 1000);
+}
+
+async function approveDraft(did) {
+  const card = document.getElementById('draft-' + did);
+  const res  = await fetch(`/api/ai-describe/approve/${did}`, { method: 'POST' });
+  const data = await res.json();
+  if (data.ok) {
+    card.style.opacity = '0.4';
+    card.querySelector('.desc-draft-actions').innerHTML = '<span style="color:#34d399">✅ تم النشر</span>';
+    // تحديث حالة المنتج بالجدول
+    setTimeout(() => card.remove(), 1200);
+  }
+}
+
+async function rejectDraft(did) {
+  const card = document.getElementById('draft-' + did);
+  const res  = await fetch(`/api/ai-describe/reject/${did}`, { method: 'POST' });
+  if ((await res.json()).ok) {
+    card.style.opacity = '0.3';
+    card.querySelector('.desc-draft-actions').innerHTML = '<span style="color:#f87171">❌ مرفوض</span>';
+    setTimeout(() => card.remove(), 1000);
+  }
+}
+</script>
+{% endblock %}

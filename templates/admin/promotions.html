@@ -1,0 +1,180 @@
+{% extends "admin/base.html" %}
+{% block title %}العروض العامة{% endblock %}
+
+{% block content %}
+<div class="adm-page-header">
+  <h1>🎯 العروض العامة</h1>
+  <p style="color:var(--muted);font-size:0.85rem;margin-top:4px">عروض للجميع مع progress bar بالسلة</p>
+</div>
+
+{% if msg %}<div class="adm-alert adm-alert-success">{{ msg }}</div>{% endif %}
+
+{# ── إضافة عرض جديد ── #}
+<div class="adm-card" style="margin-bottom:24px">
+  <h3 style="margin-bottom:16px">➕ إضافة / تعديل عرض</h3>
+  <form method="post" id="promo-form">
+    <input type="hidden" name="action" value="save_promo">
+    <input type="hidden" name="promo_id" id="edit-promo-id" value="">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div class="adm-field">
+        <label>نوع العرض *</label>
+        <select name="offer_type" id="offer-type" onchange="updateOfferFields()">
+          <option value="free_shipping">🚚 شحن مجاني</option>
+          <option value="free_gift">🎁 هدية مجانية</option>
+          <option value="social_follow">📲 متابعة سوشل</option>
+        </select>
+      </div>
+      <div class="adm-field" id="threshold-field">
+        <label>الحد الأدنى للفاتورة ($)</label>
+        <input type="number" name="threshold_amount" id="threshold-amount" min="0" step="0.01" value="0" placeholder="0 = بدون حد">
+      </div>
+      <div class="adm-field">
+        <label>الترتيب</label>
+        <input type="number" name="sort_order" value="0" min="0">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="adm-field">
+        <label>العنوان بالعربي *</label>
+        <input type="text" name="title_ar" id="title-ar" dir="rtl" placeholder="مثال: شحن مجاني" required>
+      </div>
+      <div class="adm-field">
+        <label>العنوان بالإنجليزي</label>
+        <input type="text" name="title_en" id="title-en" placeholder="Free Shipping">
+      </div>
+      <div class="adm-field">
+        <label>نص الشريط (قبل الوصول) — عربي</label>
+        <input type="text" name="progress_ar" id="progress-ar" dir="rtl" placeholder="أضف {remaining} وبتاخد شحن مجاني 🚚">
+        <small style="color:var(--muted);font-size:0.72rem">{remaining} = المبلغ الناقص، {threshold} = الحد</small>
+      </div>
+      <div class="adm-field">
+        <label>نص الشريط (قبل الوصول) — إنجليزي</label>
+        <input type="text" name="progress_en" id="progress-en" placeholder="Add {remaining} for free shipping 🚚">
+      </div>
+      <div class="adm-field">
+        <label>نص لما يوصل — عربي</label>
+        <input type="text" name="unlocked_ar" id="unlocked-ar" dir="rtl" placeholder="🎉 مبروك! شحن مجاني مفعّل">
+      </div>
+      <div class="adm-field">
+        <label>نص لما يوصل — إنجليزي</label>
+        <input type="text" name="unlocked_en" id="unlocked-en" placeholder="🎉 Free shipping unlocked!">
+      </div>
+    </div>
+
+    <div class="adm-field" id="social-url-field" style="display:none">
+      <label>رابط السوشل ميديا</label>
+      <input type="url" name="social_url" id="social-url" placeholder="https://instagram.com/bellapetlb" dir="ltr">
+    </div>
+
+    <button type="submit" class="btn-adm-primary" style="margin-top:12px">💾 حفظ العرض</button>
+  </form>
+</div>
+
+{# ── قائمة العروض ── #}
+{% for p in promos %}
+<div class="adm-card" style="margin-bottom:20px;opacity:{{ '1' if p.is_active else '0.6' }}">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+    <div>
+      <span style="font-size:1.1rem;font-weight:700">
+        {% if p.offer_type == 'free_shipping' %}🚚{% elif p.offer_type == 'free_gift' %}🎁{% else %}📲{% endif %}
+        {{ p.title_ar }}
+      </span>
+      {% if p.threshold_amount > 0 %}
+      <span class="adm-badge" style="margin-inline-start:8px">عند ${{ '%.0f'|format(p.threshold_amount) }}</span>
+      {% endif %}
+      {% if not p.is_active %}
+      <span class="adm-badge" style="background:rgba(248,113,113,.15);color:#f87171;margin-inline-start:6px">معطّل</span>
+      {% endif %}
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button type="button" class="btn-adm-sm" onclick="editPromo({{ p.id }}, '{{ p.offer_type }}', '{{ p.threshold_amount }}', {{ p.title_ar|tojson }}, {{ p.title_en|tojson }}, {{ (p.progress_ar or '')|tojson }}, {{ (p.progress_en or '')|tojson }}, {{ (p.unlocked_ar or '')|tojson }}, {{ (p.unlocked_en or '')|tojson }}, {{ (p.social_url or '')|tojson }}, {{ p.sort_order }})">✏️ تعديل</button>
+      <form method="post" style="display:inline">
+        <input type="hidden" name="action" value="toggle_promo">
+        <input type="hidden" name="promo_id" value="{{ p.id }}">
+        <button type="submit" class="btn-adm-sm">{{ '⏸ تعطيل' if p.is_active else '▶ تفعيل' }}</button>
+      </form>
+      <form method="post" style="display:inline" onsubmit="return confirm('حذف العرض؟')">
+        <input type="hidden" name="action" value="delete_promo">
+        <input type="hidden" name="promo_id" value="{{ p.id }}">
+        <button type="submit" class="btn-adm-sm danger">✕ حذف</button>
+      </form>
+    </div>
+  </div>
+
+  {% if p.progress_ar %}
+  <p style="margin-top:8px;font-size:0.8rem;color:var(--muted)">📊 {{ p.progress_ar }}</p>
+  {% endif %}
+
+  {# قسم الهدايا — فقط لـ free_gift #}
+  {% if p.offer_type == 'free_gift' %}
+  <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+    <h4 style="margin-bottom:10px;font-size:0.88rem">🎁 خيارات الهدايا</h4>
+    {% if promo_gifts[p.id] %}
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      {% for g in promo_gifts[p.id] %}
+      <div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:0.82rem">
+        <span>{{ g.name_ar }}</span>
+        <form method="post" style="display:inline" onsubmit="return confirm('حذف الهدية؟')">
+          <input type="hidden" name="action" value="delete_gift">
+          <input type="hidden" name="gift_id" value="{{ g.id }}">
+          <button type="submit" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.75rem;padding:0">✕</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:var(--muted);font-size:0.8rem;margin-bottom:10px">لا توجد هدايا بعد</p>
+    {% endif %}
+    <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <input type="hidden" name="action" value="save_gift">
+      <input type="hidden" name="promo_id" value="{{ p.id }}">
+      <div class="adm-field" style="flex:1;min-width:130px;margin:0">
+        <label style="font-size:0.75rem">اسم الهدية بالعربي</label>
+        <input type="text" name="gift_name_ar" dir="rtl" placeholder="مثال: وجبة قطط صغيرة" required>
+      </div>
+      <div class="adm-field" style="flex:1;min-width:130px;margin:0">
+        <label style="font-size:0.75rem">بالإنجليزي</label>
+        <input type="text" name="gift_name_en" placeholder="e.g. Small cat food">
+      </div>
+      <button type="submit" class="btn-adm-sm" style="margin-bottom:0">+ إضافة</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="adm-card" style="text-align:center;color:var(--muted);padding:40px">
+  لا توجد عروض عامة بعد — أضف أول عرض من الفورم أعلاه
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateOfferFields() {
+  const t = document.getElementById('offer-type').value;
+  document.getElementById('social-url-field').style.display = t === 'social_follow' ? '' : 'none';
+  document.getElementById('threshold-field').style.display  = t === 'social_follow' ? 'none' : '';
+}
+
+function editPromo(id, type, threshold, titleAr, titleEn, progAr, progEn, unlAr, unlEn, socialUrl, sort) {
+  document.getElementById('edit-promo-id').value   = id;
+  document.getElementById('offer-type').value      = type;
+  document.getElementById('threshold-amount').value= threshold;
+  document.getElementById('title-ar').value        = titleAr;
+  document.getElementById('title-en').value        = titleEn;
+  document.getElementById('progress-ar').value     = progAr;
+  document.getElementById('progress-en').value     = progEn;
+  document.getElementById('unlocked-ar').value     = unlAr;
+  document.getElementById('unlocked-en').value     = unlEn;
+  document.getElementById('social-url').value      = socialUrl;
+  document.querySelector('[name=sort_order]').value = sort;
+  updateOfferFields();
+  document.getElementById('promo-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+updateOfferFields();
+</script>
+{% endblock %}

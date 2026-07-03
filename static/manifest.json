@@ -1,0 +1,42 @@
+{
+  "name": "Bella Pet",
+  "short_name": "Bella Pet",
+  "description": "مستلزمات الحيوانات الأليفة في لبنان — توصيل لكل المناطق",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#18181d",
+  "background_color": "#18181d",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/static/img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "السلة",
+      "short_name": "السلة",
+      "url": "/cart",
+      "icons": [{"src": "/static/img/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "طلباتي",
+      "short_name": "طلباتي",
+      "url": "/my-orders",
+      "icons": [{"src": "/static/img/icon-192.png", "sizes": "192x192"}]
+    }
+  ],
+  "categories": ["shopping", "lifestyle"]
+}

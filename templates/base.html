@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  {# ── SEO Meta ── #}
+  {% set _seo = seo_data if seo_data is defined else none %}
+  <title>{% block title %}
+    {%- if _seo -%}
+      {{ _seo.meta_title_ar if lang == 'ar' else _seo.meta_title_en }}
+    {%- else -%}
+      {{ site_name_ar if lang == 'ar' else site_name_en }}
+    {%- endif -%}
+  {% endblock %}</title>
+
+  {% if _seo %}
+  <meta name="description" content="{{ _seo.meta_desc_ar if lang == 'ar' else _seo.meta_desc_en }}">
+  <meta name="keywords"    content="{{ _seo.keywords_ar if lang == 'ar' else _seo.keywords_en }}">
+  {# Open Graph #}
+  <meta property="og:title"       content="{{ _seo.og_title or (_seo.meta_title_ar if lang=='ar' else _seo.meta_title_en) }}">
+  <meta property="og:description" content="{{ _seo.og_description or (_seo.meta_desc_ar if lang=='ar' else _seo.meta_desc_en) }}">
+  <meta property="og:type"        content="{% block og_type %}website{% endblock %}">
+  <meta property="og:url"         content="{{ request.url }}">
+  {% block og_image %}{% endblock %}
+  {# Twitter Card #}
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="{{ _seo.og_title or _seo.meta_title_ar }}">
+  <meta name="twitter:description" content="{{ _seo.og_description or _seo.meta_desc_ar }}">
+  {% else %}
+  <meta name="description" content="{{ site_name_ar if lang == 'ar' else site_name_en }} — مستلزمات الحيوانات الأليفة في لبنان">
+  {% endif %}
+
+  {# ── hreflang — ثنائي اللغة AR/EN ── #}
+  {% set _base_url = request.host_url.rstrip('/') %}
+  {% set _path = request.path %}
+  <link rel="alternate" hreflang="ar" href="{{ _base_url }}{{ _path }}{% if lang == 'en' %}?lang=ar{% endif %}">
+  <link rel="alternate" hreflang="en" href="{{ _base_url }}{{ _path }}{% if lang == 'ar' %}?lang=en{% endif %}">
+  <link rel="alternate" hreflang="x-default" href="{{ _base_url }}{{ _path }}">
+
+  {# noindex لصفحات بلا قيمة SEO #}
+  {% if request.path in ['/cart', '/checkout', '/order-confirm', '/my-orders', '/search'] %}
+  <meta name="robots" content="noindex, nofollow">
+  {% endif %}
+
+  {# Schema.org ── يُحقن من كل صفحة #}
+  {% block schema %}{% endblock %}
+
+  <link rel="canonical" href="{{ request.url.split('?')[0] }}">
+
+  {# ── PWA ── #}
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#18181d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PetStore">
+  <link rel="icon" type="image/x-icon"  href="/static/img/favicon.ico?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/img/icon-192.png?v=2">
+  <link rel="icon" type="image/png" sizes="512x512" href="/static/img/icon-512.png?v=2">
+  <link rel="shortcut icon" href="/static/img/favicon.ico?v=2">
+  <link rel="apple-touch-icon" href="/static/img/icon-192.png?v=2">
+
+  {# ── Performance: preconnect ── #}
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://api.groq.com">
+
+  {# ── CSS: render-critical أولاً ── #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=48">
+
+  {# ── Google Fonts: non-blocking — media=print trick ── #}
+  <link rel="stylesheet" media="print" onload="this.media='all'"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=Markazi+Text:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=Markazi+Text:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+  </noscript>
+
+  {# ── Preload: أول صورة بالصفحة بحسب الـ page type ── #}
+  {% block preload %}{% endblock %}
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+{% import "_icons.html" as icons %}
+
+  <header class="site-header">
+    <a href="{{ url_for('index') }}" class="logo">
+      {{ site_name_ar if lang == 'ar' else site_name_en }}
+    </a>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <a href="{{ url_for('wishlist') }}" class="wish-header-btn" id="wish-header-link" aria-label="{{ 'المفضلة' if lang == 'ar' else 'Wishlist' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span class="wish-hbadge" id="wish-hbadge" style="display:none">0</span>
+      </a>
+      <div class="lang-switch">
+        <a href="{{ url_for('set_language_route', lang='en') }}" class="{{ 'active' if lang == 'en' else '' }}">EN</a>
+        <span class="sep">/</span>
+        <a href="{{ url_for('set_language_route', lang='ar') }}" class="{{ 'active' if lang == 'ar' else '' }}">عربي</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  {# ══ Cart Strip ══ #}
+  <div class="cart-strip" id="cart-strip">
+    <div class="cs-inner" id="cs-inner"></div>
+  </div>
+
+  <nav class="bottom-nav">
+    <a href="{{ url_for('index') }}" class="nav-item {{ 'is-active' if active_tab == 'home' else '' }}">
+      {{ icons.icon_home("nav-icon") }}
+      <span>{{ 'الرئيسية' if lang == 'ar' else 'Home' }}</span>
+    </a>
+    <button type="button" class="nav-item" id="sub-cart-nav" onclick="openSubCart()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+      <span>{{ 'اشتراكاتي' if lang == 'ar' else 'Subscribe' }}</span>
+      <span class="nav-badge" id="sub-cart-badge" style="display:none">0</span>
+    </button>
+    <a href="{{ url_for('search') }}" class="nav-item {{ 'is-active' if active_tab == 'search' else '' }}">
+      {{ icons.icon_search("nav-icon") }}
+      <span>{{ 'بحث' if lang == 'ar' else 'Search' }}</span>
+    </a>
+    <a href="{{ url_for('cart') }}" class="nav-item {{ 'is-active' if active_tab == 'cart' else '' }}"
+       id="cart-nav-item">
+      {{ icons.icon_cart("nav-icon") }}
+      <span>{{ 'السلة' if lang == 'ar' else 'Cart' }}</span>
+      <span class="nav-badge" id="cart-badge" {% if cart_count == 0 %}style="display:none;"{% endif %}>{{ cart_count }}</span>
+    </a>
+    <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="nav-item">
+      {{ icons.icon_chat("nav-icon") }}
+      <span>{{ 'واتساب' if lang == 'ar' else 'WhatsApp' }}</span>
+    </a>
+    <a href="{{ url_for('my_orders') }}" class="nav-item {{ 'is-active' if active_tab == 'orders' else '' }}">
+      {{ icons.icon_package("nav-icon") }}
+      <span>{{ 'طلباتي' if lang == 'ar' else 'Orders' }}</span>
+    </a>
+    <a href="{{ url_for('wishlist') }}" class="nav-item {{ 'is-active' if active_tab == 'wishlist' else '' }}" id="wish-nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <span>{{ 'مفضلتي' if lang == 'ar' else 'Saved' }}</span>
+      <span class="nav-badge" id="wish-nav-badge" style="display:none">0</span>
+    </a>
+  </nav>
+
+  {# ── Subscription Cart Modal ── #}
+  <div class="sub-cart-overlay hidden" id="sub-cart-overlay" onclick="closeSubCart(event)">
+    <div class="sub-cart-sheet">
+      <div class="sub-cart-handle"></div>
+      <div class="sub-cart-hdr">
+        <span>🔄 {{ 'سلة الاشتراك' if lang == 'ar' else 'Subscription Cart' }}</span>
+        <button class="sub-cart-close" onclick="closeSubCart()">&times;</button>
+      </div>
+      <div class="sub-cart-body" id="sub-cart-body">
+        <div class="sub-cart-empty hidden" id="sub-cart-empty">
+          <div style="font-size:2rem;margin-bottom:8px">🔄</div>
+          <p>{{ 'لا يوجد منتجات بعد — اضغط زر الاشتراك على أي منتج' if lang == 'ar' else 'No items yet — tap Subscribe on any product' }}</p>
+        </div>
+        <div id="sub-cart-customer"></div>
+        <div id="sub-cart-items"></div>
+      </div>
+      <div class="sub-cart-foot" id="sub-cart-foot" style="display:none">
+        <button class="sub-cart-confirm-btn" id="sub-cart-confirm" onclick="confirmSubCart()">
+          ✅ {{ 'تأكيد الاشتراك' if lang == 'ar' else 'Confirm Subscription' }}
+        </button>
+        <button class="sub-cart-clear-btn" onclick="clearSubCart()">
+          🗑 {{ 'مسح الكل' if lang == 'ar' else 'Clear all' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/analytics.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+<script>
+/* ── Cart Strip ── */
+var _CS_LANG = '{{ lang }}';
+var _CS_CUR  = '{{ config.CURRENCY_SYMBOL }}';
+
+function _csUpdate(d) {
+  var strip = document.getElementById('cart-strip');
+  var inner = document.getElementById('cs-inner');
+  var isAr  = _CS_LANG === 'ar';
+
+  if (!d.items || d.items.length === 0) {
+    if (!d.promos || d.promos.length === 0) { strip.classList.remove('visible'); return; }
+    var p    = d.promos[0];
+    var icon = p.offer_type === 'free_shipping' ? '🚚' : '🎁';
+    var msg  = isAr
+      ? 'اشتري بـ <strong>' + _CS_CUR + p.threshold.toFixed(2) + '</strong> ' + (p.offer_type === 'free_shipping' ? 'واحصل على شحن مجاني' : 'واحصل على هدية')
+      : 'Spend <strong>' + _CS_CUR + p.threshold.toFixed(2) + '</strong> ' + (p.offer_type === 'free_shipping' ? 'for free shipping' : 'for a free gift');
+    inner.innerHTML =
+      '<div class="cs-promo">'
+      + '<span class="cs-promo-icon">' + icon + '</span>'
+      + '<span class="cs-promo-text">' + msg + '</span>'
+      + '</div>'
+      + '<div class="cs-bar-wrap"><div class="cs-bar" style="width:0%"></div></div>';
+    strip.classList.add('visible');
+    return;
+  }
+
+  var thumbs = d.items.slice(0,3).map(function(it){
+    var src = it.img ? '/static/img/products/'+it.img : '/static/img/placeholder.webp';
+    return '<img class="cs-thumb" src="'+src+'" alt="" onerror="this.src=\'/static/img/placeholder.webp\'">';
+  }).join('');
+
+  var countTxt = isAr ? d.count+' منتج' : d.count+(d.count===1?' item':' items');
+  var actPr = d.promos ? d.promos.find(function(x){return !x.unlocked;}) : null;
+  var bar   = actPr ? '<div class="cs-bar-wrap"><div class="cs-bar" style="width:'+actPr.pct+'%"></div></div>' : '';
+
+  inner.innerHTML =
+    '<div class="cs-summary">'
+    + '<div class="cs-thumbs">'+thumbs+'</div>'
+    + '<div class="cs-info"><div class="cs-count">'+countTxt+'</div><div class="cs-total">'+_CS_CUR+d.total.toFixed(2)+'</div></div>'
+    + '<a href="/checkout" class="cs-btn">'+(isAr?'اكمل الشراء':'Checkout')+'</a>'
+    + '</div>' + bar;
+
+  strip.classList.add('visible');
+  _csFabPush();
+}
+
+function _csFabPush() {
+  var fab = document.getElementById('advisor-fab-wrap');
+  if (!fab) return;
+  var strip = document.getElementById('cart-strip');
+  if (strip && strip.classList.contains('visible')) {
+    var h = document.getElementById('cs-inner').offsetHeight || 72;
+    fab.style.bottom = (68 + h + 6) + 'px';
+  } else {
+    fab.style.bottom = '';
+  }
+}
+
+function csLoad() {
+  fetch('/cart/mini')
+    .then(function(r){ return r.json(); })
+    .then(_csUpdate)
+    .catch(function(e){ console.error('[CartStrip] fetch error:', e); });
+}
+
+function mcAfterAdd(count) {
+  var badge = document.getElementById('cart-badge');
+  badge.textContent = count; badge.style.display = '';
+  badge.classList.add('badge-pop');
+  setTimeout(function(){badge.classList.remove('badge-pop');},400);
+  csLoad();
+}
+
+/* تشغيل بعد تحميل الصفحة — لا يزاحم الـ LCP */
+(function(){
+  if (document.readyState === 'complete') {
+    setTimeout(csLoad, 300);
+  } else {
+    window.addEventListener('load', function(){ setTimeout(csLoad, 300); });
+  }
+})();
+</script>
+  <script>
+  (function(){
+    var t = document.querySelector('meta[name="csrf-token"]');
+    if (!t) return;
+    var tok = t.content;
+    document.addEventListener('DOMContentLoaded', function(){
+      document.querySelectorAll('form').forEach(function(f){
+        if (['post','put','delete','patch'].indexOf((f.method||'').toLowerCase()) !== -1
+            && !f.querySelector('input[name="_csrf_token"]')) {
+          var i = document.createElement('input');
+          i.type = 'hidden'; i.name = '_csrf_token'; i.value = tok;
+          f.appendChild(i);
+        }
+      });
+    });
+    var _fetch = window.fetch;
+    window.fetch = function(url, opts){
+      opts = opts || {};
+      if (opts.method && ['POST','PUT','DELETE','PATCH'].indexOf(opts.method.toUpperCase()) !== -1) {
+        opts.headers = Object.assign({'X-CSRF-Token': tok}, opts.headers || {});
+      }
+      return _fetch(url, opts);
+    };
+  })();
+  </script>
+
+  {# ══ Advisor Widget (global — متوفر على كل الصفحات) ══ #}
+  <div id="advisor-widget" class="advisor-widget hidden">
+    <div class="advisor-header">
+      <span>🐾 <span id="adv-title">{{ 'بيتي — مستشار المتجر' if lang == 'ar' else 'Petty — Store Advisor' }}</span></span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button onclick="toggleAdvisorLang()" class="adv-lang-btn" id="adv-lang-btn" title="تغيير اللغة">
+          {{ 'EN' if lang == 'ar' else 'ع' }}
+        </button>
+        <button onclick="closeAdvisor()" class="advisor-close">✕</button>
+      </div>
+    </div>
+    <div class="advisor-messages" id="advisor-messages">
+      <div class="advisor-msg assistant" id="adv-welcome">
+        {{ 'أهلاً! أنا بيتي، مستشارك بـ Bella Pet. شو فيني ساعدك فيه اليوم؟ 🐾' if lang == 'ar'
+           else "Hi! I'm Petty, your Bella Pet advisor. How can I help you today? 🐾" }}
+      </div>
+    </div>
+    <div class="advisor-input-row">
+      <button class="adv-img-btn" onclick="document.getElementById('adv-img-input').click()" title="{{ 'رفع صورة' if lang == 'ar' else 'Upload image' }}">📷</button>
+      <input type="file" id="adv-img-input" accept="image/*" style="display:none" onchange="sendAdvisorImage(this)">
+      <input type="text" id="advisor-input" class="advisor-input"
+             placeholder="{{ 'اسألني عن أي شي...' if lang == 'ar' else 'Ask me anything...' }}"
+             onkeydown="if(event.key==='Enter') sendAdvisor()">
+      <button class="adv-mic-btn" id="adv-mic-btn" onclick="toggleVoice()" title="{{ 'تحدث' if lang == 'ar' else 'Speak' }}">🎤</button>
+      <button onclick="sendAdvisor()" class="advisor-send">{{ icons.icon_send("send-icon") }}</button>
+    </div>
+  </div>
+  <div class="advisor-fab-wrap" id="advisor-fab-wrap">
+    <span class="advisor-fab-label" id="advisor-fab-label">
+      <span onclick="openAdvisor()">{{ 'كيف فيني ساعدك؟' if lang == 'ar' else 'How can I help?' }}</span>
+      <button class="advisor-label-close" onclick="document.getElementById('advisor-fab-label').style.display='none'" title="إخفاء">✕</button>
+    </span>
+    <button class="advisor-fab" onclick="openAdvisor()" id="advisor-fab" title="مستشار المتجر">🐾</button>
+  </div>
+
+  <script>
+  const CURRENCY = '{{ currency }}';
+  let advisorLang = '{{ lang }}';
+  let advisorHistory = [];
+  const ADV_STRINGS = {
+    ar: { title:'بيتي — مستشار المتجر', welcome:'أهلاً! أنا بيتي، مستشارك بـ Bella Pet. شو فيني ساعدك فيه اليوم؟ 🐾', ph:'اسألني عن أي شي...', langBtn:'EN' },
+    en: { title:'Petty — Store Advisor', welcome:"Hi! I'm Petty, your Bella Pet advisor. How can I help you today? 🐾", ph:'Ask me anything...', langBtn:'ع' }
+  };
+  function toggleAdvisorLang() {
+    advisorLang = advisorLang === 'ar' ? 'en' : 'ar';
+    const s = ADV_STRINGS[advisorLang];
+    document.getElementById('adv-title').textContent = s.title;
+    document.getElementById('adv-lang-btn').textContent = s.langBtn;
+    document.getElementById('advisor-input').placeholder = s.ph;
+    document.getElementById('advisor-widget').dir = advisorLang === 'ar' ? 'rtl' : 'ltr';
+    appendMsg(s.welcome, 'assistant', true);
+    document.getElementById('advisor-messages').scrollTop = 99999;
+  }
+  function loadPetMemory() { try { return JSON.parse(localStorage.getItem('_ps_pet') || '{}'); } catch(e) { return {}; } }
+  function savePetMemory(u) { const c = loadPetMemory(); localStorage.setItem('_ps_pet', JSON.stringify({...c,...u})); }
+  function extractPetInfo(text) {
+    const u = {};
+    if (/قط[ةه]|بسين[ةه]|بس[ةه]|هر[ةه]/i.test(text)) u.type='cat';
+    else if (/كلب|جرو|جرا/i.test(text)) u.type='dog';
+    else if (/طير|بادجي|كوكتيل|ببغاء|كناري/i.test(text)) u.type='bird';
+    else if (/سمك[ةه]?|سمك/i.test(text)) u.type='fish';
+    else if (/أرنب|هامستر|خنزير هندي/i.test(text)) u.type='small';
+    else if (/\bcat\b|\bkitten\b/i.test(text)) u.type='cat';
+    else if (/\bdog\b|\bpuppy\b/i.test(text)) u.type='dog';
+    const arN = text.match(/(?:اسمه?|اسمها|بسموه?|بسمو)\s+([؀-ۿ\w]{2,12})/i);
+    const enN = text.match(/(?:named?|called?|her name is|his name is)\s+([A-Za-z]{2,12})/i);
+    if (arN) u.name=arN[1]; else if (enN) u.name=enN[1];
+    if (Object.keys(u).length) savePetMemory(u);
+  }
+  const PET_EMOJIS = {cat:'🐱',dog:'🐶',bird:'🐦',fish:'🐠',small:'🐇'};
+  const PET_AR = {cat:'قطة',dog:'كلب',bird:'طير',fish:'سمكة',small:'أرنب'};
+  const PET_EN = {cat:'cat',dog:'dog',bird:'bird',fish:'fish',small:'small pet'};
+  function getWelcome() {
+    const m = loadPetMemory(), isAr = advisorLang === 'ar';
+    if (m.name) return isAr ? `أهلاً! كيف ${m.name} اليوم؟ 🐾` : `Hey! How's ${m.name} doing today? 🐾`;
+    if (m.type) { const em = PET_EMOJIS[m.type]||'🐾'; return isAr ? `أهلاً! رح ساعدك تختار الأحسن لـ${PET_AR[m.type]||'حيوانك'} ${em}` : `Hi! I'll help you find the best for your ${PET_EN[m.type]||'pet'} ${em}`; }
+    return isAr ? 'أهلاً! أنا بيتي، مستشارك بـ Bella Pet. شو فيني ساعدك فيه اليوم؟ 🐾' : "Hi! I'm Petty, your Bella Pet advisor. How can I help you today? 🐾";
+  }
+  let idleTimer = null;
+  function startIdleTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (document.getElementById('advisor-widget').classList.contains('hidden')) return;
+      appendMsg(advisorLang==='ar'?'في شي بقدر ساعدك فيه؟ 👀':'Can I help you with something? 👀','assistant',true);
+      document.getElementById('advisor-messages').scrollTop = 99999;
+    }, 60000);
+  }
+  function openAdvisor(prefill) {
+    document.getElementById('adv-welcome').textContent = getWelcome();
+    document.getElementById('advisor-widget').classList.remove('hidden');
+    document.getElementById('advisor-fab-wrap').style.display = 'none';
+    const inp = document.getElementById('advisor-input');
+    if (prefill) inp.value = prefill;
+    inp.focus(); startIdleTimer();
+  }
+  function closeAdvisor() {
+    document.getElementById('advisor-widget').classList.add('hidden');
+    document.getElementById('advisor-fab-wrap').style.display = 'flex';
+    stopVoice(); clearTimeout(idleTimer);
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('advisor-input')?.addEventListener('input', () => {
+      if (!document.getElementById('advisor-widget').classList.contains('hidden')) startIdleTimer();
+    });
+  });
+  let voiceRecog = null, voiceActive = false;
+  function toggleVoice() {
+    if (voiceActive) { stopVoice(); return; }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { appendMsg(advisorLang==='ar'?'المتصفح ما بيدعم التعرف على الصوت 😕':'Your browser does not support voice input 😕','assistant',true); return; }
+    voiceRecog = new SR();
+    voiceRecog.lang = advisorLang==='ar'?'ar':'en-US';
+    voiceRecog.interimResults = true; voiceRecog.continuous = false;
+    const inp = document.getElementById('advisor-input'), btn = document.getElementById('adv-mic-btn');
+    voiceRecog.onstart = () => { voiceActive=true; btn.classList.add('adv-mic-active'); btn.textContent='🔴'; inp.placeholder=advisorLang==='ar'?'عم بسمعك...':'Listening...'; };
+    voiceRecog.onresult = (e) => { inp.value = Array.from(e.results).map(r=>r[0].transcript).join(''); };
+    voiceRecog.onend = () => { voiceActive=false; btn.classList.remove('adv-mic-active'); btn.textContent='🎤'; inp.placeholder=advisorLang==='ar'?'اسألني عن أي شي...':'Ask me anything...'; if(inp.value.trim()) sendAdvisor(); };
+    voiceRecog.onerror = () => stopVoice();
+    voiceRecog.start();
+  }
+  function stopVoice() { if(voiceRecog){try{voiceRecog.stop();}catch(e){}voiceRecog=null;} voiceActive=false; const b=document.getElementById('adv-mic-btn'); if(b){b.classList.remove('adv-mic-active');b.textContent='🎤';} }
+  async function sendAdvisorImage(input) {
+    const file = input.files[0]; if(!file) return; input.value='';
+    const isAr = advisorLang==='ar';
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const wrap = document.createElement('div'); wrap.className='advisor-msg user';
+      wrap.innerHTML=`<img src="${e.target.result}" class="adv-img-preview" alt="upload">`;
+      document.getElementById('advisor-messages').appendChild(wrap);
+      document.getElementById('advisor-messages').scrollTop=99999;
+      const typing = appendMsg(isAr?'🔍 عم بشوف الصورة...':'🔍 Analyzing image...','assistant typing');
+      const base64 = e.target.result.split(',')[1];
+      const res = await fetch('/api/advisor-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:base64,history:advisorHistory,lang:advisorLang})});
+      const data = await res.json(); typing.remove();
+      appendMsg(data.reply,'assistant',true);
+      advisorHistory.push({role:'user',content:'[أرسل صورة]'},{role:'assistant',content:data.reply});
+      if(data.products&&data.products.length) showProductCards(data.products);
+      document.getElementById('advisor-messages').scrollTop=99999;
+    };
+    reader.readAsDataURL(file);
+  }
+  async function sendAdvisor() {
+    const inp = document.getElementById('advisor-input'), msg = inp.value.trim();
+    if(!msg) return; inp.value='';
+    appendMsg(msg,'user'); advisorHistory.push({role:'user',content:msg});
+    extractPetInfo(msg); clearTimeout(idleTimer);
+    const typing = appendMsg('...','assistant typing');
+    const res = await fetch('/api/advisor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,history:advisorHistory,lang:advisorLang})});
+    const data = await res.json(); typing.remove();
+    appendMsg(data.reply,'assistant',true); advisorHistory.push({role:'assistant',content:data.reply});
+    if(data.action==='ask_phone') showPhoneInput();
+    else if(data.action==='add_to_cart'&&data.products&&data.products.length){showProductCards(data.products);addAllToCart(data.products);}
+    else if(data.products&&data.products.length) showProductCards(data.products);
+    document.getElementById('advisor-messages').scrollTop=99999;
+  }
+  function showProductCards(products) {
+    const sorted=[...products].sort((a,b)=>(b.discount_price||b.price)-(a.discount_price||a.price));
+    const premium=sorted[0], budget=sorted[sorted.length-1], isAr=advisorLang==='ar';
+    const L={premium:isAr?'🌟 الخيار المميز':'🌟 Premium Pick',budget:isAr?'💰 الخيار الاقتصادي':'💰 Budget Pick',view:isAr?'شوف المنتج':'View product',addOne:isAr?'أضف للسلة':'Add to cart',addBoth:isAr?'خذهن الاثنين 🛒':'Take both 🛒'};
+    const ov=document.createElement('div'); ov.id='adv-compare-overlay';
+    ov.innerHTML=`<div class="adv-compare-modal" dir="${isAr?'rtl':'ltr'}"><button class="adv-compare-close" onclick="document.getElementById('adv-compare-overlay').remove()">✕</button><div class="adv-compare-grid">${[premium,budget].map((p,i)=>{const price=p.discount_price||p.price,name=isAr?p.name_ar:p.name_en,label=i===0?L.premium:L.budget,img=p.primary_img?`<img src="/static/img/products/${p.primary_img}" alt="${name}" class="adv-cmp-img">`:`<div class="adv-cmp-img adv-thumb-ph">🐾</div>`;return`<div class="adv-cmp-card ${i===0?'cmp-premium':'cmp-budget'}"><div class="adv-cmp-label">${label}</div>${img}<div class="adv-cmp-name">${name}</div><div class="adv-cmp-price">${CURRENCY}${price.toFixed(2)}</div><div class="adv-cmp-actions"><a href="/product/${p.slug}" class="adv-cmp-view" target="_blank">${L.view}</a><button class="adv-cmp-add" onclick="addOneToCart(${p.id},this)">${L.addOne}</button></div></div>`;}).join('')}</div>${premium.id!==budget.id?`<div class="adv-cmp-both"><button onclick="addBothToCart([${premium.id},${budget.id}])">${L.addBoth}</button></div>`:''}</div>`;
+    document.body.appendChild(ov);
+  }
+  async function addAllToCart(products) { showProductCards(products); }
+  async function addOneToCart(productId, btn) {
+    btn.disabled=true; btn.textContent='⏳';
+    await fetch('/cart/add',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`product_id=${productId}&qty=1`});
+    btn.textContent='✅'; setTimeout(()=>showCheckoutBar(1),400);
+  }
+  async function addBothToCart(ids) {
+    const btn=document.querySelector('.adv-cmp-both button'); if(btn){btn.disabled=true;btn.textContent='⏳';}
+    for(const id of ids) await fetch('/cart/add',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`product_id=${id}&qty=1`});
+    document.getElementById('adv-compare-overlay')?.remove(); showCheckoutBar(ids.length);
+  }
+  function showCheckoutBar(count) {
+    const isAr=advisorLang==='ar'; document.getElementById('adv-compare-overlay')?.remove();
+    const bar=document.createElement('div'); bar.className='adv-checkout-bar';
+    bar.innerHTML=`<span class="adv-added-msg">✅ ${isAr?(count>1?count+' منتجات انضافت للسلة':'المنتج انضاف للسلة'):(count>1?count+' items added to cart':'Item added to cart')}</span><a href="/checkout" class="adv-checkout-btn">${isAr?'يلا عالدفع 🛒':'Go to checkout 🛒'}</a>`;
+    const msgs=document.getElementById('advisor-messages'); msgs.appendChild(bar); msgs.scrollTop=99999;
+  }
+  function showPhoneInput() {
+    const wrap=document.createElement('div'); wrap.className='advisor-phone-wrap';
+    wrap.innerHTML=`<input type="tel" class="advisor-phone-input" placeholder="مثال: 03123456" dir="ltr" maxlength="15"><button class="advisor-phone-btn" onclick="lookupOrder(this)">🔍 تتبع</button>`;
+    document.getElementById('advisor-messages').appendChild(wrap);
+    wrap.querySelector('input').focus(); document.getElementById('advisor-messages').scrollTop=99999;
+  }
+  async function lookupOrder(btn) {
+    const inp=btn.previousElementSibling, phone=inp.value.trim(); if(!phone) return;
+    btn.disabled=true; btn.textContent='⏳';
+    const res=await fetch(`/api/order-lookup?phone=${encodeURIComponent(phone)}`);
+    const data=await res.json(); btn.closest('.advisor-phone-wrap').remove();
+    if(!data.orders||!data.orders.length){appendMsg('ما لقيت طلبات بهالرقم. تأكد من الرقم أو تواصل معنا على واتساب.','assistant',true);return;}
+    data.orders.forEach(o=>{const el=document.createElement('div');el.className='advisor-order-card';el.innerHTML=`<div class="aoc-head"><span class="aoc-id">طلب #${o.id}</span><span class="aoc-status">${o.status}</span></div><div class="aoc-body"><span>📅 ${o.date}</span><span>📍 ${o.area}</span><span>💵 $${o.total.toFixed(2)}</span></div><div class="aoc-items">${o.items}</div>`;document.getElementById('advisor-messages').appendChild(el);});
+    document.getElementById('advisor-messages').scrollTop=99999;
+  }
+  function appendMsg(text, role, linkify=false) {
+    const el=document.createElement('div'); el.className=`advisor-msg ${role}`;
+    if(linkify) el.innerHTML=text.replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" style="color:var(--gold);text-decoration:underline">$1</a>').replace(/\n/g,'<br>');
+    else el.textContent=text;
+    document.getElementById('advisor-messages').appendChild(el);
+    document.getElementById('advisor-messages').scrollTop=99999;
+    return el;
+  }
+  </script>
+  <script>
+  // ── Wishlist (localStorage) ──
+  var WL_KEY = 'bp_wish';
+  function wlGet() { try { return JSON.parse(localStorage.getItem(WL_KEY) || '[]'); } catch(e) { return []; } }
+  function wlSave(a) { localStorage.setItem(WL_KEY, JSON.stringify(a)); }
+  function wlHas(slug) { return wlGet().some(function(x){ return x.slug === slug; }); }
+  function wlToggle(slug, data) {
+    var a = wlGet(), idx = -1;
+    for (var i = 0; i < a.length; i++) { if (a[i].slug === slug) { idx = i; break; } }
+    if (idx >= 0) { a.splice(idx, 1); } else { a.push(Object.assign({slug:slug}, data)); }
+    wlSave(a);
+    wlSyncBtns(slug);
+    wlSyncBadges();
+  }
+  function wlSyncBtns(slug) {
+    var on = wlHas(slug);
+    var lbl = on ? '{{ "إزالة من المفضلة" if lang == "ar" else "Remove from wishlist" }}' : '{{ "أضف للمفضلة" if lang == "ar" else "Add to wishlist" }}';
+    document.querySelectorAll('.wish-btn[data-slug="' + slug + '"], .btn-wish-product[data-slug="' + slug + '"]').forEach(function(b){
+      b.classList.toggle('is-wished', on); b.title = lbl; b.setAttribute('aria-label', lbl);
+    });
+  }
+  function wlSyncBadges() {
+    var n = wlGet().length;
+    ['wish-hbadge','wish-nav-badge'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = n; el.style.display = n > 0 ? '' : 'none';
+    });
+    /* nav item — fill icon when has items */
+    var navItem = document.getElementById('wish-nav-item');
+    if (navItem) navItem.querySelector('svg path').style.fill = n > 0 ? 'currentColor' : 'none';
+  }
+  function wlInit() {
+    /* sync button states */
+    document.querySelectorAll('.wish-btn[data-slug], .btn-wish-product[data-slug]').forEach(function(b){
+      b.classList.toggle('is-wished', wlHas(b.getAttribute('data-slug')));
+    });
+    wlSyncBadges();
+    /* event delegation — handles dynamic cards too */
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('.wish-btn, .btn-wish-product');
+      if (!btn) return;
+      e.preventDefault(); e.stopPropagation();
+      var slug = btn.dataset.slug;
+      if (!slug) return;
+      wlToggle(slug, {
+        name:  btn.dataset.name  || '',
+        price: parseFloat(btn.dataset.price) || 0,
+        img:   btn.dataset.img   || ''
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', wlInit);
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .catch(function(){});
+    }
+  </script>
+
+  {# ── PWA Install Banner ── #}
+  <div id="pwa-banner" class="hidden" role="dialog" aria-label="تثبيت التطبيق">
+    <div class="pwa-top">
+      <img src="/static/img/icon-192.png" class="pwa-icon" alt="Bella Pet">
+      <div class="pwa-info">
+        <div class="pwa-title" id="pwa-title">نزّل التطبيق — مجاني وسريع 🐾</div>
+        <div class="pwa-sub" id="pwa-sub">بدون App Store، بيشتغل حتى بدون إنترنت</div>
+      </div>
+      <button class="pwa-close" id="pwa-close" aria-label="إغلاق">✕</button>
+    </div>
+
+    {# زر Android/Chrome #}
+    <div class="pwa-actions" id="pwa-android-actions">
+      <button class="pwa-btn-install" id="pwa-install-btn">📲 تثبيت التطبيق</button>
+      <button class="pwa-btn-later"   id="pwa-later-btn">لاحقاً</button>
+    </div>
+
+    {# تعليمات iOS #}
+    <div class="pwa-ios-steps hidden" id="pwa-ios-steps">
+      <div class="pwa-ios-step">
+        <span>1️⃣</span>
+        <span>اضغط على زر المشاركة <span class="pwa-ios-arrow">⎙ Share</span> بالأسفل</span>
+      </div>
+      <div class="pwa-ios-step">
+        <span>2️⃣</span>
+        <span>اختر <span class="pwa-ios-arrow">Add to Home Screen</span></span>
+      </div>
+      <div class="pwa-ios-step">
+        <span>3️⃣</span>
+        <span>اضغط <span class="pwa-ios-arrow">Add</span> — خلص! 🎉</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    const SNOOZE_KEY = '_ps_pwa_snooze';
+    const SNOOZE_DAYS = 7;
+    const banner  = document.getElementById('pwa-banner');
+    const isIOS   = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                      || navigator.standalone === true;
+
+    // مثبّت مسبقاً أو مُؤجَّل؟
+    if (isStandalone) return;
+    const snooze = localStorage.getItem(SNOOZE_KEY);
+    if (snooze && Date.now() < Number(snooze)) return;
+
+    function showBanner() {
+      banner.classList.remove('hidden');
+    }
+    function hideBanner(snoozeMs) {
+      banner.classList.add('hidden');
+      if (snoozeMs) localStorage.setItem(SNOOZE_KEY, Date.now() + snoozeMs);
+    }
+
+    document.getElementById('pwa-close').addEventListener('click', function() {
+      hideBanner(SNOOZE_DAYS * 86400000);
+    });
+    document.getElementById('pwa-later-btn') && document.getElementById('pwa-later-btn').addEventListener('click', function() {
+      hideBanner(SNOOZE_DAYS * 86400000);
+    });
+
+    // ── Android / Chrome / Edge ──
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      setTimeout(showBanner, 3000);
+    });
+
+    var installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) {
+      installBtn.addEventListener('click', async function() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        hideBanner(outcome === 'accepted' ? 365 * 86400000 : SNOOZE_DAYS * 86400000);
+      });
+    }
+
+    window.addEventListener('appinstalled', function() {
+      hideBanner(365 * 86400000);
+      // سجّل التثبيت بالسيرفر (مرة وحدة لكل جهاز)
+      if (!localStorage.getItem('_bella_installed')) {
+        fetch('/pwa/event', { method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ event:'installed', ua: navigator.userAgent }) });
+        localStorage.setItem('_bella_installed', '1');
+      }
+      setTimeout(_bellaPushAsk, 2000);
+    });
+
+    // ── فتح من شاشة الهوم (standalone) ──
+    if (isStandalone && !sessionStorage.getItem('_bella_sa')) {
+      sessionStorage.setItem('_bella_sa', '1');
+      fetch('/pwa/event', { method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ event:'launch', ua: navigator.userAgent }) });
+    }
+
+    // ── iOS Safari ──
+    if (isIOS && /safari/i.test(navigator.userAgent) && !isStandalone) {
+      document.getElementById('pwa-android-actions').classList.add('hidden');
+      document.getElementById('pwa-ios-steps').classList.remove('hidden');
+      document.getElementById('pwa-title').textContent = 'أضف Bella Pet لشاشتك الرئيسية';
+      document.getElementById('pwa-sub').textContent   = 'بدون تحميل، مجاني، وسريع ⚡';
+      setTimeout(showBanner, 3000);
+    }
+  })();
+  </script>
+
+  {# ── Push Notification Banner (عام — عروض ومنتجات جديدة) ── #}
+  <div id="push-banner" style="display:none;position:fixed;bottom:80px;right:16px;left:16px;max-width:380px;margin:0 auto;background:#1e1e1e;border:1px solid #d4a72c;border-radius:14px;padding:14px 16px;z-index:9000;box-shadow:0 4px 24px rgba(0,0,0,.5);">
+    <button onclick="document.getElementById('push-banner').style.display='none';localStorage.setItem('_bella_push_dismissed','1');"
+            style="position:absolute;top:8px;left:10px;background:none;border:none;color:#888;font-size:1.2rem;cursor:pointer;">×</button>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:1.6rem;">🔔</span>
+      <div>
+        <p style="margin:0;font-weight:700;font-size:.9rem;color:#f5f5f5;">ابقَ على اطلاع</p>
+        <p style="margin:2px 0 10px;font-size:.78rem;color:#aaa;">منتجات جديدة وعروض حصرية مباشرة على جهازك</p>
+        <button id="push-allow-btn" style="background:#d4a72c;color:#1a1208;border:none;border-radius:8px;padding:7px 18px;font-weight:700;font-size:.82rem;cursor:pointer;">
+          السماح بالإشعارات
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ── VAPID Push Helpers ──────────────────────────────────────
+  function _urlB64(b) {
+    const pad = '='.repeat((4 - b.length % 4) % 4);
+    const b64 = (b + pad).replace(/-/g, '+').replace(/_/g, '/');
+    return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  }
+
+  async function _bellaPushSubscribe() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+    const { publicKey } = await fetch('/push/vapid-key').then(r => r.json());
+    const reg  = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: _urlB64(publicKey),
+      });
+    }
+    const j = sub.toJSON();
+    await fetch('/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(j),   // بدون product_id = اشتراك عام
+    });
+    return sub;
+  }
+
+  async function _bellaPushAsk() {
+    if (!('PushManager' in window)) return;
+    if (Notification.permission === 'granted') { await _bellaPushSubscribe(); return; }
+    if (Notification.permission === 'denied')  return;
+    if (localStorage.getItem('_bella_push_dismissed')) return;
+    // أظهر البانر بعد 6 ثواني
+    setTimeout(() => {
+      const b = document.getElementById('push-banner');
+      if (b) b.style.display = 'block';
+    }, 6000);
+  }
+
+  document.getElementById('push-allow-btn') && document.getElementById('push-allow-btn').addEventListener('click', async function() {
+    document.getElementById('push-banner').style.display = 'none';
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      await _bellaPushSubscribe();
+      localStorage.setItem('_bella_push_ok', '1');
+    } else {
+      localStorage.setItem('_bella_push_dismissed', '1');
+    }
+  });
+
+  // اسأل بعد أول زيارة للموبايل
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').then(() => {
+      // لو سبق وأعطى إذن — اشترك تلقائياً بدون بانر
+      if (Notification.permission === 'granted') {
+        _bellaPushSubscribe().catch(() => {});
+      } else if (Notification.permission !== 'denied'
+                 && !localStorage.getItem('_bella_push_dismissed')) {
+        _bellaPushAsk();
+      }
+    });
+  }
+  </script>
+<script>
+// ── Subscription Cart ─────────────────────────────────────
+var _subLang = '{{ lang }}';
+
+function updateSubCartBadge() {
+  try {
+    var cart  = JSON.parse(localStorage.getItem('sub_cart') || '[]');
+    var badge = document.getElementById('sub-cart-badge');
+    if (!badge) return;
+    if (cart.length > 0) {
+      badge.textContent = cart.length;
+      badge.style.display = '';
+      badge.classList.add('badge-pop');
+      setTimeout(function(){ badge.classList.remove('badge-pop'); }, 400);
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+function openSubCart() {
+  var isAr = _subLang === 'ar';
+  try {
+    var cart     = JSON.parse(localStorage.getItem('sub_cart') || '[]');
+    var customer = JSON.parse(localStorage.getItem('sub_customer') || 'null');
+    var custEl   = document.getElementById('sub-cart-customer');
+    var itemsEl  = document.getElementById('sub-cart-items');
+    var emptyEl  = document.getElementById('sub-cart-empty');
+    var footEl   = document.getElementById('sub-cart-foot');
+    var confirmBtn = document.getElementById('sub-cart-confirm');
+
+    if (cart.length === 0) {
+      emptyEl.classList.remove('hidden');
+      itemsEl.innerHTML = '';
+      custEl.innerHTML  = '';
+      footEl.style.display = 'none';
+    } else {
+      emptyEl.classList.add('hidden');
+      footEl.style.display = '';
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = isAr ? '✅ تأكيد الاشتراك' : '✅ Confirm Subscription';
+
+      // Customer row
+      if (customer) {
+        custEl.innerHTML = '<div class="sub-cart-cust-row">' +
+          '<span>👤 ' + customer.name + '</span>' +
+          '<span>📞 ' + customer.phone + '</span>' +
+          (customer.area ? '<span>📍 ' + customer.area + '</span>' : '') +
+          '</div>';
+      }
+
+      // Items
+      itemsEl.innerHTML = cart.map(function(item, idx) {
+        var interval = item.interval_days;
+        var label = interval == 7  ? (isAr ? 'أسبوعي'    : 'Weekly')
+                  : interval == 14 ? (isAr ? 'نصف شهري'  : 'Bi-weekly')
+                  : interval == 30 ? (isAr ? 'شهري'       : 'Monthly')
+                  : (isAr ? 'كل ' + interval + ' يوم' : 'Every ' + interval + ' days');
+        return '<div class="sub-cart-item">' +
+          '<div class="sub-cart-item-info">' +
+            '<strong>' + (item.name || '') + '</strong>' +
+            '<span>🔄 ' + label + '</span>' +
+          '</div>' +
+          '<div class="sub-cart-item-qty">' +
+            '<button onclick="subCartQtyChange(' + idx + ',-1)">−</button>' +
+            '<span>' + item.qty + '</span>' +
+            '<button onclick="subCartQtyChange(' + idx + ',1)">+</button>' +
+          '</div>' +
+          '<button class="sub-cart-item-remove" onclick="removeFromSubCart(' + idx + ')">×</button>' +
+        '</div>';
+      }).join('');
+    }
+  } catch(e) {}
+
+  document.getElementById('sub-cart-overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSubCart(e) {
+  if (e && e.target !== document.getElementById('sub-cart-overlay')) return;
+  document.getElementById('sub-cart-overlay').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function subCartQtyChange(idx, d) {
+  try {
+    var cart = JSON.parse(localStorage.getItem('sub_cart') || '[]');
+    cart[idx].qty = Math.max(1, (cart[idx].qty || 1) + d);
+    localStorage.setItem('sub_cart', JSON.stringify(cart));
+  } catch(e) {}
+  openSubCart();
+}
+
+function removeFromSubCart(idx) {
+  try {
+    var cart = JSON.parse(localStorage.getItem('sub_cart') || '[]');
+    cart.splice(idx, 1);
+    localStorage.setItem('sub_cart', JSON.stringify(cart));
+    if (cart.length === 0) localStorage.removeItem('sub_customer');
+  } catch(e) {}
+  updateSubCartBadge();
+  openSubCart();
+}
+
+function clearSubCart() {
+  try {
+    localStorage.removeItem('sub_cart');
+    localStorage.removeItem('sub_customer');
+  } catch(e) {}
+  updateSubCartBadge();
+  openSubCart();
+}
+
+async function confirmSubCart() {
+  var isAr = _subLang === 'ar';
+  var cart, customer;
+  try {
+    cart     = JSON.parse(localStorage.getItem('sub_cart') || '[]');
+    customer = JSON.parse(localStorage.getItem('sub_customer') || 'null');
+  } catch(e) { return; }
+  if (!cart.length || !customer) return;
+
+  var btn = document.getElementById('sub-cart-confirm');
+  btn.disabled = true;
+  btn.textContent = '⏳ ...';
+
+  var fd = new FormData();
+  fd.append('name',  customer.name  || '');
+  fd.append('phone', customer.phone || '');
+  fd.append('area',  customer.area  || '');
+  fd.append('notes', customer.notes || '');
+  cart.forEach(function(item, i) {
+    fd.append('items[' + i + '][product_id]',   item.product_id);
+    fd.append('items[' + i + '][qty]',          item.qty);
+    fd.append('items[' + i + '][interval_days]', item.interval_days);
+  });
+
+  try {
+    var r = await fetch('/subscribe', { method: 'POST', body: fd });
+    var j = await r.json();
+    if (j.ok) {
+      localStorage.removeItem('sub_cart');
+      localStorage.removeItem('sub_customer');
+      updateSubCartBadge();
+      document.getElementById('sub-cart-items').innerHTML   = '';
+      document.getElementById('sub-cart-customer').innerHTML = '';
+      document.getElementById('sub-cart-foot').style.display = 'none';
+      document.getElementById('sub-cart-empty').classList.remove('hidden');
+      document.getElementById('sub-cart-empty').innerHTML =
+        '<div style="font-size:2.5rem;margin-bottom:10px">✅</div>' +
+        '<p style="font-weight:700;color:var(--text)">' + (isAr ? 'تم الاشتراك بنجاح!' : 'Subscription confirmed!') + '</p>' +
+        '<p style="color:var(--muted);font-size:.82rem">' + (isAr ? 'سنتواصل معك قبل كل تجديد' : 'We\'ll contact you before each renewal') + '</p>';
+      setTimeout(closeSubCart, 3000);
+    } else {
+      btn.disabled = false;
+      btn.textContent = isAr ? '✅ تأكيد الاشتراك' : '✅ Confirm Subscription';
+      alert(j.msg || (isAr ? 'حدث خطأ' : 'Error'));
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = isAr ? '✅ تأكيد الاشتراك' : '✅ Confirm Subscription';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', updateSubCartBadge);
+</script>
+</body>
+</html>

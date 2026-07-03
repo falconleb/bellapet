@@ -1,0 +1,1149 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% from "_components.html" import product_img %}
+
+{% block title %}{{ pick(p['name_en'], p['name_ar']) }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+{% block og_type %}product{% endblock %}
+
+{% block preload %}
+{% if images %}
+<link rel="preload" as="image"
+      href="{{ url_for('static', filename='img/products/' + images[0]['filename']) }}"
+      fetchpriority="high">
+{% endif %}
+{% endblock %}
+{% block og_image %}
+{% if images %}
+<meta property="og:image"        content="{{ request.host_url }}static/img/products/{{ images[0]['filename'] }}">
+<meta property="og:image:width"  content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt"    content="{{ pick(p['name_en'], p['name_ar']) }}">
+<meta name="twitter:image"       content="{{ request.host_url }}static/img/products/{{ images[0]['filename'] }}">
+{% endif %}
+{% endblock %}
+
+{% block schema %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@graph": [
+    {
+      "@type": "Product",
+      "@id": "{{ request.host_url }}products/{{ p['slug'] }}#product",
+      "name": "{{ pick(p['name_en'], p['name_ar']) | e }}",
+      "description": "{{ pick(p['description_en'], p['description_ar']) | e }}",
+      "sku": "{{ p['slug'] }}",
+      "brand": { "@type": "Brand", "name": "{{ p['brand'] or site_name_en }}" },
+      {% if images %}
+      "image": [{% for img in images %}"{{ request.host_url }}static/img/products/{{ img['filename'] }}"{{ "," if not loop.last }}{% endfor %}],
+      {% endif %}
+      "offers": {
+        "@type": "Offer",
+        "url": "{{ request.url }}",
+        "priceCurrency": "USD",
+        "price": "{{ '%.2f'|format(p['discount_price'] if p['discount_price'] else p['price']) }}",
+        "availability": "{% if p['stock_qty'] > 0 %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+        "seller": { "@type": "Organization", "name": "{{ site_name_en }}", "@id": "{{ request.host_url }}#organization" }
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem", "position": 1,
+          "name": "{{ 'الرئيسية' if lang == 'ar' else 'Home' }}",
+          "item": "{{ request.host_url }}"
+        },
+        {
+          "@type": "ListItem", "position": 2,
+          "name": "{{ pick(p['cat_name_en'], p['cat_name_ar']) | e }}",
+          "item": "{{ request.host_url }}categories/{{ p['cat_slug'] }}"
+        }{% if p['sub_slug'] %},
+        {
+          "@type": "ListItem", "position": 3,
+          "name": "{{ pick(p['sub_name_en'], p['sub_name_ar']) | e }}",
+          "item": "{{ request.host_url }}categories/{{ p['cat_slug'] }}?sub={{ p['sub_slug'] }}"
+        },
+        {
+          "@type": "ListItem", "position": 4,
+          "name": "{{ pick(p['name_en'], p['name_ar']) | e }}",
+          "item": "{{ request.url }}"
+        }
+        {% else %},
+        {
+          "@type": "ListItem", "position": 3,
+          "name": "{{ pick(p['name_en'], p['name_ar']) | e }}",
+          "item": "{{ request.url }}"
+        }
+        {% endif %}
+      ]
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+
+{# ── Breadcrumb ── #}
+<nav class="breadcrumb">
+  <a href="{{ url_for('index') }}">{{ 'الرئيسية' if lang == 'ar' else 'Home' }}</a>
+  <span class="bc-sep">›</span>
+  <a href="{{ url_for('category', slug=p['cat_slug']) }}">{{ pick(p['cat_name_en'], p['cat_name_ar']) }}</a>
+  {% if p['sub_slug'] %}
+  <span class="bc-sep">›</span>
+  <a href="{{ url_for('category', slug=p['cat_slug'], sub=p['sub_slug']) }}">{{ pick(p['sub_name_en'], p['sub_name_ar']) }}</a>
+  {% endif %}
+  <span class="bc-sep">›</span>
+  <span>{{ pick(p['name_en'], p['name_ar']) }}</span>
+</nav>
+
+{# ── Gallery ── #}
+<div class="product-gallery">
+  <div class="gallery-main" id="gallery-main">
+    {% if images %}
+      <img src="{{ url_for('static', filename='img/products/' + images[0]['filename']) }}"
+           alt="{{ pick(p['name_en'], p['name_ar']) }}"
+           id="main-img"
+           fetchpriority="high"
+           decoding="async"
+           width="600" height="600">
+    {% else %}
+      <div class="gallery-placeholder">
+        {{ icons.icon_by_name(p['cat_slug'].split('-')[0] if '-' in p['cat_slug'] else p['cat_slug'], "gallery-animal-icon") }}
+      </div>
+    {% endif %}
+    {% if p['discount_price'] %}
+    <span class="badge-gold gallery-badge">{{ icons.icon_seal("b-icon") }} {{ 'عرض' if lang == 'ar' else 'Sale' }}</span>
+    {% endif %}
+  </div>
+  {% if images|length > 1 %}
+  <div class="gallery-thumbs">
+    {% for img in images %}
+    <button class="thumb-btn {{ 'is-active' if loop.first else '' }}"
+            onclick="switchImg(this, '{{ url_for('static', filename='img/products/' + img['filename']) }}')">
+      <img src="{{ url_for('static', filename='img/products/' + img['filename']) }}"
+           alt="" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async">
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+{# ── Title block ── #}
+<div class="product-title-block">
+  <h1 class="product-benefit">{{ pick(p['benefit_en'], p['benefit_ar']) or pick(p['name_en'], p['name_ar']) }}</h1>
+  <p class="product-name-brand">
+    <span class="pname">{{ pick(p['name_en'], p['name_ar']) }}</span>
+    {% if p['brand'] %}<span class="pbrand">{{ p['brand'] }}</span>{% endif %}
+  </p>
+</div>
+
+{# ── Price + Stock ── #}
+{% set _unit = p['discount_price'] if p['discount_price'] else p['price'] %}
+<div class="price-block">
+  <div class="price-main">
+    {% if p['discount_price'] %}
+    <span class="price-old">{{ currency }}{{ '%.2f'|format(p['price']) }}</span>
+    {% endif %}
+    <span class="price-now" id="price-total">{{ currency }}{{ '%.2f'|format(_unit) }}</span>
+    <span class="price-unit" id="price-unit" style="display:none">{{ currency }}{{ '%.2f'|format(_unit) }} / {{ 'قطعة' if lang == 'ar' else 'each' }}</span>
+  </div>
+  <div class="price-savings" id="price-savings" style="display:none"></div>
+  <div class="stock-badge {{ 'in-stock' if p['stock_qty'] > 0 else 'out-stock' }}">
+    {% if p['stock_qty'] > 5 %}
+      {{ '✓ متوفر' if lang == 'ar' else '✓ In stock' }}
+    {% elif p['stock_qty'] > 0 %}
+      {{ 'آخر ' + p['stock_qty']|string + ' قطع' if lang == 'ar' else 'Only ' + p['stock_qty']|string + ' left' }}
+    {% else %}
+      {{ 'نفد من المخزون' if lang == 'ar' else 'Out of stock' }}
+    {% endif %}
+  </div>
+</div>
+
+{# ── Promo + Bundle badges ── #}
+{% if p['promo_label_ar'] or p['is_bundle'] %}
+<div class="product-badges">
+  {% if p['promo_label_ar'] %}
+  <span class="promo-badge">
+    🏷 {{ pick(p['promo_label_en'], p['promo_label_ar']) }}
+  </span>
+  {% endif %}
+  {% if p['is_bundle'] %}
+  <span class="bundle-badge">
+    📦 {{ 'مجموعة منتجات' if lang == 'ar' else 'Product Bundle' }}
+  </span>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if p['is_bundle'] and (p['bundle_note_ar'] or p['bundle_note_en']) %}
+<div class="bundle-contents">
+  <div class="bundle-contents-label">{{ 'محتويات الحزمة:' if lang == 'ar' else 'Bundle includes:' }}</div>
+  <div class="bundle-contents-text">{{ pick(p['bundle_note_en'], p['bundle_note_ar']) }}</div>
+</div>
+{% endif %}
+
+{# ── تقييم بيلا بت ── #}
+{% if p['store_rating'] %}
+{% set cons_text = pick(p['suitable_for_en'] or '', p['suitable_for_ar'] or '') %}
+<div class="bella-rating-block">
+  <div class="br-top">
+    <div class="br-stars">
+      {% for i in range(1,6) %}
+      <span class="br-star {{ 'filled' if i <= p['store_rating'] else 'empty' }}">★</span>
+      {% endfor %}
+      <span class="br-label">{{ 'تقييم بيلا بت' if lang == 'ar' else 'Bella Pet Rating' }}</span>
+    </div>
+    {% set note = pick(p['rating_note_en'], p['rating_note_ar']) %}
+    {% if note %}
+    <p class="br-note">"{{ note }}"</p>
+    {% endif %}
+  </div>
+
+  {% set suitable = pick(p['suitable_for_en'], p['suitable_for_ar']) %}
+  {% if suitable %}
+  <div class="br-suitable">
+    <span class="br-suitable-label">🐾 {{ 'مناسب لـ' if lang == 'ar' else 'Suitable for' }}:</span>
+    {% for tag in suitable.split(',') %}
+    {% if tag.strip() %}
+    <span class="br-tag">{{ tag.strip() }}</span>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% set cons = pick(p['rating_cons_en'], p['rating_cons_ar']) %}
+  {% if cons %}
+  <div class="br-cons-wrap">
+    <button class="br-cons-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')" type="button">
+      <span class="br-cons-arrow">▾</span>
+      {{ 'نقاط للانتباه' if lang == 'ar' else 'Things to note' }}
+    </button>
+    <ul class="br-cons-list">
+      {% for line in cons.split('\n') %}
+      {% if line.strip() %}
+      <li>{{ line.strip() }}</li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{# ── تقييم الزبائن ── #}
+{% if cust_rating and cust_rating['cnt'] > 0 %}
+{% set avg = cust_rating['avg'] %}
+{% set cnt = cust_rating['cnt'] %}
+<div class="cust-rating-block">
+  <div class="cr-stars">
+    {% for i in range(1,6) %}
+    {% if avg >= i %}
+    <span class="cr-star full">★</span>
+    {% elif avg >= i - 0.5 %}
+    <span class="cr-star half">★</span>
+    {% else %}
+    <span class="cr-star empty">★</span>
+    {% endif %}
+    {% endfor %}
+    <span class="cr-avg">{{ avg }}</span>
+    <span class="cr-cnt">({{ cnt }} {{ 'تقييم' if lang == 'ar' else ('review' if cnt == 1 else 'reviews') }})</span>
+  </div>
+  <span class="cr-label">{{ 'تقييم الزبائن' if lang == 'ar' else 'Customer Rating' }}</span>
+</div>
+{% endif %}
+
+{# ── Price Tiers ── #}
+{% if price_tiers %}
+<div class="price-tiers-block" id="price-tiers-block"
+     data-base="{{ p['discount_price'] if p['discount_price'] else p['price'] }}">
+  <div class="pt-head">{{ 'كلما زاد طلبك كلما وفّرت أكثر ↓' if lang == 'ar' else 'More you buy, more you save ↓' }}</div>
+  <div class="pt-rows">
+    <div class="pt-row pt-row-base is-active-tier" id="tier-row-base">
+      <span class="pt-qty">× 1</span>
+      <span class="pt-label">{{ 'سعر عادي' if lang == 'ar' else 'Regular' }}</span>
+      <span class="pt-price">{{ currency }}{{ '%.2f'|format(p['discount_price'] if p['discount_price'] else p['price']) }}</span>
+      <span class="pt-save"></span>
+    </div>
+    {% for t in price_tiers %}
+    {% set base = p['discount_price'] if p['discount_price'] else p['price'] %}
+    {% set saving = base - t.price_per_unit %}
+    <div class="pt-row" id="tier-row-{{ loop.index }}"
+         data-min="{{ t.min_qty }}" data-price="{{ t.price_per_unit }}">
+      <span class="pt-qty">× {{ t.min_qty }}+</span>
+      <span class="pt-label">{{ pick(t.label_en, t.label_ar) if (t.label_ar or t.label_en) else (('من ' + t.min_qty|string + ' قطع') if lang == 'ar' else ('From ' + t.min_qty|string + ' units')) }}</span>
+      <span class="pt-price">{{ currency }}{{ '%.2f'|format(t.price_per_unit) }}</span>
+      <span class="pt-save {% if saving > 0 %}has-save{% endif %}">
+        {% if saving > 0 %}{{ 'وفّر' if lang == 'ar' else 'Save' }} {{ currency }}{{ '%.2f'|format(saving) }}{{ '/قطعة' if lang == 'ar' else '/unit' }}{% endif %}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── Variants ── #}
+{% if variants %}
+{% set variant_groups = {} %}
+{% for v in variants %}
+  {% if v.type_label_ar not in variant_groups %}
+    {% set _ = variant_groups.update({v.type_label_ar: []}) %}
+  {% endif %}
+{% endfor %}
+<div class="variants-block" id="variants-block"
+     data-base-price="{{ p['discount_price'] if p['discount_price'] else p['price'] }}">
+  {% set ns = namespace(current_type='') %}
+  {% for v in variants %}
+  {% if v.type_label_ar != ns.current_type %}
+    {% if ns.current_type %}</div>{% endif %}
+    {% set ns.current_type = v.type_label_ar %}
+    <div class="variant-group">
+    <div class="variant-group-label">
+      {{ v.type_label_ar if lang == 'ar' else v.type_label_en }}:
+      <span class="variant-selected-val" id="vsel-{{ loop.index }}"></span>
+    </div>
+    <div class="variant-btns">
+  {% endif %}
+    <button type="button"
+            class="variant-btn"
+            data-val-ar="{{ v.value_ar }}"
+            data-val-en="{{ v.value_en }}"
+            data-modifier="{{ v.price_modifier }}"
+            data-stock="{{ v.stock_qty }}"
+            {% if v.image_filename %}
+            data-img="{{ url_for('static', filename='img/products/' + v.image_filename) }}"
+            {% endif %}
+            onclick="selectVariant(this)">
+      {{ v.value_ar if lang == 'ar' else v.value_en }}
+      {% if v.price_modifier > 0 %}
+      <span class="var-price-tag">+{{ currency }}{{ '%.2f'|format(v.price_modifier) }}</span>
+      {% elif v.price_modifier < 0 %}
+      <span class="var-price-tag">-{{ currency }}{{ '%.2f'|format(v.price_modifier|abs) }}</span>
+      {% endif %}
+    </button>
+  {% endfor %}
+  </div></div>
+</div>
+{% endif %}
+
+{# ── Qty + Add to cart + WhatsApp ── #}
+{% set effective_price = p['discount_price'] if p['discount_price'] else p['price'] %}
+{% set wa_msg_en = "Hi, I'd like to order:\n" + p['name_en'] + "\nQty: 1\nPrice: " + currency + "%.2f"|format(effective_price) + "\n(Delivery fee added based on your area)" %}
+{% set wa_msg_ar = "أهلاً، بدي أطلب:\n" + p['name_ar'] + "\nالكمية: 1\nالسعر: " + currency + "%.2f"|format(effective_price) + "\n(رسوم التوصيل تنضاف حسب المنطقة)" %}
+
+<div class="qty-add-block" id="qty-block"
+     data-price="{{ effective_price }}"
+     data-name-en="{{ p['name_en'] }}"
+     data-name-ar="{{ p['name_ar'] }}"
+     data-wa="{{ whatsapp_number }}"
+     data-currency="{{ currency }}"
+     data-promo-type="{{ p['promo_type'] or '' }}">
+  <div class="qty-row">
+    <div class="qty-ctrl">
+      <button class="qty-btn" onclick="changeQty(-1)">−</button>
+      <span class="qty-val" id="qty-val">1</span>
+      <button class="qty-btn" onclick="changeQty(1)">+</button>
+    </div>
+    {% if p['stock_qty'] > 0 %}
+    <div style="display:flex;gap:10px;align-items:stretch;">
+      <button class="btn-add-cart" onclick="addToCart()" style="flex:1;">
+        {{ icons.icon_cart("btn-icon") }}
+        {{ 'أضف للسلة' if lang == 'ar' else 'Add to Cart' }}
+      </button>
+      <button class="btn-wish-product"
+        data-slug="{{ p['slug'] }}"
+        data-name="{{ pick(p['name_en'],p['name_ar'])|e }}"
+        data-price="{{ p['discount_price'] or p['price'] }}"
+        data-img="{{ p['primary_img'] or '' }}"
+        title="{{ 'أضف للمفضلة' if lang == 'ar' else 'Add to wishlist' }}">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        {{ 'مفضلة' if lang == 'ar' else 'Save' }}
+      </button>
+    </div>
+    {% else %}
+    <div class="notify-me-box" id="notify-box-{{ p['id'] }}">
+      <p class="notify-label">
+        <svg class="notify-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        {{ 'أعلمني عند التوفر' if lang == 'ar' else 'Notify me when available' }}
+      </p>
+      <div class="notify-form" id="notify-form-{{ p['id'] }}">
+        <input type="tel" class="notify-phone" id="notify-phone-{{ p['id'] }}"
+               placeholder="{{ '07X XXX XXX' if lang == 'ar' else 'Phone number' }}"
+               inputmode="tel" autocomplete="tel">
+        <button class="notify-submit" onclick="submitNotify({{ p['id'] }}, '{{ lang }}')">
+          {{ 'أعلمني' if lang == 'ar' else 'Notify me' }}
+        </button>
+      </div>
+      <p class="notify-done hidden" id="notify-done-{{ p['id'] }}">
+        {{ '✅ تم! سنعلمك فور توفر المنتج' if lang == 'ar' else '✅ Done! We\'ll notify you.' }}
+      </p>
+      <p class="notify-already hidden" id="notify-already-{{ p['id'] }}">
+        {{ '👍 أنت مسجل مسبقاً' if lang == 'ar' else '👍 Already registered' }}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+  <a class="btn-whatsapp" id="wa-btn"
+     href="https://wa.me/{{ whatsapp_number }}?text={{ (wa_msg_ar if lang == 'ar' else wa_msg_en)|urlencode }}"
+     target="_blank">
+    {{ icons.icon_chat("btn-icon") }}
+    {{ 'اطلب فوراً عبر واتساب' if lang == 'ar' else 'Order Now via WhatsApp' }}
+  </a>
+
+  {# ── Subscribe button ── #}
+  <button class="btn-subscribe" onclick="openSubModal()" type="button">
+    🔄 {{ 'اشتراك دوري — وفّر وما تنسى' if lang == 'ar' else 'Subscribe & Save — Never run out' }}
+  </button>
+
+</div>
+
+{# ── Subscription Modal ── #}
+<div class="sub-modal-overlay" id="sub-modal" onclick="closeSubModal(event)">
+  <div class="sub-modal">
+    <button class="sub-modal-close" onclick="closeSubModal()">&times;</button>
+
+    <div class="sub-modal-header">
+      <span class="sub-modal-icon">🔄</span>
+      <div>
+        <h3 class="sub-modal-title">{{ 'اشتراك دوري' if lang == 'ar' else 'Recurring Order' }}</h3>
+        <p class="sub-modal-sub">{{ 'بيوصلك المنتج بشكل تلقائي، ما في قلق' if lang == 'ar' else 'Get it automatically delivered on schedule' }}</p>
+      </div>
+    </div>
+
+    <div class="sub-modal-body">
+      {# ── Delivery note (top of modal) ── #}
+      <div class="sub-delivery-note" id="sub-delivery-note"
+           data-free-min="{{ sub_cfg.free_min }}"
+           data-days-min="{{ sub_cfg.days_min }}"
+           data-days-max="{{ sub_cfg.days_max }}"
+           data-price="{{ p['discount_price'] or p['price'] }}"
+           data-currency="{{ currency }}"
+           data-lang="{{ lang }}">
+      </div>
+
+      {# Qty selector #}
+      <div class="sub-qty-row">
+        <span class="sub-field-label" style="margin:0">{{ 'الكمية:' if lang == 'ar' else 'Quantity:' }}</span>
+        <div class="sub-qty-ctrl">
+          <button type="button" class="sub-qty-btn" onclick="subQtyChange(-1)">−</button>
+          <span id="sub-qty-val" class="sub-qty-val">1</span>
+          <button type="button" class="sub-qty-btn" onclick="subQtyChange(1)">+</button>
+        </div>
+      </div>
+
+      {# Interval selector #}
+      <p class="sub-field-label">{{ 'كل كم يوم تبدو يجيلك؟' if lang == 'ar' else 'How often?' }}</p>
+      <div class="sub-interval-grid">
+        <button class="sub-interval-btn" data-days="7"  type="button">{{ '7 أيام\nأسبوعي' if lang == 'ar' else '7 days\nWeekly' }}</button>
+        <button class="sub-interval-btn" data-days="14" type="button">{{ '14 يوم\nنصف شهري' if lang == 'ar' else '14 days\nBi-weekly' }}</button>
+        <button class="sub-interval-btn" data-days="21" type="button">{{ '21 يوم\n3 أسابيع' if lang == 'ar' else '21 days\n3 weeks' }}</button>
+        <button class="sub-interval-btn sub-interval-active" data-days="30" type="button">{{ '30 يوم\nشهري' if lang == 'ar' else '30 days\nMonthly' }}</button>
+      </div>
+      <div class="sub-custom-row">
+        <label class="sub-field-label" style="margin:0">{{ 'عدد أيام مخصص:' if lang == 'ar' else 'Custom days:' }}</label>
+        <input class="sub-custom-input" id="sub-custom-days" type="number" min="1" max="365"
+               placeholder="{{ 'مثال: 45' if lang == 'ar' else 'e.g. 45' }}" oninput="clearIntervalBtns()">
+      </div>
+
+      {# Contact info #}
+      <div class="sub-fields">
+        <div class="sub-field">
+          <label class="sub-field-label">{{ 'اسمك *' if lang == 'ar' else 'Your name *' }}</label>
+          <input class="sub-input" id="sub-name" type="text" autocomplete="name"
+                 placeholder="{{ 'الاسم الكامل' if lang == 'ar' else 'Full name' }}">
+        </div>
+        <div class="sub-field">
+          <label class="sub-field-label">{{ 'رقم الهاتف *' if lang == 'ar' else 'Phone number *' }}</label>
+          <input class="sub-input" id="sub-phone" type="tel" autocomplete="tel" inputmode="tel"
+                 placeholder="{{ '07X XXX XXX' if lang == 'ar' else '+961 XX XXX XXX' }}">
+        </div>
+        <div class="sub-field">
+          <label class="sub-field-label">{{ 'المنطقة / العنوان' if lang == 'ar' else 'Area / Address' }}</label>
+          <input class="sub-input" id="sub-area" type="text"
+                 placeholder="{{ 'مثال: بيروت، صنائع' if lang == 'ar' else 'e.g. Beirut, Hamra' }}">
+        </div>
+        <div class="sub-field">
+          <label class="sub-field-label">{{ 'ملاحظات (اختياري)' if lang == 'ar' else 'Notes (optional)' }}</label>
+          <input class="sub-input" id="sub-notes" type="text"
+                 placeholder="{{ 'أي تفاصيل إضافية' if lang == 'ar' else 'Any extra details' }}">
+        </div>
+      </div>
+
+      {# Related products suggestion #}
+      {% if related %}
+      <div class="sub-also-need">
+        <p class="sub-field-label">{{ 'بحتاج أيضاً؟ — أضف مع نفس الاشتراك' if lang == 'ar' else 'Also need? — Add to same subscription' }}</p>
+        <div class="sub-related-row">
+          {% for r in related[:3] %}
+          <label class="sub-related-item">
+            <input type="checkbox" class="sub-related-chk" data-pid="{{ r.id }}"
+                   data-name="{{ (r.name_ar if lang == 'ar' else r.name_en)|e }}">
+            {% if r.primary_img %}
+            <img src="/static/uploads/{{ r.primary_img }}" alt="" class="sub-related-img">
+            {% endif %}
+            <span class="sub-related-name">{{ r.name_ar if lang == 'ar' else r.name_en }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="sub-inline-note">
+        ℹ️ {{ 'سيتم التواصل معك للموافقة قبل إرسال كل طلبية — لا شيء يُرسل تلقائياً' if lang == 'ar' else "We'll contact you for approval before each renewal — nothing is sent automatically" }}
+      </div>
+
+      <button class="sub-submit-btn" id="sub-submit" onclick="submitSubscription({{ p['id'] }}, '{{ (p['name_ar'] or '')|e }}', '{{ (p['name_en'] or '')|e }}')">
+        🛒 {{ 'أضف لسلة الاشتراك' if lang == 'ar' else 'Add to Subscription Cart' }}
+      </button>
+
+      <div class="sub-success hidden" id="sub-success">
+        <div class="sub-success-icon">🛒</div>
+        <strong>{{ 'أُضيف للسلة!' if lang == 'ar' else 'Added to cart!' }}</strong>
+        <p class="text-muted small" style="margin:6px 0 0">{{ 'اضغط أيقونة 🔄 في الشريط لتأكيد اشتراكك' if lang == 'ar' else 'Tap 🔄 in the nav bar to confirm your subscription' }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Trust strip ── #}
+<div class="product-trust">
+  <div class="pt-item">{{ icons.icon_truck("pt-icon") }}<span>{{ 'توصيل ١-٣ أيام' if lang == 'ar' else '1–3 day delivery' }}</span></div>
+  <div class="pt-item">{{ icons.icon_cash("pt-icon") }}<span>{{ 'دفع عند الاستلام' if lang == 'ar' else 'Cash on delivery' }}</span></div>
+  <div class="pt-item">{{ icons.icon_seal("pt-icon") }}<span>{{ 'ضمان استبدال' if lang == 'ar' else 'Exchange guarantee' }}</span></div>
+</div>
+
+{# ── Consumable calculator ── #}
+{% if p['is_consumable'] and p['package_weight_grams'] %}
+<details class="collapsible" id="calc-section">
+  <summary>
+    {{ icons.icon_bowl("coll-icon") }}
+    <span>{{ 'كم بتدوم هاي العبوة؟' if lang == 'ar' else 'How long does this pack last?' }}</span>
+    <span class="coll-arrow">›</span>
+  </summary>
+  <div class="calc-body">
+    <div class="calc-fields">
+      <label>
+        <span>{{ 'وزن الحيوان (كغ)' if lang == 'ar' else 'Pet weight (kg)' }}</span>
+        <input type="number" id="calc-weight" value="4" min="0.5" max="80" step="0.5" oninput="calcDuration()">
+      </label>
+      <label>
+        <span>{{ 'عدد الحيوانات' if lang == 'ar' else 'Number of pets' }}</span>
+        <input type="number" id="calc-count" value="1" min="1" max="10" step="1" oninput="calcDuration()">
+      </label>
+    </div>
+    <div class="calc-result" id="calc-result">
+      <div class="calc-result-days" id="calc-days">—</div>
+      <div class="calc-result-cost" id="calc-cost"></div>
+    </div>
+  </div>
+</details>
+{% endif %}
+
+{# ── Suitability ── #}
+{% set has_suit = p['min_age_months'] or p['max_age_months'] or (p['size_tag'] and p['size_tag'] != 'all') or p['health_tags'] %}
+{% if has_suit %}
+<div class="suitability-section">
+  <h3>{{ 'هذا المنتج مناسب إذا' if lang == 'ar' else 'This product suits your pet if' }}</h3>
+  <ul class="suit-list">
+    {% if p['min_age_months'] and p['max_age_months'] %}
+    <li>
+      <span class="suit-check">✓</span>
+      {% if lang == 'ar' %}
+        عمره بين {{ p['min_age_months'] }} و{{ p['max_age_months'] }} شهر
+      {% else %}
+        Age is between {{ p['min_age_months'] }} and {{ p['max_age_months'] }} months
+      {% endif %}
+    </li>
+    {% elif p['min_age_months'] %}
+    <li>
+      <span class="suit-check">✓</span>
+      {% if lang == 'ar' %}عمره {{ p['min_age_months'] }} شهر أو أكثر{% else %}Age is {{ p['min_age_months'] }}+ months{% endif %}
+    </li>
+    {% elif p['max_age_months'] %}
+    <li>
+      <span class="suit-check">✓</span>
+      {% if lang == 'ar' %}عمره أقل من {{ p['max_age_months'] }} شهر{% else %}Under {{ p['max_age_months'] }} months old{% endif %}
+    </li>
+    {% endif %}
+
+    {% if p['size_tag'] and p['size_tag'] != 'all' %}
+    <li>
+      <span class="suit-check">✓</span>
+      {% set size_map_en = {'small': 'Small breed', 'medium': 'Medium breed', 'large': 'Large breed'} %}
+      {% set size_map_ar = {'small': 'سلالة صغيرة الحجم', 'medium': 'سلالة متوسطة الحجم', 'large': 'سلالة كبيرة الحجم'} %}
+      {{ size_map_ar.get(p['size_tag'], p['size_tag']) if lang == 'ar' else size_map_en.get(p['size_tag'], p['size_tag']) }}
+    </li>
+    {% endif %}
+
+    {% if p['health_tags'] %}
+      {% set tag_en = {'weight': 'Needs weight management', 'joint': 'Has joint issues', 'urinary': 'Needs urinary support', 'allergy': 'Has food sensitivities', 'dental': 'Needs dental care', 'hairball': 'Prone to hairballs', 'indoor': 'Lives indoors'} %}
+      {% set tag_ar = {'weight': 'يحتاج إلى إدارة الوزن', 'joint': 'يعاني من مشاكل المفاصل', 'urinary': 'يحتاج دعم المسالك البولية', 'allergy': 'لديه حساسية غذائية', 'dental': 'يحتاج عناية بالأسنان', 'hairball': 'عرضة لكرات الشعر', 'indoor': 'يعيش داخل المنزل'} %}
+      {% for tag in p['health_tags'].split(',') %}
+        {% set t = tag.strip() %}
+        {% if t %}
+        <li>
+          <span class="suit-check">✓</span>
+          {{ tag_ar.get(t, t) if lang == 'ar' else tag_en.get(t, t) }}
+        </li>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  </ul>
+</div>
+{% endif %}
+
+{# ── Description ── #}
+{% set desc = pick(p['description_en'], p['description_ar']) %}
+{% if desc %}
+<div class="product-desc">
+  <h3>{{ 'تفاصيل المنتج' if lang == 'ar' else 'Product Details' }}</h3>
+  <p>{{ desc }}</p>
+</div>
+{% endif %}
+
+{# ── WhatsApp question CTA ── #}
+<a class="btn-wa-question"
+   href="https://wa.me/{{ whatsapp_number }}?text={{ ('عندي سؤال عن: ' + pick(p['name_en'], p['name_ar']))|urlencode }}"
+   target="_blank">
+  {{ icons.icon_chat("btn-icon") }}
+  {{ 'عندك سؤال عن هذا المنتج؟' if lang == 'ar' else 'Have a question about this product?' }}
+</a>
+
+{# ── Upsell ذكي ── #}
+<section class="section upsell-section" id="upsell-section" style="display:none">
+  <div class="section-head">
+    <h2>{{ 'رح يعجبك كمان 🐾' if lang == 'ar' else 'You might also need 🐾' }}</h2>
+  </div>
+  <div class="product-scroll" id="upsell-grid"></div>
+</section>
+
+{# ── Related products ── #}
+{% if related %}
+<section class="section related-section">
+  <div class="section-head">
+    <h2>{{ 'منتجات من نفس الفئة' if lang == 'ar' else 'More from this category' }}</h2>
+  </div>
+  <div class="product-scroll">
+    {% for r in related %}
+    <a href="{{ url_for('product', slug=r['slug']) }}" class="product-card">
+      <div class="thumb">
+        {% if r['discount_price'] %}
+        <span class="badge-gold">{{ icons.icon_seal("b-icon") }} {{ 'عرض' if lang == 'ar' else 'Sale' }}</span>
+        {% endif %}
+        {{ product_img(r['primary_img'], pick(r['name_en'], r['name_ar']), loop.index0) }}
+        {% if not r['primary_img'] %}
+        <span class="thumb-placeholder">{{ icons.icon_by_name(p['cat_slug'], "thumb-icon") }}</span>
+        {% endif %}
+      </div>
+      <div class="info">
+        <span class="p-name">{{ pick(r['name_en'], r['name_ar']) }}</span>
+        <span class="p-price">{{ currency }}{{ '%.2f'|format(r['discount_price'] if r['discount_price'] else r['price']) }}
+          {% if r['discount_price'] %}<span class="old">{{ currency }}{{ '%.2f'|format(r['price']) }}</span>{% endif %}
+        </span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+<div class="cart-toast" id="cart-toast">
+  {{ icons.icon_cart("toast-icon") }}
+  {{ 'أُضيف للسلة ✓' if lang == 'ar' else 'Added to cart ✓' }}
+</div>
+
+{% block scripts %}
+<script>
+const block   = document.getElementById('qty-block');
+const qtyEl   = document.getElementById('qty-val');
+const waBtn   = document.getElementById('wa-btn');
+const price   = parseFloat(block.dataset.price);
+const nameEn  = block.dataset.nameEn;
+const nameAr  = block.dataset.nameAr;
+const waNum   = block.dataset.wa;
+const cur     = block.dataset.currency;
+const lang      = document.documentElement.lang;
+const promoType = block.dataset.promoType || '';
+let qty = 1;
+let currentUnitPrice = price;
+
+function applyPromo(unitPrice, q) {
+  if (promoType === 'b2g1f' && q >= 3) {
+    const freeQty = Math.floor(q / 3);
+    const payQty  = q - freeQty;
+    return { total: payQty * unitPrice, freeQty, saved: freeQty * unitPrice };
+  }
+  return { total: unitPrice * q, freeQty: 0, saved: 0 };
+}
+
+{% if price_tiers %}
+const PRICE_TIERS = [
+  { min: 1, price: {{ p['discount_price'] if p['discount_price'] else p['price'] }} },
+  {% for t in price_tiers %}
+  { min: {{ t.min_qty }}, price: {{ t.price_per_unit }} },
+  {% endfor %}
+];
+function bestTierPrice(q) {
+  let best = PRICE_TIERS[0].price;
+  for (const t of PRICE_TIERS) { if (q >= t.min) best = t.price; }
+  return best;
+}
+function updateTierHighlight(q) {
+  let activeMin = 1;
+  for (const t of PRICE_TIERS) { if (q >= t.min) activeMin = t.min; }
+  document.querySelectorAll('.pt-row').forEach(r => {
+    const isBase = r.id === 'tier-row-base';
+    const rowMin = isBase ? 1 : parseInt(r.dataset.min);
+    r.classList.toggle('is-active-tier', rowMin === activeMin);
+  });
+}
+{% endif %}
+
+function changeQty(d) {
+  qty = Math.max(1, qty + d);
+  qtyEl.textContent = qty;
+
+  {% if price_tiers %}
+  currentUnitPrice = bestTierPrice(qty);
+  updateTierHighlight(qty);
+  {% endif %}
+
+  const totalEl = document.getElementById('price-total');
+  const unitEl  = document.getElementById('price-unit');
+  const savEl   = document.getElementById('price-savings');
+
+  const promo   = applyPromo(currentUnitPrice, qty);
+
+  if (totalEl) totalEl.textContent = cur + promo.total.toFixed(2);
+
+  if (unitEl) {
+    if (qty > 1) {
+      const unitLabel = lang === 'ar' ? 'قطعة' : 'each';
+      unitEl.textContent = cur + currentUnitPrice.toFixed(2) + ' / ' + unitLabel;
+      unitEl.style.display = '';
+    } else {
+      unitEl.style.display = 'none';
+    }
+  }
+
+  if (savEl) {
+    const tierSavings = price - currentUnitPrice;
+    if (promo.freeQty > 0) {
+      savEl.textContent = lang === 'ar'
+        ? `🎁 ${promo.freeQty} قطعة مجانية — وفّرت ${cur}${promo.saved.toFixed(2)}`
+        : `🎁 ${promo.freeQty} free item${promo.freeQty > 1 ? 's' : ''} — Save ${cur}${promo.saved.toFixed(2)}`;
+      savEl.style.display = '';
+    } else if (tierSavings > 0.001) {
+      savEl.textContent = lang === 'ar'
+        ? `🏷 وفّرت ${cur}${tierSavings.toFixed(2)} على كل قطعة`
+        : `🏷 Save ${cur}${tierSavings.toFixed(2)} per unit`;
+      savEl.style.display = '';
+    } else {
+      savEl.style.display = 'none';
+    }
+  }
+
+  updateWaLink();
+}
+
+function updateWaLink() {
+  const name  = lang === 'ar' ? nameAr : nameEn;
+  const promo = applyPromo(currentUnitPrice, qty);
+  const unitLine = qty > 1
+    ? (lang === 'ar' ? `\nسعر القطعة: ${cur}${currentUnitPrice.toFixed(2)}` : `\nUnit price: ${cur}${currentUnitPrice.toFixed(2)}`)
+    : '';
+  const promoLine = promo.freeQty > 0
+    ? (lang === 'ar' ? `\n🎁 ${promo.freeQty} قطعة مجانية` : `\n🎁 ${promo.freeQty} free item${promo.freeQty > 1 ? 's' : ''}`)
+    : '';
+  const msg = lang === 'ar'
+    ? `أهلاً، بدي أطلب فوراً:\n${name}\nالكمية: ${qty}${unitLine}${promoLine}\nالمجموع: ${cur}${promo.total.toFixed(2)}\n(رسوم التوصيل تنضاف حسب المنطقة)`
+    : `Hi, I'd like to order now:\n${name}\nQty: ${qty}${unitLine}${promoLine}\nTotal: ${cur}${promo.total.toFixed(2)}\n(Delivery fee added based on your area)`;
+  waBtn.href = `https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`;
+}
+
+function addToCart() {
+  const btn  = document.querySelector('.btn-add-cart');
+  const form = new FormData();
+  form.append('product_id', '{{ p["id"] }}');
+  form.append('qty', qty);
+
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+
+  fetch('/cart/add', { method: 'POST', body: form })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) { btn.disabled = false; btn.style.opacity = ''; return; }
+
+      if (window.mcAfterAdd) mcAfterAdd(data.count);
+
+      const origHTML = btn.innerHTML;
+      btn.innerHTML  = `<span>✓</span> ${lang === 'ar' ? 'تمت الإضافة!' : 'Added!'}`;
+      btn.style.background = 'var(--green, #22c55e)';
+      btn.style.opacity    = '1';
+
+      setTimeout(() => {
+        btn.innerHTML        = origHTML;
+        btn.style.background = '';
+        btn.disabled         = false;
+      }, 1600);
+
+      if (window.psTrack) psTrack('add_to_cart', {
+        product_id: {{ p["id"] }},
+        product_slug: '{{ p["slug"] }}',
+        extra: JSON.stringify({ qty, price: currentPrice })
+      });
+    });
+}
+
+// analytics: product_view
+if (window.psTrack) psTrack('product_view', {
+  product_id: {{ p["id"] }},
+  product_slug: '{{ p["slug"] }}'
+});
+
+// upsell
+(async function loadUpsell() {
+  try {
+    const res  = await fetch('/api/upsell/{{ p["id"] }}');
+    const data = await res.json();
+    if (!data.products || !data.products.length) return;
+
+    const cur  = '{{ currency }}';
+    const lang = '{{ lang }}';
+    const grid = document.getElementById('upsell-grid');
+    const sec  = document.getElementById('upsell-section');
+
+    data.products.forEach((p, idx) => {
+      const price = p.discount_price || p.price;
+      const name  = lang === 'ar' ? p.name_ar : p.name_en;
+      const img   = p.primary_img
+        ? `<img src="/static/img/products/${p.primary_img}" alt="${name}" class="thumb-img" loading="lazy" decoding="async">`
+        : `<span class="thumb-placeholder"></span>`;
+      const card = document.createElement('a');
+      card.href  = `/products/${p.slug}`;
+      card.className = 'product-card';
+      card.innerHTML = `
+        <div class="thumb">${img}</div>
+        <div class="card-body">
+          <p class="prod-name">${name}</p>
+          <p class="prod-price">${cur}${parseFloat(price).toFixed(2)}</p>
+        </div>`;
+      grid.appendChild(card);
+    });
+    sec.style.display = '';
+  } catch(e) {}
+})();
+
+function showToast() {
+  const t = document.getElementById('cart-toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Consumable calculator ──
+{% if p['is_consumable'] and p['package_weight_grams'] and p['consumption_grams_per_kg_day'] %}
+const pkgGrams = {{ p['package_weight_grams'] }};
+const consGKgDay = {{ p['consumption_grams_per_kg_day'] }};
+const prodPrice = {{ p['discount_price'] if p['discount_price'] else p['price'] }};
+
+function calcDuration() {
+  const weight = parseFloat(document.getElementById('calc-weight').value) || 0;
+  const count  = parseInt(document.getElementById('calc-count').value) || 1;
+  if (weight <= 0) return;
+  const dailyGrams = consGKgDay * weight * count;
+  const days = Math.round(pkgGrams / dailyGrams);
+  const monthlyCost = (30 / days * prodPrice).toFixed(2);
+  const daysEl = document.getElementById('calc-days');
+  const costEl = document.getElementById('calc-cost');
+  daysEl.textContent = lang === 'ar'
+    ? `تدوم تقريباً ${days} يوم`
+    : `Lasts approximately ${days} days`;
+  costEl.textContent = lang === 'ar'
+    ? `الكلفة الشهرية التقريبية: ${cur}${monthlyCost}`
+    : `Estimated monthly cost: ${cur}${monthlyCost}`;
+}
+calcDuration();
+{% endif %}
+
+// ── Gallery ──
+function switchImg(btn, src) {
+  document.getElementById('main-img').src = src;
+  document.querySelectorAll('.thumb-btn').forEach(b => b.classList.remove('is-active'));
+  btn.classList.add('is-active');
+}
+
+// ── Variants ──
+let currentPrice = price;
+function selectVariant(btn) {
+  const block = document.getElementById('variants-block');
+  const basePrice = parseFloat(block.dataset.basePrice);
+
+  // toggle active within same group
+  const group = btn.closest('.variant-group');
+  group.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  // recalculate price across all active variants
+  let modifier = 0;
+  document.querySelectorAll('.variant-btn.active').forEach(b => {
+    modifier += parseFloat(b.dataset.modifier || 0);
+  });
+  currentPrice = basePrice + modifier;
+
+  // update price display
+  const priceEl = document.querySelector('.price-main') || document.querySelector('.product-price');
+  if (priceEl) {
+    const cur = document.getElementById('qty-block').dataset.currency;
+    priceEl.textContent = cur + currentPrice.toFixed(2);
+  }
+
+  // swap image if variant has one
+  const img = btn.dataset.img;
+  if (img) {
+    document.getElementById('main-img').src = img;
+    document.querySelectorAll('.thumb-btn').forEach(b => b.classList.remove('is-active'));
+  }
+
+  // update stock badge
+  const stock = parseInt(btn.dataset.stock || 0);
+  const stockEl = document.getElementById('stock-badge');
+  if (stockEl) {
+    if (stock <= 0) {
+      stockEl.textContent = lang === 'ar' ? 'نفد المخزون' : 'Out of stock';
+      stockEl.className = 'stock-badge out-stock';
+    } else if (stock <= 5) {
+      stockEl.textContent = lang === 'ar' ? `آخر ${stock} قطع` : `Only ${stock} left`;
+      stockEl.className = 'stock-badge low-stock';
+    } else {
+      stockEl.textContent = lang === 'ar' ? 'متوفر' : 'In stock';
+      stockEl.className = 'stock-badge in-stock';
+    }
+  }
+
+  // refresh WhatsApp link
+  updateWaLink();
+}
+
+// override updateWaLink to use currentPrice
+updateWaLink = function() {
+  const name = lang === 'ar' ? nameAr : nameEn;
+  const total = (currentPrice * qty).toFixed(2);
+  const msg = lang === 'ar'
+    ? `أهلاً، بدي أطلب:\n${name}\nالكمية: ${qty}\nالسعر: ${cur}${total}\n(رسوم التوصيل تنضاف حسب المنطقة)`
+    : `Hi, I'd like to order:\n${name}\nQty: ${qty}\nPrice: ${cur}${total}\n(Delivery fee added based on your area)`;
+  waBtn.href = `https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`;
+};
+
+// ── Web Push helpers ──────────────────────────────────────
+function _urlB64ToUint8(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function _pushSubscribe(pid, phone) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  try {
+    const { publicKey } = await fetch('/push/vapid-key').then(r => r.json());
+    const reg  = await navigator.serviceWorker.ready;
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return null;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: _urlB64ToUint8(publicKey),
+      });
+    }
+    const subJson = sub.toJSON();
+    await fetch('/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...subJson, product_id: pid, phone }),
+    });
+    return sub;
+  } catch (e) {
+    console.warn('push subscribe failed', e);
+    return null;
+  }
+}
+
+async function submitNotify(pid, lang) {
+  const phone = document.getElementById('notify-phone-' + pid).value.trim();
+  if (!phone) { document.getElementById('notify-phone-' + pid).focus(); return; }
+
+  // 1. حفظ الهاتف بالـ DB
+  const fd = new FormData();
+  fd.append('product_id', pid);
+  fd.append('phone', phone);
+  const res  = await fetch('/notify-me', { method: 'POST', body: fd });
+  const data = await res.json();
+
+  // 2. اشتراك push (بدون انتظار — ما يعطّل الـ UX)
+  _pushSubscribe(pid, phone).catch(() => {});
+
+  document.getElementById('notify-form-' + pid).classList.add('hidden');
+  if (data.already) {
+    document.getElementById('notify-already-' + pid).classList.remove('hidden');
+  } else {
+    document.getElementById('notify-done-' + pid).classList.remove('hidden');
+  }
+}
+
+// ── Subscription Modal ──────────────────────────────────
+var _subIntervalDays = 30;
+var _subModalQty = 1;
+
+function subQtyChange(d) {
+  _subModalQty = Math.max(1, _subModalQty + d);
+  document.getElementById('sub-qty-val').textContent = _subModalQty;
+  _updateSubNote('sub-delivery-note');
+}
+
+function _updateSubNote(elId) {
+  var el = document.getElementById(elId || 'sub-delivery-note');
+  if (!el) return;
+  var freeMin   = parseFloat(el.dataset.freeMin) || 0;
+  var daysMin   = el.dataset.daysMin;
+  var daysMax   = el.dataset.daysMax;
+  var unitPrice = parseFloat(el.dataset.price) || 0;
+  var curr      = el.dataset.currency;
+  var isAr      = el.dataset.lang === 'ar';
+  var total     = unitPrice * _subModalQty;
+
+  var html;
+  if (freeMin > 0 && total >= freeMin) {
+    html = isAr
+      ? '🚚 أيام الشحن من ' + daysMin + ' إلى ' + daysMax + ' أيام · <strong style="color:#4ade80">مبروك حصلت على الشحن المجاني 🎉</strong>'
+      : '🚚 Delivery in ' + daysMin + '–' + daysMax + ' days · <strong style="color:#4ade80">You got free shipping! 🎉</strong>';
+    el.style.borderColor = 'rgba(74,222,128,.35)';
+    el.style.background  = 'rgba(74,222,128,.07)';
+  } else if (freeMin > 0) {
+    var need = (freeMin - total).toFixed(0);
+    html = isAr
+      ? '🚚 أيام الشحن من ' + daysMin + ' إلى ' + daysMax + ' أيام · أضف ' + curr + need + ' وتحصل على الشحن المجاني'
+      : '🚚 Delivery in ' + daysMin + '–' + daysMax + ' days · Add ' + curr + need + ' for free shipping';
+    el.style.borderColor = 'rgba(212,167,44,.25)';
+    el.style.background  = 'rgba(212,167,44,.06)';
+  } else {
+    html = isAr
+      ? '🚚 أيام الشحن من ' + daysMin + ' إلى ' + daysMax + ' أيام'
+      : '🚚 Delivery in ' + daysMin + '–' + daysMax + ' days';
+    el.style.borderColor = 'rgba(212,167,44,.25)';
+    el.style.background  = 'rgba(212,167,44,.06)';
+  }
+  el.innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  _updateSubNote('sub-delivery-note');
+
+  document.querySelectorAll('.sub-interval-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.sub-interval-btn').forEach(function(b) { b.classList.remove('sub-interval-active'); });
+      btn.classList.add('sub-interval-active');
+      _subIntervalDays = parseInt(btn.dataset.days);
+      document.getElementById('sub-custom-days').value = '';
+    });
+  });
+});
+
+function clearIntervalBtns() {
+  document.querySelectorAll('.sub-interval-btn').forEach(function(b) { b.classList.remove('sub-interval-active'); });
+  _subIntervalDays = 0;
+}
+
+function openSubModal() {
+  // Reset qty
+  _subModalQty = 1;
+  document.getElementById('sub-qty-val').textContent = '1';
+  // Pre-fill customer info from localStorage
+  try {
+    var cust = JSON.parse(localStorage.getItem('sub_customer') || 'null');
+    if (cust) {
+      document.getElementById('sub-name').value  = cust.name  || '';
+      document.getElementById('sub-phone').value = cust.phone || '';
+      document.getElementById('sub-area').value  = cust.area  || '';
+      document.getElementById('sub-notes').value = cust.notes || '';
+      if (cust.interval_days) {
+        document.querySelectorAll('.sub-interval-btn').forEach(function(b) { b.classList.remove('sub-interval-active'); });
+        var ab = document.querySelector('.sub-interval-btn[data-days="' + cust.interval_days + '"]');
+        if (ab) { ab.classList.add('sub-interval-active'); _subIntervalDays = cust.interval_days; }
+      }
+    }
+  } catch(e) {}
+  // Reset success state
+  document.getElementById('sub-success').classList.add('hidden');
+  document.getElementById('sub-submit').classList.remove('hidden');
+  document.getElementById('sub-submit').disabled = false;
+  _updateSubNote('sub-delivery-note');
+  document.getElementById('sub-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSubModal(e) {
+  if (e && e.target !== document.getElementById('sub-modal')) return;
+  document.getElementById('sub-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function submitSubscription(pid, pNameAr, pNameEn) {
+  var customDays = parseInt(document.getElementById('sub-custom-days').value) || 0;
+  var days  = customDays > 0 ? customDays : _subIntervalDays;
+  var name  = document.getElementById('sub-name').value.trim();
+  var phone = document.getElementById('sub-phone').value.trim();
+
+  if (!days || days < 1) {
+    alert(lang === 'ar' ? 'اختر فترة التجديد' : 'Please select an interval');
+    return;
+  }
+  if (!name)  { document.getElementById('sub-name').focus();  return; }
+  if (!phone) { document.getElementById('sub-phone').focus(); return; }
+
+  var area  = document.getElementById('sub-area').value.trim();
+  var notes = document.getElementById('sub-notes').value.trim();
+
+  // Collect checked related products as note
+  var checked = [];
+  document.querySelectorAll('.sub-related-chk:checked').forEach(function(c) { checked.push(c.dataset.name); });
+  if (checked.length) notes = (notes ? notes + ' | ' : '') + '+ ' + checked.join(', ');
+
+  // Save customer info
+  try {
+    localStorage.setItem('sub_customer', JSON.stringify({ name: name, phone: phone, area: area, notes: notes, interval_days: days }));
+  } catch(e) {}
+
+  // Add to sub cart
+  var pName = (lang === 'ar' && pNameAr) ? pNameAr : (pNameEn || pNameAr || '');
+  var noteEl = document.getElementById('sub-delivery-note');
+  var unitPrice = noteEl ? (parseFloat(noteEl.dataset.price) || 0) : 0;
+  var curr      = noteEl ? (noteEl.dataset.currency || '') : '';
+
+  try {
+    var cart = JSON.parse(localStorage.getItem('sub_cart') || '[]');
+    var existing = null;
+    for (var i = 0; i < cart.length; i++) { if (cart[i].product_id == pid) { existing = cart[i]; break; } }
+    if (existing) {
+      existing.qty += _subModalQty;
+      existing.interval_days = days;
+    } else {
+      cart.push({ product_id: pid, name: pName, qty: _subModalQty, interval_days: days, price: unitPrice, currency: curr, notes: notes });
+    }
+    localStorage.setItem('sub_cart', JSON.stringify(cart));
+  } catch(e) {}
+
+  // Update badge in nav
+  if (typeof updateSubCartBadge === 'function') updateSubCartBadge();
+
+  // Show success
+  document.getElementById('sub-submit').classList.add('hidden');
+  document.getElementById('sub-success').classList.remove('hidden');
+  setTimeout(function() { closeSubModal(); }, 2500);
+}
+</script>
+{% endblock %}

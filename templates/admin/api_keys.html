@@ -1,0 +1,138 @@
+{% extends "admin/base.html" %}
+{% block title %}API & n8n{% endblock %}
+
+{% block content %}
+<div class="adm-page-head">
+  <h1>🔌 تكامل n8n و API</h1>
+</div>
+
+{% if msg %}
+  {% if msg[0] == 'generated' %}
+  <div class="adm-alert-ok">
+    ✓ تم توليد مفتاح جديد — احفظه الآن، لن يظهر مرة ثانية:<br>
+    <code style="font-size:0.85rem;letter-spacing:1px;color:var(--gold);display:block;margin-top:6px;word-break:break-all">{{ msg[1] }}</code>
+  </div>
+  {% elif msg[0] == 'revoked' %}
+  <div class="adm-alert-ok">✓ تم إلغاء تفعيل المفتاح</div>
+  {% elif msg[0] == 'saved_n8n' %}
+  <div class="adm-alert-ok">✓ تم حفظ إعدادات n8n</div>
+  {% endif %}
+{% endif %}
+
+<!-- ══ REST API Docs ══ -->
+<div class="adm-card" style="margin-bottom:1.6rem">
+  <div class="adm-card-head">
+    <h2>📖 مرجع API سريع</h2>
+    <p class="adm-hint">Base URL: <code>http://&lt;domain&gt;/api/v1/</code> — أرسل المفتاح في Header: <code>X-API-Key: ps_...</code></p>
+  </div>
+  <table class="adm-table api-ref-table">
+    <thead><tr><th>Method</th><th>Endpoint</th><th>الوصف</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m-get">GET</span></td><td><code>/api/v1/products</code></td><td>قائمة كل المنتجات</td></tr>
+      <tr><td><span class="m-get">GET</span></td><td><code>/api/v1/products/&lt;id&gt;</code></td><td>تفاصيل منتج</td></tr>
+      <tr><td><span class="m-put">PUT</span></td><td><code>/api/v1/products/&lt;id&gt;/stock</code></td><td>تحديث المخزون <code>{"stock_qty": 50}</code></td></tr>
+      <tr><td><span class="m-get">GET</span></td><td><code>/api/v1/orders</code></td><td>آخر 100 طلب — <code>?status=new</code> للتصفية</td></tr>
+      <tr><td><span class="m-get">GET</span></td><td><code>/api/v1/orders/&lt;id&gt;</code></td><td>تفاصيل طلب كامل مع العناصر</td></tr>
+      <tr><td><span class="m-put">PUT</span></td><td><code>/api/v1/orders/&lt;id&gt;/status</code></td><td>تغيير حالة <code>{"status": "shipped"}</code></td></tr>
+      <tr><td><span class="m-post">POST</span></td><td><code>/api/v1/orders</code></td><td>إنشاء طلب جديد من n8n</td></tr>
+    </tbody>
+  </table>
+  <div style="margin-top:12px">
+    <p class="adm-hint" style="margin-bottom:6px"><strong>Incoming Webhook (n8n → المتجر):</strong> <code>POST /webhooks/n8n</code> — Header: <code>X-Webhook-Secret: &lt;secret&gt;</code></p>
+    <p class="adm-hint">Actions: <code>update_stock</code> · <code>update_status</code> · <code>activate_product</code> · <code>deactivate_product</code></p>
+  </div>
+</div>
+
+<!-- ══ n8n Settings ══ -->
+<div class="adm-card" style="margin-bottom:1.6rem">
+  <div class="adm-card-head">
+    <h2>⚙️ إعدادات n8n</h2>
+    <p class="adm-hint">روابط الـ webhooks الخاصة بـ n8n workflow الخاص فيك</p>
+  </div>
+  <form method="POST" class="adm-form">
+    <input type="hidden" name="action" value="save_n8n">
+    <div class="adm-field">
+      <label>Webhook طلب جديد <span class="hint">يُستدعى تلقائياً عند كل طلب جديد</span></label>
+      <input type="url" name="n8n_order_webhook"
+             value="{{ n8n_order_webhook }}"
+             placeholder="https://your-n8n.com/webhook/xxxx"
+             style="direction:ltr;font-family:monospace">
+    </div>
+    <div class="adm-field">
+      <label>Webhook تغيير الحالة <span class="hint">يُستدعى عند تغيير حالة أي طلب</span></label>
+      <input type="url" name="n8n_status_webhook"
+             value="{{ n8n_status_webhook }}"
+             placeholder="https://your-n8n.com/webhook/xxxx"
+             style="direction:ltr;font-family:monospace">
+    </div>
+    <div class="adm-field">
+      <label>Webhook Secret <span class="hint">مفتاح سري للتحقق من الطلبات الواردة من n8n</span></label>
+      <input type="text" name="webhook_secret"
+             value="{{ webhook_secret }}"
+             placeholder="اتركه فارغاً لإيقاف التحقق"
+             style="direction:ltr;font-family:monospace"
+             autocomplete="off">
+    </div>
+    <button type="submit" class="adm-btn adm-btn-primary">💾 حفظ الإعدادات</button>
+  </form>
+</div>
+
+<!-- ══ API Keys ══ -->
+<div class="adm-card">
+  <div class="adm-card-head">
+    <h2>🔑 مفاتيح API</h2>
+    <p class="adm-hint">استخدمها في n8n كـ Header Credential</p>
+  </div>
+
+  <form method="POST" class="adm-form" style="flex-direction:row;align-items:flex-end;gap:12px;margin-bottom:1.2rem">
+    <input type="hidden" name="action" value="generate">
+    <div class="adm-field" style="flex:1;margin-bottom:0">
+      <label>اسم المفتاح</label>
+      <input type="text" name="label" placeholder="n8n automation" value="n8n automation">
+    </div>
+    <button type="submit" class="adm-btn adm-btn-primary" style="white-space:nowrap">+ توليد مفتاح</button>
+  </form>
+
+  {% if api_keys %}
+  <table class="adm-table">
+    <thead>
+      <tr>
+        <th>الاسم</th>
+        <th>آخر استخدام</th>
+        <th>تاريخ الإنشاء</th>
+        <th>الحالة</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for k in api_keys %}
+      <tr>
+        <td>{{ k['label'] or '—' }}</td>
+        <td>{{ k['last_used'] or 'لم يُستخدم' }}</td>
+        <td>{{ k['created_at'] }}</td>
+        <td>
+          {% if k['is_active'] %}
+          <span class="badge-status badge-new">نشط</span>
+          {% else %}
+          <span class="badge-status badge-cancelled">ملغى</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if k['is_active'] %}
+          <form method="POST" style="display:inline">
+            <input type="hidden" name="action" value="revoke">
+            <input type="hidden" name="key_id" value="{{ k['id'] }}">
+            <button type="submit" class="adm-btn adm-btn-danger adm-btn-sm"
+                    onclick="return confirm('إلغاء هذا المفتاح؟')">إلغاء</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="adm-hint" style="text-align:center;padding:24px">لا يوجد مفاتيح بعد — ولّد أول مفتاح أعلاه</p>
+  {% endif %}
+</div>
+{% endblock %}

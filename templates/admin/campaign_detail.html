@@ -1,0 +1,140 @@
+{% extends "admin/base.html" %}
+{% block title %}حملة: {{ name }}{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>📊 حملة: <span style="color:var(--gold)">{{ name }}</span></h1>
+  <div style="display:flex;gap:8px">
+    <a href="{{ url_for('admin_analytics') }}" class="btn-adm-secondary">← رجوع</a>
+    <form method="post" action="{{ url_for('admin_campaign_archive', name=name) }}"
+          onsubmit="return confirm('أرشفة هذه الحملة وإخفاؤها؟')">
+      <button type="submit" class="btn-adm-sm danger">🗂️ أرشفة الحملة</button>
+    </form>
+  </div>
+</div>
+
+{# ── KPIs ── #}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px">
+  <div class="adm-card" style="text-align:center;padding:16px">
+    <div style="font-size:1.8rem;font-weight:700;color:var(--gold)">{{ summary.visits or 0 }}</div>
+    <div style="font-size:0.78rem;color:var(--muted)">زيارة</div>
+  </div>
+  <div class="adm-card" style="text-align:center;padding:16px">
+    <div style="font-size:1.8rem;font-weight:700;color:#34d399">{{ summary.buyers or 0 }}</div>
+    <div style="font-size:0.78rem;color:var(--muted)">مشترين</div>
+  </div>
+  <div class="adm-card" style="text-align:center;padding:16px">
+    <div style="font-size:1.8rem;font-weight:700;color:#38bdf8">{{ summary.cvr or 0 }}%</div>
+    <div style="font-size:0.78rem;color:var(--muted)">معدل التحويل</div>
+  </div>
+  <div class="adm-card" style="text-align:center;padding:16px">
+    <div style="font-size:1.8rem;font-weight:700;color:#a78bfa">${{ '%.0f'|format(summary.revenue or 0) }}</div>
+    <div style="font-size:0.78rem;color:var(--muted)">إيراد كلي</div>
+  </div>
+  <div class="adm-card" style="text-align:center;padding:16px">
+    {% if summary.visits and summary.visits > 0 %}
+    <div style="font-size:1.8rem;font-weight:700">${{ '%.2f'|format((summary.revenue or 0) / summary.visits) }}</div>
+    {% else %}
+    <div style="font-size:1.8rem;font-weight:700">—</div>
+    {% endif %}
+    <div style="font-size:0.78rem;color:var(--muted)">إيراد/زيارة</div>
+  </div>
+</div>
+
+{% if summary.first_seen %}
+<div style="font-size:0.78rem;color:var(--muted);margin-bottom:20px">
+  📅 أول زيارة: {{ summary.first_seen[:10] }} — آخر زيارة: {{ summary.last_seen[:10] }}
+</div>
+{% endif %}
+
+<div class="adm-detail-grid">
+
+  {# ── يومي ── #}
+  <div class="adm-card">
+    <h3>الأداء اليومي</h3>
+    {% if daily %}
+    <table class="adm-table">
+      <thead><tr><th>اليوم</th><th>زيارات</th><th>مشترين</th><th>إيراد</th></tr></thead>
+      <tbody>
+      {% for d in daily %}
+      <tr>
+        <td class="an-muted">{{ d.day }}</td>
+        <td>{{ d.visits }}</td>
+        <td>{{ d.buyers or 0 }}</td>
+        <td>${{ '%.0f'|format(d.revenue or 0) }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:var(--muted);font-size:0.85rem">لا يوجد بيانات</p>
+    {% endif %}
+  </div>
+
+  {# ── أجهزة + صفحات ── #}
+  <div style="display:flex;flex-direction:column;gap:12px">
+
+    <div class="adm-card">
+      <h3>الأجهزة</h3>
+      {% for d in devices %}
+      {% set icon = {'mobile':'📱','tablet':'📟','desktop':'💻'}.get(d.device_type,'❓') %}
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span>{{ icon }} {{ d.device_type }}</span>
+        <span class="an-badge">{{ d.cnt }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="adm-card">
+      <h3>صفحات الهبوط</h3>
+      {% for l in landings %}
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.82rem">
+        <span class="an-exit-page">{{ l.landing_page }}</span>
+        <span class="an-badge">{{ l.cnt }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+
+</div>
+
+{# ── آخر الزيارات ── #}
+<div class="adm-card" style="margin-top:16px">
+  <h3>آخر الزيارات</h3>
+  <table class="adm-table">
+    <thead>
+      <tr><th>الوقت</th><th>الجهاز</th><th>الصفحة الأولى</th><th>المدة</th><th>النتيجة</th></tr>
+    </thead>
+    <tbody>
+    {% for s in sessions %}
+    {% set dur = s.duration_sec or 0 %}
+    <tr>
+      <td class="an-muted">{{ s.started_at[:16].replace('T',' ') }}</td>
+      <td>{{ {'mobile':'📱','tablet':'📟','desktop':'💻'}.get(s.device_type,'') }} {{ s.os or '' }}</td>
+      <td class="an-exit-page">{{ s.landing_page or '/' }}</td>
+      <td>
+        {% if dur == 0 %}
+        <span class="tl-badge tl-badge--no">—</span>
+        {% elif dur < 10 %}
+        <span class="tl-badge tl-badge--flash">⚡ {{ dur }}ث</span>
+        {% elif dur < 60 %}
+        <span class="an-muted">{{ dur }}ث</span>
+        {% else %}
+        <span>{{ dur // 60 }}د {{ dur % 60 }}ث</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if s.converted %}
+        <span class="tl-badge tl-badge--buy">✅ اشترى — ${{ '%.0f'|format(s.order_total or 0) }}</span>
+        {% else %}
+        <span class="tl-badge tl-badge--no">تصفّح</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

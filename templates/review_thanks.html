@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ 'شكراً!' if lang == 'ar' else 'Thank you!' }}{% endblock %}
+{% block content %}
+<div style="text-align:center;padding:60px 20px">
+  <div style="font-size:3rem;margin-bottom:16px">🌟</div>
+  <h1 style="font-size:1.3rem;font-weight:700;margin:0 0 8px">
+    {{ 'شكراً ' + name + '!' if lang == 'ar' else 'Thank you, ' + name + '!' }}
+  </h1>
+  <p style="color:var(--text-muted);font-size:0.88rem;margin:0 0 28px">
+    {{ 'تقييمك ساعدنا نتحسن ويساعد زبائن تانيين 🙏' if lang == 'ar'
+       else 'Your rating helps us improve and helps other customers 🙏' }}
+  </p>
+  <a href="{{ url_for('index') }}" class="btn-place-order" style="display:inline-block;text-decoration:none;padding:12px 28px">
+    {{ 'تصفح المنتجات' if lang == 'ar' else 'Browse Products' }}
+  </a>
+</div>
+{% endblock %}

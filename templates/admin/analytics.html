@@ -1,0 +1,646 @@
+{% extends "admin/base.html" %}
+{% block title %}تحليلات المتجر{% endblock %}
+
+{% block content %}
+<div class="adm-page-head">
+  <h1>📊 تحليلات المتجر</h1>
+  <span class="adm-subtitle">آخر 30 يوم</span>
+</div>
+
+{# ── KPI Cards ── #}
+<div class="an-kpis">
+  <div class="an-kpi">
+    <div class="an-kpi-val">{{ stats.sessions }}</div>
+    <div class="an-kpi-lbl">زيارة</div>
+  </div>
+  <div class="an-kpi">
+    <div class="an-kpi-val">{{ stats.converted }}</div>
+    <div class="an-kpi-lbl">مشتري</div>
+  </div>
+  <div class="an-kpi an-kpi--accent">
+    <div class="an-kpi-val">{{ stats.conversion_rate }}%</div>
+    <div class="an-kpi-lbl">معدل التحويل</div>
+  </div>
+  <div class="an-kpi">
+    <div class="an-kpi-val">{{ stats.cart_abandons }}</div>
+    <div class="an-kpi-lbl">تركوا السلة</div>
+  </div>
+  <div class="an-kpi">
+    <div class="an-kpi-val">{{ stats.searches }}</div>
+    <div class="an-kpi-lbl">بحث</div>
+  </div>
+</div>
+
+{# ── Funnel ── #}
+<div class="an-section">
+  <h2 class="an-section-title">مسار الزبون</h2>
+  <div class="an-funnel">
+    {% set funnel_labels = {
+      'page_view':      'زاروا الموقع',
+      'product_view':   'شافوا منتج',
+      'add_to_cart':    'أضافوا للسلة',
+      'begin_checkout': 'بدأوا الطلب',
+      'purchase':       'اشتروا'
+    } %}
+    {% set funnel_max = funnel.page_view or 1 %}
+    {% for key, label in funnel_labels.items() %}
+    {% set val = funnel[key] %}
+    {% set pct = (val / funnel_max * 100)|round|int %}
+    <div class="an-funnel-step">
+      <div class="an-funnel-label">{{ label }}</div>
+      <div class="an-funnel-bar-wrap">
+        <div class="an-funnel-bar" style="width:{{ pct }}%"></div>
+      </div>
+      <div class="an-funnel-num">{{ val }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{# ── Grid: Products + Abandoned ── #}
+<div class="an-grid-2">
+
+  <div class="an-section">
+    <h2 class="an-section-title">أكثر المنتجات مشاهدةً</h2>
+    {% if top_products %}
+    <table class="adm-table an-table">
+      <thead><tr><th>المنتج</th><th>مشاهدات</th></tr></thead>
+      <tbody>
+      {% for p in top_products %}
+      <tr>
+        <td><a href="/products/{{ p.slug }}" target="_blank">{{ p.name_ar }}</a></td>
+        <td><span class="an-badge">{{ p.views }}</span></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="an-empty">لا يوجد بيانات بعد</p>{% endif %}
+  </div>
+
+  <div class="an-section">
+    <h2 class="an-section-title">أضافوا للسلة ولم يشتروا</h2>
+    {% if abandoned_products %}
+    <table class="adm-table an-table">
+      <thead><tr><th>المنتج</th><th>مرات</th></tr></thead>
+      <tbody>
+      {% for p in abandoned_products %}
+      <tr>
+        <td>{{ p.name_ar }}</td>
+        <td><span class="an-badge an-badge--warn">{{ p.cnt }}</span></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="an-empty">لا يوجد بيانات بعد</p>{% endif %}
+  </div>
+
+</div>
+
+{# ── Grid: Sources + Devices + OS ── #}
+<div class="an-grid-3">
+
+  <div class="an-section">
+    <h2 class="an-section-title">مصادر الزيارات</h2>
+    {% if sources %}
+    {% set src_max = sources[0].cnt or 1 %}
+    {% for s in sources %}
+    <div class="an-bar-row">
+      <span class="an-bar-lbl">{{ s.src }}</span>
+      <div class="an-bar-track">
+        <div class="an-bar-fill" style="width:{{ (s.cnt/src_max*100)|round|int }}%"></div>
+      </div>
+      <span class="an-bar-num">{{ s.cnt }}</span>
+    </div>
+    {% endfor %}
+    {% else %}<p class="an-empty">لا يوجد بيانات</p>{% endif %}
+  </div>
+
+  <div class="an-section">
+    <h2 class="an-section-title">الأجهزة</h2>
+    {% if devices %}
+    {% set dev_total = devices|sum(attribute='cnt') or 1 %}
+    {% for d in devices %}
+    {% set icons_map = {'mobile':'📱','tablet':'📟','desktop':'💻'} %}
+    <div class="an-pie-row">
+      <span>{{ icons_map.get(d.device_type,'📱') }} {{ d.device_type }}</span>
+      <span class="an-pct">{{ (d.cnt/dev_total*100)|round|int }}%</span>
+      <div class="an-bar-track">
+        <div class="an-bar-fill an-bar-fill--blue" style="width:{{ (d.cnt/dev_total*100)|round|int }}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}<p class="an-empty">لا يوجد بيانات</p>{% endif %}
+  </div>
+
+  <div class="an-section">
+    <h2 class="an-section-title">أنظمة التشغيل</h2>
+    {% if os_stats %}
+    {% set os_total = os_stats|sum(attribute='cnt') or 1 %}
+    {% for o in os_stats %}
+    {% set os_icons = {'iOS':'🍎','Android':'🤖','Windows':'🪟','Mac':'🍏','Linux':'🐧'} %}
+    <div class="an-pie-row">
+      <span>{{ os_icons.get(o.os,'💻') }} {{ o.os }}</span>
+      <span class="an-pct">{{ (o.cnt/os_total*100)|round|int }}%</span>
+      <div class="an-bar-track">
+        <div class="an-bar-fill an-bar-fill--green" style="width:{{ (o.cnt/os_total*100)|round|int }}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}<p class="an-empty">لا يوجد بيانات</p>{% endif %}
+  </div>
+
+</div>
+
+{# ── Searches ── #}
+{% if top_searches %}
+<div class="an-section">
+  <h2 class="an-section-title">أكثر كلمات البحث</h2>
+  <div class="an-tags">
+    {% for s in top_searches %}
+    <span class="an-tag">{{ s.search_query }} <em>{{ s.cnt }}</em></span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── Areas ── #}
+<div class="an-grid-2">
+
+  <div class="an-section">
+    <h2 class="an-section-title">أكثر المناطق طلباً <small>(آخر 30 يوم)</small></h2>
+    {% if top_areas %}
+    {% set area_max = top_areas[0].cnt or 1 %}
+    {% for a in top_areas %}
+    <div class="an-area-row">
+      <span class="an-area-name">{{ a.area }}</span>
+      <div class="an-bar-track">
+        <div class="an-bar-fill an-bar-fill--green" style="width:{{ (a.cnt/area_max*100)|round|int }}%"></div>
+      </div>
+      <span class="an-area-cnt">{{ a.cnt }} طلب</span>
+      <span class="an-area-rev">${{ '%.0f'|format(a.revenue) }}</span>
+    </div>
+    {% endfor %}
+    {% else %}<p class="an-empty">لا يوجد طلبات بعد</p>{% endif %}
+  </div>
+
+  <div class="an-section">
+    <h2 class="an-section-title">مناطق الزبائن المخلصين <small>(آخر 90 يوم، أكثر من طلب)</small></h2>
+    {% if loyal_areas %}
+    <table class="adm-table an-table">
+      <thead><tr><th>المنطقة</th><th>زبائن</th><th>متوسط الطلب</th></tr></thead>
+      <tbody>
+      {% for a in loyal_areas %}
+      <tr>
+        <td>{{ a.area }}</td>
+        <td><span class="an-badge">{{ a.customers }}</span></td>
+        <td>${{ a.avg_order }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div class="an-ad-hint" style="margin-top:10px;">
+      💡 ركّز إعلاناتك على هذه المناطق — زبائنها يكررون الشراء.
+    </div>
+    {% else %}<p class="an-empty">لا يوجد بيانات كافية بعد</p>{% endif %}
+  </div>
+
+</div>
+
+{# ── Source ROI ── #}
+<div class="an-section">
+  <h2 class="an-section-title">📡 ROI المصادر — أي رابط جاب أكثر مبيعات <small>(آخر 30 يوم)</small></h2>
+  {% if source_roi %}
+  <div class="an-roi-wrap">
+    <table class="adm-table an-table an-roi-table">
+      <thead>
+        <tr>
+          <th>المصدر</th>
+          <th>زيارات</th>
+          <th>مشترين</th>
+          <th>معدل تحويل</th>
+          <th>إيراد</th>
+          <th>إيراد / زيارة</th>
+          <th>التقييم</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% set max_rev = source_roi[0].revenue or 1 %}
+      {% for s in source_roi %}
+      {% set score = ((s.cvr or 0) * 0.4 + (s.revenue / max_rev * 100) * 0.6)|round|int %}
+      <tr>
+        <td class="an-roi-src">{{ s.src }}</td>
+        <td>{{ s.visits }}</td>
+        <td>{{ s.buyers or 0 }}</td>
+        <td>
+          <span class="an-cvr {% if (s.cvr or 0) >= 8 %}an-cvr--high{% elif (s.cvr or 0) >= 4 %}an-cvr--mid{% else %}an-cvr--low{% endif %}">
+            {{ s.cvr or 0 }}%
+          </span>
+        </td>
+        <td class="an-roi-rev">${{ '%.0f'|format(s.revenue) }}</td>
+        <td class="an-roi-rps">${{ '%.2f'|format(s.rps) }}</td>
+        <td>
+          <div class="an-score-bar">
+            <div class="an-score-fill" style="width:{{ [score,100]|min }}%"></div>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if utm_campaigns %}
+  <div style="margin-top:18px;">
+    <h3 class="an-subsection-title">🏷️ أداء الحملات (UTM Campaigns)</h3>
+    <table class="adm-table an-table">
+      <thead>
+        <tr><th>الحملة</th><th>المصدر</th><th>زيارات</th><th>مشترين</th><th>CVR</th><th>إيراد</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for c in utm_campaigns %}
+      <tr class="camp-row" style="cursor:pointer" onclick="window.location='{{ url_for('admin_campaign_detail', name=c.campaign) }}'">
+        <td><span class="an-campaign-tag">{{ c.campaign }}</span></td>
+        <td class="an-muted">{{ c.utm_source or '—' }}</td>
+        <td>{{ c.visits }}</td>
+        <td>{{ c.buyers or 0 }}</td>
+        <td><span class="an-cvr {% if (c.cvr or 0) >= 8 %}an-cvr--high{% elif (c.cvr or 0) >= 4 %}an-cvr--mid{% else %}an-cvr--low{% endif %}">{{ c.cvr or 0 }}%</span></td>
+        <td class="an-roi-rev">${{ '%.0f'|format(c.revenue) }}</td>
+        <td onclick="event.stopPropagation()">
+          <form method="post" action="{{ url_for('admin_campaign_archive', name=c.campaign) }}"
+                onsubmit="return confirm('إخفاء حملة {{ c.campaign }} من القائمة؟')">
+            <button type="submit" class="btn-adm-sm danger" title="إلغاء الحملة">🗂️ أرشفة</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    {# حملات مؤرشفة #}
+    {% if archived_campaigns %}
+    <details style="margin-top:10px">
+      <summary style="cursor:pointer;font-size:0.78rem;color:var(--muted)">🗂️ الحملات المؤرشفة ({{ archived_campaigns|length }})</summary>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px">
+        {% for camp in archived_campaigns %}
+        <form method="post" action="{{ url_for('admin_campaign_unarchive', name=camp) }}" style="display:inline">
+          <button type="submit" class="btn-adm-sm" style="opacity:.6">↩ {{ camp }}</button>
+        </form>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="an-roi-hint">
+    💡 <strong>كيف تستخدم هذه البيانات:</strong>
+    ركّز ميزانيتك على المصادر ذات <strong>إيراد/زيارة أعلى</strong> (RPS) — ليس فقط العدد الأكبر من الزيارات.
+  </div>
+
+  {# ── UTM Builder ── #}
+  <div class="utm-builder">
+    <h3 class="utm-builder-title">🔗 مولّد روابط الحملات (UTM Builder)</h3>
+    <p class="utm-builder-sub">أنشئ رابطك مع كود التتبع — الصقه بـ Instagram Bio أو Story أو إعلان</p>
+
+    <div class="utm-grid">
+      <div class="adm-field">
+        <label>المصدر <span class="utm-req">*</span></label>
+        <select id="utm_source" oninput="buildUtm()" onchange="buildUtm()">
+          <option value="">— اختر —</option>
+          <option value="instagram">Instagram</option>
+          <option value="facebook">Facebook</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="tiktok">TikTok</option>
+          <option value="google">Google</option>
+          <option value="snapchat">Snapchat</option>
+          <option value="twitter">Twitter / X</option>
+          <option value="email">Email</option>
+          <option value="sms">SMS</option>
+          <option value="other">أخرى</option>
+        </select>
+      </div>
+
+      <div class="adm-field">
+        <label>الوسيلة <span class="utm-req">*</span></label>
+        <select id="utm_medium" oninput="buildUtm()" onchange="buildUtm()">
+          <option value="">— اختر —</option>
+          <option value="story">Story</option>
+          <option value="post">Post</option>
+          <option value="bio">Bio Link</option>
+          <option value="reel">Reel / Video</option>
+          <option value="ad">إعلان مدفوع</option>
+          <option value="influencer">مع انفلونسر</option>
+          <option value="message">رسالة مباشرة</option>
+          <option value="email">Email</option>
+        </select>
+      </div>
+
+      <div class="adm-field">
+        <label>اسم الحملة <span class="utm-req">*</span></label>
+        <input type="text" id="utm_campaign" placeholder="مثال: عيد_الام_2026"
+               oninput="buildUtm()" dir="ltr">
+      </div>
+
+      <div class="adm-field">
+        <label>الصفحة المستهدفة</label>
+        <select id="utm_page" oninput="buildUtm()" onchange="buildUtm()">
+          <option value="/">الرئيسية</option>
+          <option value="/category/cats">قسم القطط</option>
+          <option value="/category/dogs">قسم الكلاب</option>
+          <option value="/category/birds">قسم الطيور</option>
+          <option value="/category/fish">قسم الأسماك</option>
+          <option value="/cart">السلة</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="utm-result" id="utm_result" style="display:none">
+      <label style="font-size:0.78rem;color:var(--muted);margin-bottom:6px;display:block">الرابط الجاهز — انسخه والصقه</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <input type="text" id="utm_output" readonly dir="ltr"
+               style="flex:1;font-size:0.78rem;font-family:monospace;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text)">
+        <button type="button" class="btn-adm-primary" onclick="copyUtm()" id="copy-btn">📋 نسخ</button>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:6px">
+        👁️ معاينة مقروءة: <span id="utm_preview" style="color:var(--text);direction:ltr;display:inline-block"></span>
+      </div>
+      <div style="margin-top:10px">
+        <button type="button" class="btn-adm-secondary" onclick="shortcutUtm()" style="width:100%">
+          🔗 اختصر هذا الرابط ← روابط مختصرة
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <p class="an-empty">لا يوجد بيانات بعد — ستظهر هنا بعد أول زيارة يتتبعها النظام.</p>
+  {% endif %}
+</div>
+
+{# ── KPI إضافي — Bounce Rate ── #}
+{# مدمج بالـ KPIs أعلى الصفحة — لكن نضيف Exit Pages + Sessions هنا #}
+
+{# ── صفحات الخروج ── #}
+<div class="an-grid-2">
+
+  <div class="an-section">
+    <h2 class="an-section-title">🚪 صفحات الخروج <small>(من وين بيطلعوا — آخر 14 يوم)</small></h2>
+    {% if exit_pages %}
+    <table class="adm-table an-table">
+      <thead>
+        <tr><th>الصفحة</th><th>خرجوا</th><th>متوسط التمرير</th><th>متوسط الوقت</th></tr>
+      </thead>
+      <tbody>
+      {% for p in exit_pages %}
+      <tr>
+        <td class="an-exit-page">{{ p.page }}</td>
+        <td><span class="an-badge">{{ p.exits }}</span></td>
+        <td>
+          <span class="an-scroll-pct {% if (p.avg_scroll or 0) < 30 %}an-scroll--low{% elif (p.avg_scroll or 0) < 70 %}an-scroll--mid{% else %}an-scroll--high{% endif %}">
+            {{ p.avg_scroll or 0 }}%
+          </span>
+        </td>
+        <td class="an-muted">{{ p.avg_sec or 0 }}ث</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div class="an-exit-hint">
+      💡 صفحة تمرير أقل من 30% = الزبون ما شاف المحتوى الأساسي.
+    </div>
+    {% else %}<p class="an-empty">لا يوجد بيانات بعد</p>{% endif %}
+  </div>
+
+  <div class="an-section">
+    <h2 class="an-section-title">📊 ملخص التفاعل</h2>
+    <div class="an-engage-grid">
+      <div class="an-engage-item">
+        <div class="an-engage-val">{{ stats.bounce_rate }}%</div>
+        <div class="an-engage-lbl">Bounce Rate</div>
+        <div class="an-engage-hint">دخلوا صفحة وحدة وطلعوا</div>
+      </div>
+      <div class="an-engage-item">
+        <div class="an-engage-val">{{ stats.sessions }}</div>
+        <div class="an-engage-lbl">جلسة</div>
+        <div class="an-engage-hint">آخر 30 يوم</div>
+      </div>
+      <div class="an-engage-item">
+        <div class="an-engage-val">{{ stats.conversion_rate }}%</div>
+        <div class="an-engage-lbl">معدل الشراء</div>
+        <div class="an-engage-hint">من كل الزوار</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ── آخر الجلسات — Sessions Table ── #}
+<div class="an-section">
+  <h2 class="an-section-title">👥 آخر الجلسات <small>(آخر 7 أيام — اضغط لتشوف مسار الزبون)</small></h2>
+  {% if recent_sessions %}
+  <div class="an-sessions-wrap">
+    <table class="adm-table an-table an-sessions-table">
+      <thead>
+        <tr>
+          <th>الوقت</th>
+          <th>المصدر</th>
+          <th>الجهاز</th>
+          <th>الصفحة الأولى</th>
+          <th>المدة</th>
+          <th>الزيارات</th>
+          <th>النتيجة</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for s in recent_sessions %}
+      {% set dur = s.duration_sec or 0 %}
+      <tr class="{{ 'an-row--buyer' if s.converted else '' }}">
+        <td class="an-muted">{{ s.started_at[11:16] if s.started_at|length > 10 else s.started_at }}</td>
+        <td>{{ s.src }}</td>
+        <td>{{ {'mobile':'📱','tablet':'📟','desktop':'💻'}.get(s.device_type,'') }} {{ s.os or '' }}</td>
+        <td class="an-exit-page">{{ s.landing_page or '/' }}</td>
+        <td>
+          {% if dur == 0 %}
+          <span class="tl-badge tl-badge--no">لم يُسجَّل</span>
+          {% elif dur < 10 %}
+          <span class="tl-badge tl-badge--flash" title="{{ dur }} ثانية">⚡ {{ dur }}ث</span>
+          {% elif dur < 60 %}
+          <span class="an-muted">{{ dur }}ث</span>
+          {% else %}
+          <span>{{ dur // 60 }}د {{ dur % 60 }}ث</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if s.total_visits and s.total_visits > 1 %}
+          <span class="an-badge" title="زار {{ s.total_visits }} مرة">↩ {{ s.total_visits }}</span>
+          {% else %}
+          <span class="an-muted">جديد</span>
+          {% endif %}
+        </td>
+        <td><span class="an-badge">{{ s.event_count }}</span></td>
+        <td>
+          {% if s.converted %}
+          <span class="tl-badge tl-badge--buy">✅ اشترى</span>
+          {% else %}
+          {% set ev_labels = {
+            'begin_checkout': ('tl-badge--checkout', '💳 بدأ الطلب'),
+            'add_to_cart':    ('tl-badge--cart',     '🛒 أضاف للسلة'),
+            'product_view':   ('tl-badge--view',     '👁️ تصفّح منتج'),
+            'search':         ('tl-badge--search',   '🔍 بحث'),
+            'page_view':      ('tl-badge--no',       '🌐 تصفّح'),
+          } %}
+          {% set cls, lbl = ev_labels.get(s.top_event, ('tl-badge--no', '🌐 تصفّح')) %}
+          <span class="tl-badge {{ cls }}">{{ lbl }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('admin_session_timeline', sid=s.id) }}" class="adm-btn adm-btn--sm">🔍 مسار</a>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="an-empty">لا يوجد جلسات بعد</p>{% endif %}
+</div>
+
+{# ── Buyer Profile ── #}
+<div class="an-section">
+  <h2 class="an-section-title">خصائص الزبائن الذين اشتروا <small>(آخر 90 يوم — للإعلانات)</small></h2>
+  {% if buyer_profile %}
+  {% set total_buyers = buyer_profile|length or 1 %}
+
+  {# Device breakdown #}
+  {% set dev_counts = {} %}
+  {% for b in buyer_profile %}
+    {% if b.device_type %}
+      {% set _ = dev_counts.update({b.device_type: dev_counts.get(b.device_type, 0) + 1}) %}
+    {% endif %}
+  {% endfor %}
+
+  {# Source breakdown #}
+  {% set src_counts = {} %}
+  {% for b in buyer_profile %}
+    {% if b.source %}
+      {% set _ = src_counts.update({b.source: src_counts.get(b.source, 0) + 1}) %}
+    {% endif %}
+  {% endfor %}
+
+  {# OS breakdown #}
+  {% set os_counts = {} %}
+  {% for b in buyer_profile %}
+    {% if b.os %}
+      {% set _ = os_counts.update({b.os: os_counts.get(b.os, 0) + 1}) %}
+    {% endif %}
+  {% endfor %}
+
+  <div class="an-profile-grid">
+    <div class="an-profile-box">
+      <div class="an-profile-title">الجهاز</div>
+      {% for k, v in dev_counts.items() %}
+      <div class="an-profile-row">
+        <span>{{ k }}</span>
+        <span>{{ (v/total_buyers*100)|round|int }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="an-profile-box">
+      <div class="an-profile-title">مصدر الزيارة</div>
+      {% for k, v in src_counts.items() %}
+      <div class="an-profile-row">
+        <span>{{ k }}</span>
+        <span>{{ (v/total_buyers*100)|round|int }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="an-profile-box">
+      <div class="an-profile-title">نظام التشغيل</div>
+      {% for k, v in os_counts.items() %}
+      <div class="an-profile-row">
+        <span>{{ k }}</span>
+        <span>{{ (v/total_buyers*100)|round|int }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="an-ad-hint">
+    💡 <strong>للإعلانات على Meta:</strong>
+    استهدف
+    {% if dev_counts %}{{ dev_counts.keys()|list|first }} بشكل أساسي{% endif %}
+    {% if src_counts %}، جمهورك يجي من {{ src_counts.keys()|list|first }}{% endif %}
+    — استخدم هذه الأرقام لبناء Lookalike Audience على Facebook Ads Manager.
+  </div>
+
+  {% else %}
+  <p class="an-empty">لا يوجد مشترين بعد — ابدأ بجلب الزيارات وستظهر البيانات هنا تلقائياً.</p>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function buildUtm() {
+  const base     = window.location.origin;
+  const page     = document.getElementById('utm_page').value;
+  const source   = document.getElementById('utm_source').value;
+  const medium   = document.getElementById('utm_medium').value;
+  const campaign = document.getElementById('utm_campaign').value.trim().replace(/\s+/g, '_');
+
+  const result = document.getElementById('utm_result');
+  if (!source || !medium || !campaign) { result.style.display = 'none'; return; }
+
+  const encoded = encodeURIComponent(campaign);
+  const url = `${base}${page}?utm_source=${source}&utm_medium=${medium}&utm_campaign=${encoded}`;
+
+  document.getElementById('utm_output').value = url;
+
+  // preview مقروء بالعربي
+  const preview = `${base}${page}?utm_source=${source}&utm_medium=${medium}&utm_campaign=${campaign}`;
+  document.getElementById('utm_preview').textContent = preview;
+
+  result.style.display = '';
+  document.getElementById('copy-btn').textContent = '📋 نسخ';
+}
+
+function shortcutUtm() {
+  const url   = document.getElementById('utm_output').value;
+  const label = document.getElementById('utm_campaign').value.trim();
+  if (!url) { alert('ولّد الرابط أولاً'); return; }
+  const dest = '{{ url_for("admin_links") }}?prefill_url=' + encodeURIComponent(url) + '&prefill_label=' + encodeURIComponent(label);
+  window.location.href = dest;
+}
+
+function copyUtm() {
+  const val = document.getElementById('utm_output').value;
+  navigator.clipboard.writeText(val).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✅ تم النسخ!';
+    setTimeout(() => btn.textContent = '📋 نسخ', 2000);
+  });
+}
+</script>
+
+<style>
+.utm-builder {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(212,167,44,.05);
+  border: 1px solid rgba(212,167,44,.2);
+  border-radius: 12px;
+}
+.utm-builder-title { margin: 0 0 4px; font-size: 0.95rem; }
+.utm-builder-sub   { margin: 0 0 14px; font-size: 0.78rem; color: var(--muted); }
+.utm-req           { color: #f87171; }
+.utm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.utm-grid .adm-field { margin: 0; }
+.utm-result { margin-top: 4px; }
+</style>
+{% endblock %}

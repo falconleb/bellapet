@@ -1,0 +1,119 @@
+{% extends "admin/base.html" %}
+{% block title %}اختصار الروابط{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>🔗 اختصار الروابط</h1>
+</div>
+
+{# ── إنشاء رابط جديد ── #}
+<div class="adm-card" style="margin-bottom:20px">
+  <h3>رابط جديد</h3>
+  <form method="post" action="{{ url_for('admin_links_create') }}">
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:flex-end">
+
+      <div class="adm-field" style="margin:0">
+        <label>الرابط الكامل <span style="color:#f87171">*</span></label>
+        <input type="text" name="target_url" dir="ltr" required id="inp_url"
+               value="{{ request.args.get('prefill_url', '') }}"
+               placeholder="https://bellapet.com/?utm_source=instagram&utm_medium=story&utm_campaign=...">
+      </div>
+
+      <div class="adm-field" style="margin:0">
+        <label>تسمية (اختياري)</label>
+        <input type="text" name="label" placeholder="مثال: حملة عيد الأم - انستغرام"
+               value="{{ request.args.get('prefill_label', '') }}">
+      </div>
+
+      <div class="adm-field" style="margin:0">
+        <label>الكود (اختياري)</label>
+        <input type="text" name="code" dir="ltr" placeholder="تلقائي" maxlength="20"
+               style="width:110px" oninput="this.value=this.value.replace(/[^a-zA-Z0-9_-]/g,'')">
+      </div>
+
+    </div>
+    <button type="submit" class="btn-adm-primary" style="margin-top:12px">✨ إنشاء رابط مختصر</button>
+  </form>
+</div>
+
+{# ── قائمة الروابط ── #}
+{% if links %}
+<div class="adm-card">
+  <table class="adm-table">
+    <thead>
+      <tr>
+        <th>التسمية</th>
+        <th>الرابط المختصر</th>
+        <th>نقرات</th>
+        <th>زيارات فعلية</th>
+        <th>تسرّب</th>
+        <th>مشترين</th>
+        <th>التاريخ</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for l in links %}
+    <tr>
+      <td>
+        <div>{{ l.label or '—' }}</div>
+        {% if l.source %}<div style="font-size:0.72rem;color:var(--muted)">{{ l.source }}{% if l.campaign %} · {{ l.campaign }}{% endif %}</div>{% endif %}
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <code style="font-size:0.82rem;color:var(--gold)">{{ base }}/r/{{ l.code }}</code>
+          <button type="button" class="btn-adm-sm"
+                  onclick="copyLink('{{ base }}/r/{{ l.code }}', this)"
+                  title="نسخ">📋</button>
+        </div>
+      </td>
+      <td><span class="an-badge {% if l.clicks > 0 %}an-badge--active{% endif %}">{{ l.clicks }}</span></td>
+      <td>
+        {% if l.clicks > 0 %}
+        <span class="an-badge">{{ l.visits }}</span>
+        {% else %}<span class="an-muted">—</span>{% endif %}
+      </td>
+      <td>
+        {% if l.clicks > 0 %}
+        <span class="an-cvr {% if l.drop >= 50 %}an-cvr--low{% elif l.drop >= 20 %}an-cvr--mid{% else %}an-cvr--high{% endif %}"
+              title="{{ l.clicks - l.visits }} شخص ضغط ولم يصل">{{ l.drop }}%</span>
+        {% else %}<span class="an-muted">—</span>{% endif %}
+      </td>
+      <td>
+        {% if l.buyers > 0 %}
+        <span class="tl-badge tl-badge--buy">✅ {{ l.buyers }}</span>
+        {% else %}<span class="an-muted">0</span>{% endif %}
+      </td>
+      <td class="an-muted">{{ l.created_at[:10] }}</td>
+      <td>
+        <form method="post" action="{{ url_for('admin_links_delete', code=l.code) }}"
+              onsubmit="return confirm('حذف هذا الرابط؟')">
+          <button type="submit" class="btn-adm-sm danger">🗑️</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="adm-card" style="text-align:center;color:var(--muted);padding:40px">
+  ما في روابط بعد — أنشئ أول رابط مختصر من الفورم أعلاه
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyLink(url, btn) {
+  navigator.clipboard.writeText(url).then(() => {
+    btn.textContent = '✅';
+    setTimeout(() => btn.textContent = '📋', 2000);
+  });
+}
+</script>
+<style>
+.an-badge--active { background:rgba(212,167,44,.15); color:var(--gold); }
+</style>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+{% block title %}طلبات الإشعار{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>طلبات "أعلمني" <span class="adm-count">{{ leads|length }}</span></h1>
+  <span class="text-muted small">زبائن طلبوا إشعاراً عند توفر منتج</span>
+</div>
+
+{% if leads %}
+<table class="adm-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>الهاتف</th>
+      <th>المنتج</th>
+      <th>المخزون الحالي</th>
+      <th>الحالة</th>
+      <th>التاريخ</th>
+      <th>إجراء</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in leads %}
+    <tr class="{{ 'row-inactive' if l.notified }}">
+      <td>{{ l.id }}</td>
+      <td dir="ltr">{{ l.phone }}{% if l.name %}<br><span class="text-muted small">{{ l.name }}</span>{% endif %}</td>
+      <td>{{ l.name_ar }}</td>
+      <td>
+        {% if l.stock_qty > 0 %}
+          <span class="badge badge-green">متوفر ({{ l.stock_qty }})</span>
+        {% else %}
+          <span class="badge badge-red">نفد</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if l.notified %}
+          <span class="badge badge-gray">تم الإشعار</span>
+        {% else %}
+          <span class="badge badge-gold">بانتظار</span>
+        {% endif %}
+      </td>
+      <td class="text-muted small" dir="ltr">{{ l.created_at[:10] }}</td>
+      <td>
+        {% if not l.notified %}
+        <form method="POST" action="{{ url_for('admin_notify_mark', lid=l.id) }}" style="display:inline;">
+          <button type="submit" class="btn-adm-sm">✓ تم الإشعار</button>
+        </form>
+        {% endif %}
+        <a href="https://wa.me/{{ l.phone|replace(' ','')|replace('+','') }}" target="_blank" class="btn-adm-sm btn-wa-sm">واتساب</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="adm-empty">لا توجد طلبات إشعار بعد.</div>
+{% endif %}
+
+{% endblock %}

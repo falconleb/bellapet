@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+
+{% block title %}{{ 'تم استلام طلبك' if lang == 'ar' else 'Order Received' }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+
+{% block content %}
+
+<div class="confirm-page">
+
+  <div class="confirm-hero">
+    <div class="confirm-check">{{ icons.icon_seal("confirm-icon") }}</div>
+    <h1>{{ 'تم استلام طلبك!' if lang == 'ar' else 'Order Received!' }}</h1>
+    <p class="confirm-sub">{{ 'رح نتواصل معك خلال ساعات لتأكيد الطلب والتوصيل' if lang == 'ar' else "We'll contact you within a few hours to confirm delivery" }}</p>
+  </div>
+
+  <div class="confirm-card">
+    <div class="confirm-row">
+      <span>{{ 'رقم الطلب' if lang == 'ar' else 'Order #' }}</span>
+      <span class="confirm-val">#{{ order.id }}</span>
+    </div>
+    <div class="confirm-row">
+      <span>{{ 'الاسم' if lang == 'ar' else 'Name' }}</span>
+      <span class="confirm-val">{{ order.customer_name }}</span>
+    </div>
+    <div class="confirm-row">
+      <span>{{ 'الهاتف' if lang == 'ar' else 'Phone' }}</span>
+      <span class="confirm-val">{{ order.phone }}</span>
+    </div>
+    <div class="confirm-row">
+      <span>{{ 'المنطقة' if lang == 'ar' else 'Area' }}</span>
+      <span class="confirm-val">{{ order.area }}</span>
+    </div>
+    {% if order.address_note %}
+    <div class="confirm-row">
+      <span>{{ 'ملاحظة' if lang == 'ar' else 'Note' }}</span>
+      <span class="confirm-val">{{ order.address_note }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="confirm-items">
+    {% for item in items %}
+    <div class="confirm-item">
+      <span>{{ pick(item.name_en, item.name_ar) }} <span class="ci-qty-tag">× {{ item.qty }}</span></span>
+      <span>{{ currency }}{{ '%.2f'|format(item.price_at_order * item.qty) }}</span>
+    </div>
+    {% endfor %}
+    <div class="confirm-item total">
+      <strong>{{ 'المجموع' if lang == 'ar' else 'Total' }}</strong>
+      <strong>{{ currency }}{{ '%.2f'|format(order.total) }}</strong>
+    </div>
+    <p class="co-delivery-note">{{ '+ رسوم التوصيل حسب منطقتك' if lang == 'ar' else '+ Delivery fee based on your area' }}</p>
+  </div>
+
+  {# زر واتساب — رسالة كاملة بتفاصيل الطلب والزبون #}
+  {% set wa_items = [] %}
+  {% for item in items %}
+    {% set _ = wa_items.append('• ' + pick(item.name_en, item.name_ar) + ' × ' + item.qty|string + ' = ' + currency + '%.2f'|format(item.price_at_order * item.qty)) %}
+  {% endfor %}
+  {% set wa_msg_ar %}🧾 طلب جديد #{{ order.id }}
+
+👤 الاسم: {{ order.customer_name }}
+📞 الهاتف: {{ order.phone }}
+📍 المنطقة: {{ order.area }}{% if order.address_note %}
+🏠 الملاحظة: {{ order.address_note }}{% endif %}
+
+🛒 المنتجات:
+{{ wa_items|join('\n') }}
+
+💰 المجموع: {{ currency }}{{ '%.2f'|format(order.total) }}
+(+ رسوم التوصيل حسب المنطقة){% endset %}
+  {% set wa_msg_en %}🧾 New Order #{{ order.id }}
+
+👤 Name: {{ order.customer_name }}
+📞 Phone: {{ order.phone }}
+📍 Area: {{ order.area }}{% if order.address_note %}
+🏠 Note: {{ order.address_note }}{% endif %}
+
+🛒 Items:
+{{ wa_items|join('\n') }}
+
+💰 Total: {{ currency }}{{ '%.2f'|format(order.total) }}
+(+ Delivery fee based on area){% endset %}
+
+  <a class="btn-wa-confirm"
+     href="https://wa.me/{{ whatsapp_number }}?text={{ (wa_msg_ar if lang == 'ar' else wa_msg_en)|urlencode }}"
+     target="_blank">
+    {{ icons.icon_chat("btn-icon") }}
+    {{ '📲 أرسل الطلب على واتساب' if lang == 'ar' else '📲 Send Order via WhatsApp' }}
+  </a>
+
+  <a href="{{ url_for('index') }}" class="btn-back-home">
+    {{ 'العودة للرئيسية' if lang == 'ar' else 'Back to Home' }}
+  </a>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+if (window.psTrack) psTrack('purchase', {
+  extra: JSON.stringify({ order_id: {{ order.id }}, total: {{ order.total }} }),
+  order_id: {{ order.id }}
+});
+</script>
+{% endblock %}

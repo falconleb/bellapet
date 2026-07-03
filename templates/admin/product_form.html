@@ -1,0 +1,894 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'تعديل منتج' if product else 'منتج جديد' }}{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>{{ 'تعديل: ' + (product.name_ar or product.name_en) if product else 'منتج جديد' }}</h1>
+  <a href="{{ url_for('admin_products') }}" class="btn-adm-secondary">← رجوع</a>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="adm-form" novalidate>
+
+  {# ── المعلومات الأساسية ── #}
+  <div class="adm-form-section">
+    <h3>المعلومات الأساسية</h3>
+    <div class="adm-grid-2">
+      <div class="adm-field {{ 'has-error' if errors.get('name_ar') }}">
+        <label>الاسم بالعربي *</label>
+        <input type="text" name="name_ar" dir="rtl" value="{{ form.get('name_ar', '') }}">
+      </div>
+      <div class="adm-field {{ 'has-error' if errors.get('name_en') }}">
+        <label>الاسم بالإنجليزي *</label>
+        <input type="text" name="name_en" value="{{ form.get('name_en', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>البراند / الماركة</label>
+        <input type="text" name="brand" value="{{ form.get('brand', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>الرابط (Slug) <span class="hint">يُولَّد تلقائياً</span></label>
+        <input type="text" name="slug" value="{{ form.get('slug', '') }}"
+               placeholder="مثال: royal-canin-kitten">
+      </div>
+      <div class="adm-field {{ 'has-error' if errors.get('category_id') }}">
+        <label>التصنيف *</label>
+        <select name="category_id" id="cat-select" onchange="filterSubs()">
+          <option value="">— اختر —</option>
+          {% for c in categories %}
+          <option value="{{ c.id }}" {{ 'selected' if form.get('category_id')|string == c.id|string }}>{{ c.name_ar or c.name_en }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="adm-field">
+        <label>القسم الفرعي</label>
+        <select name="subcategory_id" id="sub-select">
+          <option value="">— بدون —</option>
+          {% for s in subcategories %}
+          <option value="{{ s.id }}"
+                  data-cat="{{ s.category_id }}"
+                  {{ 'selected' if form.get('subcategory_id')|string == s.id|string }}>{{ s.name_ar or s.name_en }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+  {# ── الوصف ── #}
+  <div class="adm-form-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+      <h3 style="margin:0">الفائدة والوصف</h3>
+      {% if product %}
+      <div style="display:flex;align-items:center;gap:10px">
+        <button type="button" class="btn-adm-secondary" onclick="generateDesc()" id="desc-gen-btn">
+          ✨ ولّد بـ AI
+        </button>
+        <span id="desc-gen-msg" style="font-size:0.8rem"></span>
+      </div>
+      {% endif %}
+    </div>
+    <div class="adm-grid-2">
+      <div class="adm-field">
+        <label>الفائدة بالعربي <span class="hint">يظهر كعنوان الصفحة</span></label>
+        <input type="text" name="benefit_ar" id="benefit_ar" dir="rtl" value="{{ form.get('benefit_ar', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>الفائدة بالإنجليزي</label>
+        <input type="text" name="benefit_en" id="benefit_en" value="{{ form.get('benefit_en', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>الوصف بالعربي</label>
+        <textarea name="description_ar" id="description_ar" dir="rtl" rows="4">{{ form.get('description_ar', '') }}</textarea>
+      </div>
+      <div class="adm-field">
+        <label>الوصف بالإنجليزي</label>
+        <textarea name="description_en" id="description_en" rows="4">{{ form.get('description_en', '') }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  {# ── السعر والمخزون ── #}
+  <div class="adm-form-section">
+    <h3>السعر والمخزون</h3>
+    <div class="adm-grid-3">
+      <div class="adm-field {{ 'has-error' if errors.get('price') }}">
+        <label>السعر ($) *</label>
+        <input type="number" name="price" step="0.01" min="0"
+               value="{{ form.get('price', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>سعر التخفيض ($) <span class="hint">اتركه فارغاً إن لم يكن هناك تخفيض</span></label>
+        <input type="number" name="discount_price" step="0.01" min="0"
+               value="{{ form.get('discount_price', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>الكمية في المخزون</label>
+        <input type="number" name="stock_qty" min="0"
+               value="{{ form.get('stock_qty', 0) }}">
+      </div>
+    </div>
+    <div class="adm-checkboxes">
+      <label class="adm-checkbox">
+        <input type="checkbox" name="is_featured" {{ 'checked' if form.get('is_featured') }}>
+        منتج مميز (يظهر في قسم "مختار بعناية")
+      </label>
+      <label class="adm-checkbox">
+        <input type="checkbox" name="is_active" {{ 'checked' if form.get('is_active', True) }}>
+        نشط (ظاهر على الموقع)
+      </label>
+    </div>
+  </div>
+
+  {# ── حاسبة الاستهلاك ── #}
+  <div class="adm-form-section">
+    <h3>حاسبة الاستهلاك</h3>
+    <label class="adm-checkbox" style="margin-bottom:14px">
+      <input type="checkbox" name="is_consumable" id="cons-check"
+             {{ 'checked' if form.get('is_consumable') }} onchange="toggleCons()">
+      هذا منتج استهلاكي (طعام / رمل) — يفعّل حاسبة المدة
+    </label>
+    <div id="cons-fields" class="adm-grid-2" style="{{ '' if form.get('is_consumable') else 'display:none' }}">
+      <div class="adm-field">
+        <label>الاستهلاك (غرام / كغ وزن / يوم)</label>
+        <input type="number" name="consumption_grams_per_kg_day" step="0.1" min="0"
+               value="{{ form.get('consumption_grams_per_kg_day', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>وزن العبوة (غرام)</label>
+        <input type="number" name="package_weight_grams" step="1" min="0"
+               value="{{ form.get('package_weight_grams', '') }}">
+      </div>
+    </div>
+  </div>
+
+  {# ── الملاءمة ── #}
+  <div class="adm-form-section">
+    <h3>الملاءمة</h3>
+    <div class="adm-grid-3">
+      <div class="adm-field">
+        <label>الحد الأدنى للعمر (شهر)</label>
+        <input type="number" name="min_age_months" min="0"
+               value="{{ form.get('min_age_months', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>الحد الأقصى للعمر (شهر)</label>
+        <input type="number" name="max_age_months" min="0"
+               value="{{ form.get('max_age_months', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>الحجم</label>
+        <select name="size_tag">
+          <option value="all"    {{ 'selected' if form.get('size_tag','all') == 'all' }}>الكل</option>
+          <option value="small"  {{ 'selected' if form.get('size_tag') == 'small' }}>صغير</option>
+          <option value="medium" {{ 'selected' if form.get('size_tag') == 'medium' }}>متوسط</option>
+          <option value="large"  {{ 'selected' if form.get('size_tag') == 'large' }}>كبير</option>
+        </select>
+      </div>
+    </div>
+    <div class="adm-field">
+      <label>وسوم الصحة <span class="hint">مفصولة بفاصلة: weight, joint, urinary, allergy, dental, hairball, indoor</span></label>
+      <input type="text" name="health_tags" value="{{ form.get('health_tags', '') }}"
+             placeholder="مثال: weight,joint">
+    </div>
+  </div>
+
+  {# ── الصور ── #}
+  <div class="adm-form-section">
+    <h3>صور المنتج</h3>
+    {% if images %}
+    <p class="text-muted" style="font-size:0.78rem;margin-bottom:10px">
+      ⭐ الصورة ذات الإطار الذهبي هي الرئيسية — اضغط "تعيين رئيسية" لتغييرها
+    </p>
+    <div class="img-preview-grid">
+      {% for img in images %}
+      <div class="img-preview {{ 'is-primary' if loop.first }}">
+        {% if loop.first %}<span class="primary-badge">⭐ رئيسية</span>{% endif %}
+        <img src="{{ url_for('static', filename='img/products/' + img.filename) }}" alt="">
+        <div class="img-preview-actions">
+          {% if not loop.first %}
+          <button type="button" class="img-action-btn primary-btn" title="تعيين كصورة رئيسية"
+                  onclick="imgAction('{{ url_for('admin_image_set_primary', pid=product.id, iid=img.id) }}')">⭐</button>
+          {% endif %}
+          <button type="button" class="img-action-btn delete-btn" title="حذف الصورة"
+                  onclick="imgAction('{{ url_for('admin_image_delete', pid=product.id, iid=img.id) }}')">✕</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="adm-field" style="margin-top:12px">
+      <label>رفع صور جديدة <span class="hint">JPG / PNG / WebP — يُضغط تلقائياً ← حجم أقل وسرعة أكبر</span></label>
+      <input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple>
+    </div>
+    {% if not images %}
+    <p class="text-muted small" style="margin-top:8px">لم يتم رفع أي صور بعد.</p>
+    {% endif %}
+  </div>
+
+  {# ── Bundle ── #}
+  <div class="adm-form-section">
+    <h3>منتج مجمّع (Bundle)</h3>
+    <label class="adm-checkbox" style="margin-bottom:12px">
+      <input type="checkbox" name="is_bundle" id="bundle-check"
+             {{ 'checked' if form.get('is_bundle') }} onchange="toggleBundle()">
+      هذا المنتج عبارة عن مجموعة / حزمة من المنتجات
+    </label>
+    <div id="bundle-fields" style="{{ '' if form.get('is_bundle') else 'display:none' }}">
+      <div class="adm-grid-2">
+        <div class="adm-field">
+          <label>محتوى الحزمة بالعربي <span class="hint">مثال: كيس طعام 3كغ + وعاء مياه + لعبة</span></label>
+          <textarea name="bundle_note_ar" dir="rtl" rows="2">{{ form.get('bundle_note_ar') or '' }}</textarea>
+        </div>
+        <div class="adm-field">
+          <label>محتوى الحزمة بالإنجليزي</label>
+          <textarea name="bundle_note_en" rows="2">{{ form.get('bundle_note_en') or '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── خانة العرض ── #}
+  <div class="adm-form-section">
+    <h3>خانة العرض</h3>
+    <p class="text-muted" style="font-size:0.78rem;margin-bottom:12px">
+      العروض التسعيرية تؤثر على السعر الديناميكي والسلة تلقائياً.
+    </p>
+    <input type="hidden" name="promo_type" id="promo_type" value="{{ form.get('promo_type') or '' }}">
+    <div class="adm-grid-2" style="margin-bottom:10px">
+      <button type="button" class="promo-preset" onclick="setPromo('اشتري 2 والثالث مجاناً','Buy 2 Get 1 Free','b2g1f',this)">🎁 اشتري 2 والثالث مجاناً</button>
+      <button type="button" class="promo-preset" onclick="setPromo('شحن مجاني','Free Shipping','',this)">🚚 شحن مجاني</button>
+      <button type="button" class="promo-preset" onclick="setPromo('عرض محدود الوقت ⏰','Limited Time Offer ⏰','',this)">⏰ عرض محدود الوقت</button>
+      <button type="button" class="promo-preset" onclick="setPromo('','','',this)">✕ إزالة العرض</button>
+    </div>
+    <div class="adm-grid-2">
+      <div class="adm-field">
+        <label>نص العرض بالعربي</label>
+        <input type="text" name="promo_label_ar" id="promo_ar" dir="rtl"
+               value="{{ form.get('promo_label_ar') or '' }}" placeholder="اشتري 2 والثالث مجاناً">
+      </div>
+      <div class="adm-field">
+        <label>نص العرض بالإنجليزي</label>
+        <input type="text" name="promo_label_en" id="promo_en"
+               value="{{ form.get('promo_label_en') or '' }}" placeholder="Buy 2 Get 1 Free">
+      </div>
+    </div>
+  </div>
+
+  {# ── تقييم بيلا بت ── #}
+  <div class="adm-form-section">
+    <h3>⭐ تقييم بيلا بت</h3>
+    <p class="text-muted" style="font-size:0.78rem;margin-bottom:14px">
+      تقييمكم الخاص للمنتج — يظهر بصفحة المنتج لبناء ثقة الزبون
+    </p>
+
+    <div class="adm-field" style="margin-bottom:14px">
+      <label>التقييم</label>
+      <div class="star-picker" id="star-picker">
+        {% for i in [1,2,3,4,5] %}
+        <span class="star-pick {{ 'active' if (form.get('store_rating')|int) >= i else '' }}"
+              data-val="{{ i }}" onclick="pickStar({{ i }})">★</span>
+        {% endfor %}
+        <span class="star-clear" onclick="pickStar(0)">✕ إزالة</span>
+      </div>
+      <input type="hidden" name="store_rating" id="store_rating_input"
+             value="{{ form.get('store_rating') or '' }}">
+    </div>
+
+    <div class="adm-grid-2">
+      <div class="adm-field">
+        <label>ملاحظة إيجابية بالعربي <span class="hint">جملة قصيرة</span></label>
+        <input type="text" name="rating_note_ar" dir="rtl"
+               value="{{ form.get('rating_note_ar') or '' }}"
+               placeholder="جودة ممتازة، قطط راضية عنه">
+      </div>
+      <div class="adm-field">
+        <label>Positive note in English</label>
+        <input type="text" name="rating_note_en"
+               value="{{ form.get('rating_note_en') or '' }}"
+               placeholder="Excellent quality, cats love it">
+      </div>
+      <div class="adm-field">
+        <label>مناسب لـ (بالعربي) <span class="hint">افصل بفاصلة</span></label>
+        <input type="text" name="suitable_for_ar" dir="rtl"
+               value="{{ form.get('suitable_for_ar') or '' }}"
+               placeholder="القطط ذات الوبر القصير، الجراء، الكلاب الصغيرة">
+      </div>
+      <div class="adm-field">
+        <label>Suitable for (English) <span class="hint">comma-separated</span></label>
+        <input type="text" name="suitable_for_en"
+               value="{{ form.get('suitable_for_en') or '' }}"
+               placeholder="Short-haired cats, Puppies, Small dogs">
+      </div>
+      <div class="adm-field">
+        <label>نقاط للانتباه (عربي) <span class="hint">نقطة بكل سطر</span></label>
+        <textarea name="rating_cons_ar" dir="rtl" rows="3"
+                  placeholder="الرائحة قوية أول أسبوع&#10;الكيس مش محكم الإغلاق">{{ form.get('rating_cons_ar') or '' }}</textarea>
+      </div>
+      <div class="adm-field">
+        <label>Cons (English) <span class="hint">one per line</span></label>
+        <textarea name="rating_cons_en" rows="3"
+                  placeholder="Strong smell at first&#10;Bag is not resealable">{{ form.get('rating_cons_en') or '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  {# ── المجموعات ── #}
+  {% if product and all_collections %}
+  <div class="adm-form-section">
+    <h3>المجموعات</h3>
+    <p class="text-muted" style="font-size:0.78rem;margin-bottom:12px">اختر المجموعات التي ينتمي إليها هذا المنتج</p>
+    <div class="collections-checkboxes">
+      {% for col in all_collections %}
+      <label class="col-check-label {{ 'selected' if col.id in product_col_ids }}">
+        <input type="checkbox" name="collection_ids" value="{{ col.id }}"
+               {{ 'checked' if col.id in product_col_ids }}
+               onchange="this.closest('label').classList.toggle('selected', this.checked)">
+        <span class="col-check-name">{{ col.name_ar }}</span>
+        <span class="col-check-sub">{{ col.name_en }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── أسعار الكمية (Price Tiers) ── #}
+  {% if product %}
+  <div class="adm-form-section">
+    <h3>أسعار حسب الكمية</h3>
+    <p class="text-muted" style="font-size:0.78rem;margin-bottom:14px">
+      مثال: 1 قطعة = $12، من 2 قطع = $10 للقطعة، من 5 قطع = $9 للقطعة
+    </p>
+
+    {# الصف الأول دائماً: السعر الأساسي (1 قطعة) — تلقائي من السعر الأصلي #}
+    <div class="tier-base-row">
+      <span class="tier-badge">× 1</span>
+      <span style="font-size:0.85rem">السعر الأساسي:</span>
+      <span class="tier-base-price" style="color:var(--gold);font-weight:700">
+        ${{ '%.2f'|format(product.discount_price if product.discount_price else product.price) }}
+      </span>
+      <span class="text-muted" style="font-size:0.75rem">(من حقل السعر أعلاه)</span>
+    </div>
+
+    <div id="tiers-form">
+      <div id="tiers-list">
+        {% for t in price_tiers %}
+        <div class="tier-row">
+          <div class="adm-field" style="min-width:90px">
+            <label>من كمية</label>
+            <input type="number" name="tier_min_qty" min="2" value="{{ t.min_qty }}" required>
+          </div>
+          <div class="adm-field" style="min-width:110px">
+            <label>سعر الوحدة ($)</label>
+            <input type="number" name="tier_price" step="0.01" min="0.01" value="{{ t.price_per_unit }}" required>
+          </div>
+          <div class="adm-field" style="flex:1">
+            <label>وصف العرض بالعربي <span class="hint">مثال: على القطعتين</span></label>
+            <input type="text" name="tier_label_ar" dir="rtl" value="{{ t.label_ar or '' }}">
+          </div>
+          <div class="adm-field" style="flex:1">
+            <label>وصف العرض بالإنجليزي</label>
+            <input type="text" name="tier_label_en" value="{{ t.label_en or '' }}">
+          </div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:4px">
+            <button type="button" class="btn-adm-sm danger" onclick="removeTier(this)">✕</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button type="button" onclick="addTier()" class="btn-adm-secondary">+ إضافة شريحة سعر</button>
+        <button type="button" class="btn-adm-primary" id="tiers-save-btn"
+                style="{{ 'display:none' if not price_tiers else '' }}"
+                onclick="saveTiers()">حفظ الأسعار</button>
+        <span id="tiers-msg" style="font-size:0.8rem;color:#4ade80;display:none">✓ تم الحفظ</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── SEO سريع ── #}
+  {% if product %}
+  <div class="adm-form-section">
+    <h3>SEO ⚡</h3>
+    <div id="seo-status-bar" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <button type="button" class="btn-adm-secondary" onclick="generateSEO()" id="seo-gen-btn">
+        ⚡ ولّد SEO تلقائياً
+      </button>
+      <span id="seo-result-msg" style="font-size:0.82rem"></span>
+    </div>
+    <div id="seo-preview" style="display:none;margin-top:14px;padding:12px;background:var(--surface2);border-radius:8px;font-size:0.8rem">
+      <div style="color:var(--gold);font-weight:600;margin-bottom:4px" id="seo-title-ar"></div>
+      <div style="color:var(--muted);margin-bottom:8px" id="seo-desc-ar"></div>
+      <div style="color:var(--gold);font-weight:600;margin-bottom:4px" id="seo-title-en"></div>
+      <div style="color:var(--muted)" id="seo-desc-en"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="adm-form-actions">
+    <button type="submit" class="btn-adm-primary">
+      {{ 'حفظ التعديلات' if product else 'إنشاء المنتج' }}
+    </button>
+    <a href="{{ url_for('admin_products') }}" class="btn-adm-ghost">إلغاء</a>
+  </div>
+
+</form>
+
+{# ── المتغيرات ── #}
+{% if product %}
+<div class="adm-form-section" id="variants-section" style="margin-top:24px">
+  <h3>المتغيرات — وزن / لون / رائحة / حجم</h3>
+  <p class="text-muted" style="font-size:0.8rem;margin-bottom:14px">
+    كل متغير له سعر ومخزون وصورة مستقلة. الصورة تتبدل تلقائياً عند اختيار المتغير على الموقع.
+  </p>
+
+  <form method="post" enctype="multipart/form-data"
+        action="{{ url_for('admin_variants_save', pid=product.id) }}" id="variants-form">
+    <div id="variants-list">
+      {% for v in variants %}
+      <div class="variant-row {{ 'variant-inactive' if not v.is_active }}">
+        <div class="variant-row-head">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="var-sort-btns">
+              <button type="button" class="var-sort-btn" onclick="moveVariant(this,-1)" title="لأعلى">↑</button>
+              <button type="button" class="var-sort-btn" onclick="moveVariant(this,1)"  title="لأسفل">↓</button>
+            </div>
+            <select name="var_type" class="var-type-sel" onchange="updateLabels(this)">
+              <option value="weight" {{ 'selected' if v.variant_type=='weight' }}>وزن / Weight</option>
+              <option value="color"  {{ 'selected' if v.variant_type=='color'  }}>لون / Color</option>
+              <option value="scent"  {{ 'selected' if v.variant_type=='scent'  }}>رائحة / Scent</option>
+              <option value="size"   {{ 'selected' if v.variant_type=='size'   }}>حجم / Size</option>
+              <option value="custom" {{ 'selected' if v.variant_type=='custom' }}>مخصص / Custom</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label class="var-active-toggle" title="نشط على الموقع">
+              <input type="checkbox" name="var_active" class="var-active-cb"
+                     {{ 'checked' if v.is_active }}
+                     onchange="this.closest('.variant-row').classList.toggle('variant-inactive', !this.checked)">
+              <span class="var-active-label">{{ 'نشط' if v.is_active else 'مخفي' }}</span>
+            </label>
+            <button type="button" class="btn-adm-sm danger" onclick="removeVariant(this)">✕ حذف</button>
+          </div>
+        </div>
+        <div class="variant-row-body">
+          <input type="hidden" name="var_old_id"   value="{{ v.id }}">
+          <input type="hidden" name="var_label_ar" value="{{ v.type_label_ar }}">
+          <input type="hidden" name="var_label_en" value="{{ v.type_label_en }}">
+          <div class="adm-field">
+            <label>القيمة بالعربي *</label>
+            <input type="text" name="var_val_ar" dir="rtl" value="{{ v.value_ar }}" placeholder="1 كغ، أحمر، لافندر">
+          </div>
+          <div class="adm-field">
+            <label>القيمة بالإنجليزي</label>
+            <input type="text" name="var_val_en" value="{{ v.value_en }}" placeholder="1kg, Red, Lavender">
+          </div>
+          <div class="adm-field">
+            <label>فرق السعر ($) <span class="hint">0 = نفس السعر</span></label>
+            <input type="number" name="var_price" step="0.01" value="{{ v.price_modifier }}">
+          </div>
+          <div class="adm-field">
+            <label>المخزون</label>
+            <input type="number" name="var_stock" min="0" value="{{ v.stock_qty }}">
+          </div>
+          <div class="adm-field">
+            <label>SKU <span class="hint">اختياري</span></label>
+            <input type="text" name="var_sku" value="{{ v.sku or '' }}">
+          </div>
+          <div class="adm-field var-img-field">
+            <label>صورة المتغير</label>
+            {% if v.image_filename %}
+            <div class="var-img-preview">
+              <img src="{{ url_for('static', filename='img/products/' + v.image_filename) }}" alt="">
+              <span class="text-muted small">← حمّل جديدة للاستبدال</span>
+            </div>
+            {% endif %}
+            <input type="file" name="var_image" accept=".jpg,.jpeg,.png,.webp">
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button type="button" onclick="addVariant()" class="btn-adm-secondary">+ إضافة متغير</button>
+      <button type="submit" class="btn-adm-primary" id="variants-save-btn"
+              style="{{ 'display:none' if not variants else '' }}">حفظ المتغيرات</button>
+    </div>
+  </form>
+</div>
+{% else %}
+<div class="adm-form-section" style="margin-top:24px">
+  <h3>المتغيرات — وزن / لون / رائحة / حجم</h3>
+  <p class="text-muted" style="font-size:0.82rem">احفظ المنتج أولاً ثم أضف المتغيرات.</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* ── مجموعات ── */
+.collections-checkboxes { display:flex; flex-wrap:wrap; gap:8px; }
+.col-check-label {
+  display:flex; flex-direction:column; gap:2px;
+  padding:8px 14px; border-radius:8px; cursor:pointer;
+  border:1px solid var(--border); background:var(--surface2);
+  transition:border-color .12s, background .12s; min-width:120px;
+}
+.col-check-label input { display:none; }
+.col-check-label:hover  { border-color:rgba(255,255,255,.2); }
+.col-check-label.selected { border-color:var(--gold); background:rgba(212,167,44,.08); }
+.col-check-name { font-size:0.83rem; font-weight:600; }
+.col-check-sub  { font-size:0.72rem; color:var(--muted); }
+
+/* ── variants ── */
+.variant-row {
+  border:1px solid var(--border); border-radius:10px;
+  margin-bottom:10px; overflow:hidden;
+  transition:opacity .15s;
+}
+.variant-row.variant-inactive { opacity:.5; }
+.variant-row-head {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 12px; background:var(--surface2);
+  border-bottom:1px solid var(--border);
+}
+.var-sort-btns { display:flex; flex-direction:column; gap:1px; }
+.var-sort-btn {
+  background:transparent; border:1px solid var(--border);
+  color:var(--muted); font-size:0.7rem; line-height:1;
+  padding:1px 5px; border-radius:3px; cursor:pointer;
+}
+.var-sort-btn:hover { color:var(--text); border-color:var(--text); }
+.var-type-sel {
+  background:transparent; border:none; color:var(--gold);
+  font-size:0.84rem; font-weight:600; font-family:inherit; cursor:pointer;
+}
+.var-active-toggle { display:flex; align-items:center; gap:5px; cursor:pointer; }
+.var-active-toggle input { width:14px; height:14px; accent-color:var(--gold); cursor:pointer; }
+.var-active-label { font-size:0.75rem; color:var(--muted); }
+.variant-row-body {
+  display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr;
+  gap:10px; padding:12px;
+}
+@media (max-width:800px) { .variant-row-body { grid-template-columns:1fr 1fr; } }
+</style>
+
+<script>
+/* ── تصنيف فرعي ── */
+
+function toggleBundle() {
+  document.getElementById('bundle-fields').style.display =
+    document.getElementById('bundle-check').checked ? '' : 'none';
+}
+function imgAction(url) {
+  fetch(url, { method: 'POST' }).then(() => location.reload());
+}
+
+function saveTiers() {
+  const rows     = document.querySelectorAll('#tiers-list .tier-row');
+  const min_qtys = [], prices = [], labels_ar = [], labels_en = [];
+  rows.forEach(r => {
+    min_qtys.push(r.querySelector('[name=tier_min_qty]').value);
+    prices.push(r.querySelector('[name=tier_price]').value);
+    labels_ar.push(r.querySelector('[name=tier_label_ar]').value);
+    labels_en.push(r.querySelector('[name=tier_label_en]').value);
+  });
+  const fd = new FormData();
+  min_qtys.forEach(v => fd.append('tier_min_qty', v));
+  prices.forEach(v   => fd.append('tier_price', v));
+  labels_ar.forEach(v => fd.append('tier_label_ar', v));
+  labels_en.forEach(v => fd.append('tier_label_en', v));
+  fetch('{{ url_for("admin_price_tiers_save", pid=product.id) if product else "#" }}',
+        { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(d => {
+      const msg = document.getElementById('tiers-msg');
+      msg.style.display = '';
+      msg.style.color   = d.ok ? '#4ade80' : '#f87171';
+      msg.textContent   = d.ok ? '✓ تم حفظ الأسعار' : '✗ خطأ في الحفظ';
+      setTimeout(() => msg.style.display = 'none', 3000);
+    });
+}
+
+function setPromo(ar, en, type, btn) {
+  document.getElementById('promo_ar').value   = ar;
+  document.getElementById('promo_en').value   = en;
+  document.getElementById('promo_type').value = type;
+  document.querySelectorAll('.promo-preset').forEach(b => b.classList.remove('active'));
+  if (btn && ar) btn.classList.add('active');
+}
+function addTier() {
+  const list = document.getElementById('tiers-list');
+  const div  = document.createElement('div');
+  div.className = 'tier-row';
+  div.innerHTML = `
+    <div class="adm-field" style="min-width:90px">
+      <label>من كمية</label>
+      <input type="number" name="tier_min_qty" min="2" value="2" required>
+    </div>
+    <div class="adm-field" style="min-width:110px">
+      <label>سعر الوحدة ($)</label>
+      <input type="number" name="tier_price" step="0.01" min="0.01" value="" required>
+    </div>
+    <div class="adm-field" style="flex:1">
+      <label>وصف بالعربي</label>
+      <input type="text" name="tier_label_ar" dir="rtl" placeholder="على القطعتين">
+    </div>
+    <div class="adm-field" style="flex:1">
+      <label>وصف بالإنجليزي</label>
+      <input type="text" name="tier_label_en" placeholder="From 2 units">
+    </div>
+    <div style="display:flex;align-items:flex-end;padding-bottom:4px">
+      <button type="button" class="btn-adm-sm danger" onclick="removeTier(this)">✕</button>
+    </div>`;
+  list.appendChild(div);
+  document.getElementById('tiers-save-btn').style.display = '';
+}
+function removeTier(btn) {
+  btn.closest('.tier-row').remove();
+  if (!document.querySelectorAll('.tier-row').length)
+    document.getElementById('tiers-save-btn').style.display = 'none';
+}
+
+// يحدد الزر النشط لما الصفحة تحمّل إذا في promo محفوظ
+(function() {
+  const cur = document.getElementById('promo_ar')?.value?.trim();
+  if (!cur) return;
+  document.querySelectorAll('.promo-preset').forEach(btn => {
+    const fn = btn.getAttribute('onclick') || '';
+    if (fn.includes("'" + cur + "'")) btn.classList.add('active');
+  });
+})();
+
+function filterSubs() {
+  const catId = document.getElementById('cat-select').value;
+  document.querySelectorAll('#sub-select option[data-cat]').forEach(o => {
+    o.style.display = (!catId || o.dataset.cat === catId) ? '' : 'none';
+  });
+}
+function toggleCons() {
+  document.getElementById('cons-fields').style.display =
+    document.getElementById('cons-check').checked ? '' : 'none';
+}
+filterSubs();
+</script>
+
+<style>
+.promo-preset {
+  appearance: none; -webkit-appearance: none;
+  display: block; width: 100%; text-align: center;
+  padding: 9px 12px; border-radius: 8px; font-size: 0.83rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: var(--surface2); color: var(--text);
+  cursor: pointer; font-family: inherit;
+  transition: border-color .12s, background .12s;
+}
+.promo-preset:hover {
+  border-color: rgba(212,167,44,.5);
+  background: rgba(212,167,44,.08);
+  color: var(--gold);
+}
+.promo-preset.active {
+  border-color: var(--gold);
+  background: rgba(212,167,44,.15);
+  color: var(--gold);
+  font-weight: 600;
+}
+.tier-base-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 8px;
+  background: rgba(212,167,44,.06); border: 1px dashed rgba(212,167,44,.3);
+  margin-bottom: 12px; font-size: 0.85rem;
+}
+.tier-badge {
+  background: var(--gold); color: #000;
+  font-size: 0.72rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 99px;
+}
+.tier-row {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface2);
+  margin-bottom: 8px;
+}
+@media (max-width: 700px) { .tier-row { flex-wrap: wrap; } }
+</style>
+
+<script>
+{% if product %}
+function generateDesc() {
+  const btn = document.getElementById('desc-gen-btn');
+  const msg = document.getElementById('desc-gen-msg');
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري التوليد...';
+  msg.textContent = '';
+  fetch('/admin/products/{{ product.id }}/generate-description', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = '✨ ولّد بـ AI';
+      if (data.ok) {
+        document.getElementById('benefit_ar').value     = data.benefit_ar     || '';
+        document.getElementById('benefit_en').value     = data.benefit_en     || '';
+        document.getElementById('description_ar').value = data.description_ar || '';
+        document.getElementById('description_en').value = data.description_en || '';
+        msg.style.color = '#4ade80';
+        msg.textContent = '✓ تم التوليد — راجع النص واحفظ';
+      } else {
+        msg.style.color = '#f87171';
+        msg.textContent = '✗ ' + (data.error || 'خطأ');
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.textContent = '✨ ولّد بـ AI';
+      msg.style.color = '#f87171';
+      msg.textContent = '✗ فشل الاتصال';
+    });
+}
+{% endif %}
+
+/* ── SEO سريع ── */
+{% if product %}
+function generateSEO() {
+  const btn = document.getElementById('seo-gen-btn');
+  const msg = document.getElementById('seo-result-msg');
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري التوليد...';
+  msg.textContent = '';
+  fetch('/admin/seo/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ page_type: 'product', page_id: {{ product.id }} })
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.disabled = false;
+    btn.textContent = '⚡ ولّد SEO تلقائياً';
+    if (data.ok) {
+      msg.style.color = '#4ade80';
+      msg.textContent = '✓ تم حفظ الـ SEO بنجاح';
+      const p = data.seo;
+      document.getElementById('seo-title-ar').textContent = p.meta_title_ar || '';
+      document.getElementById('seo-desc-ar').textContent  = p.meta_desc_ar  || '';
+      document.getElementById('seo-title-en').textContent = p.meta_title_en || '';
+      document.getElementById('seo-desc-en').textContent  = p.meta_desc_en  || '';
+      document.getElementById('seo-preview').style.display = '';
+    } else {
+      msg.style.color = '#f87171';
+      msg.textContent = '✗ ' + (data.error || 'خطأ غير معروف');
+    }
+  })
+  .catch(() => {
+    btn.disabled = false;
+    btn.textContent = '⚡ ولّد SEO تلقائياً';
+    msg.style.color = '#f87171';
+    msg.textContent = '✗ فشل الاتصال';
+  });
+}
+{% endif %}
+
+/* ── المتغيرات ── */
+const TYPE_LABELS = {
+  weight: { ar:'الوزن',   en:'Weight' },
+  color:  { ar:'اللون',   en:'Color'  },
+  scent:  { ar:'الرائحة', en:'Scent'  },
+  size:   { ar:'الحجم',   en:'Size'   },
+  custom: { ar:'مخصص',    en:'Custom' },
+};
+
+function updateLabels(sel) {
+  const row = sel.closest('.variant-row');
+  const t = TYPE_LABELS[sel.value] || TYPE_LABELS.custom;
+  row.querySelector('[name=var_label_ar]').value = t.ar;
+  row.querySelector('[name=var_label_en]').value = t.en;
+}
+
+function updateActiveLabel(cb) {
+  cb.closest('.var-active-toggle').querySelector('.var-active-label').textContent =
+    cb.checked ? 'نشط' : 'مخفي';
+}
+
+function moveVariant(btn, dir) {
+  const row  = btn.closest('.variant-row');
+  const list = document.getElementById('variants-list');
+  const rows = [...list.querySelectorAll('.variant-row')];
+  const idx  = rows.indexOf(row);
+  const target = rows[idx + dir];
+  if (!target) return;
+  if (dir === -1) list.insertBefore(row, target);
+  else            list.insertBefore(target, row);
+  syncActiveIndexes();
+}
+
+function syncActiveIndexes() {
+  /* يعيد كتابة قيم var_active checkboxes كـ indexes */
+}
+
+function addVariant() {
+  const list = document.getElementById('variants-list');
+  const div  = document.createElement('div');
+  div.className = 'variant-row';
+  div.innerHTML = `
+    <div class="variant-row-head">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="var-sort-btns">
+          <button type="button" class="var-sort-btn" onclick="moveVariant(this,-1)">↑</button>
+          <button type="button" class="var-sort-btn" onclick="moveVariant(this,1)">↓</button>
+        </div>
+        <select name="var_type" class="var-type-sel" onchange="updateLabels(this)">
+          <option value="weight">وزن / Weight</option>
+          <option value="color">لون / Color</option>
+          <option value="scent">رائحة / Scent</option>
+          <option value="size">حجم / Size</option>
+          <option value="custom">مخصص / Custom</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label class="var-active-toggle">
+          <input type="checkbox" name="var_active" class="var-active-cb" checked
+                 onchange="this.closest('.variant-row').classList.toggle('variant-inactive',!this.checked);updateActiveLabel(this)">
+          <span class="var-active-label">نشط</span>
+        </label>
+        <button type="button" class="btn-adm-sm danger" onclick="removeVariant(this)">✕ حذف</button>
+      </div>
+    </div>
+    <div class="variant-row-body">
+      <input type="hidden" name="var_old_id"   value="">
+      <input type="hidden" name="var_label_ar" value="الوزن">
+      <input type="hidden" name="var_label_en" value="Weight">
+      <div class="adm-field">
+        <label>القيمة بالعربي *</label>
+        <input type="text" name="var_val_ar" dir="rtl" placeholder="مثال: 1 كغ">
+      </div>
+      <div class="adm-field">
+        <label>القيمة بالإنجليزي</label>
+        <input type="text" name="var_val_en" placeholder="1kg">
+      </div>
+      <div class="adm-field">
+        <label>فرق السعر ($)</label>
+        <input type="number" name="var_price" step="0.01" value="0">
+      </div>
+      <div class="adm-field">
+        <label>المخزون</label>
+        <input type="number" name="var_stock" min="0" value="0">
+      </div>
+      <div class="adm-field">
+        <label>SKU</label>
+        <input type="text" name="var_sku" placeholder="اختياري">
+      </div>
+      <div class="adm-field var-img-field">
+        <label>صورة المتغير <span class="hint">اختياري</span></label>
+        <input type="file" name="var_image" accept=".jpg,.jpeg,.png,.webp">
+      </div>
+    </div>`;
+  list.appendChild(div);
+  document.getElementById('variants-save-btn').style.display = '';
+}
+
+function removeVariant(btn) {
+  btn.closest('.variant-row').remove();
+  if (!document.querySelectorAll('.variant-row').length)
+    document.getElementById('variants-save-btn').style.display = 'none';
+}
+
+/* عند submit يحوّل var_active checkboxes إلى indexes */
+document.getElementById('variants-form')?.addEventListener('submit', function() {
+  const rows = [...document.querySelectorAll('#variants-list .variant-row')];
+  rows.forEach((row, i) => {
+    const cb = row.querySelector('.var-active-cb');
+    if (cb) cb.value = i;
+  });
+});
+
+// ── نجوم التقييم ──
+function pickStar(val) {
+  document.getElementById('store_rating_input').value = val || '';
+  document.querySelectorAll('.star-pick').forEach((s, i) => {
+    s.classList.toggle('active', i < val);
+  });
+}
+</script>
+{% endblock %}

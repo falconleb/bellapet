@@ -1,0 +1,270 @@
+{% extends "admin/base.html" %}
+{% block title %}طلب #{{ order.id }}{% endblock %}
+{% block content %}
+
+{% set ar_status = {'new':'جديد','confirmed':'مؤكد','shipped':'في الطريق','delayed':'تأخير','delivered':'تم التسليم','cancelled':'ملغى','returned':'مُرجَع'} %}
+{% set status_icon = {'new':'🆕','confirmed':'✅','shipped':'🚚','delayed':'⏳','delivered':'📦','cancelled':'❌','returned':'🔄'} %}
+{% set return_log = status_log | selectattr('status','equalto','returned') | list %}
+
+<div class="adm-page-head">
+  <h1>طلب #{{ order.id }}
+    <span class="status-badge status-{{ order.status }}">{{ ar_status.get(order.status, order.status) }}</span>
+  </h1>
+  <a href="{{ url_for('admin_orders') }}" class="btn-adm-secondary">← رجوع</a>
+</div>
+
+<div class="adm-detail-grid">
+
+  {# ── معلومات الزبون ── #}
+  <div class="adm-card">
+    <h3>معلومات الزبون
+      {# تقييم الزبون — يظهر بالرأس مباشرة #}
+      {% if cust_profile and cust_profile['behavior_rating'] %}
+      {% set br = cust_profile['behavior_rating'] %}
+      <span class="cust-rating-badge rating-{{ br }}" style="margin-inline-start:10px;font-size:0.85rem">
+        {% for i in range(1,6) %}{{ '★' if i <= br else '☆' }}{% endfor %}
+      </span>
+      {% endif %}
+    </h3>
+    <dl class="adm-dl">
+      <dt>الاسم</dt><dd>{{ order.customer_name }}</dd>
+      <dt>الهاتف</dt>
+      <dd>
+        {{ order.phone }}
+        {% set phone_clean = order.phone|replace(' ','')|replace('-','')|replace('+','') %}
+        <a href="https://wa.me/961{{ phone_clean }}" target="_blank"
+           style="margin-inline-start:8px;font-size:0.75rem;color:#25D366">📱 واتساب</a>
+      </dd>
+      <dt>المنطقة</dt><dd>{{ order.area }}</dd>
+      {% if order.address_note %}<dt>ملاحظة</dt><dd>{{ order.address_note }}</dd>{% endif %}
+      <dt>التاريخ</dt><dd class="text-muted">{{ order.created_at[:16].replace('T',' ') }}</dd>
+      {% if order.tracking_number %}
+      <dt>رقم التتبع</dt><dd><code>{{ order.tracking_number }}</code></dd>
+      {% endif %}
+    </dl>
+  </div>
+
+  {# ── تقييم الزبون ── #}
+  <div class="adm-card">
+    <h3>تقييم الزبون</h3>
+    {% if cust_profile and cust_profile['behavior_note'] %}
+    <div style="background:rgba(212,167,44,.08);border:1px solid rgba(212,167,44,.2);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:0.83rem">
+      📝 {{ cust_profile['behavior_note'] }}
+    </div>
+    {% endif %}
+    <form method="post" action="{{ url_for('admin_rate_customer', oid=order.id) }}">
+      <div class="adm-field" style="margin-bottom:10px">
+        <label style="font-size:0.8rem;margin-bottom:6px;display:block">التقييم</label>
+        <div class="star-picker" id="cust-star-picker">
+          {% set cur_r = cust_profile['behavior_rating'] if cust_profile and cust_profile['behavior_rating'] else 0 %}
+          {% for i in [1,2,3,4,5] %}
+          <span class="star-pick {{ 'active' if cur_r >= i }}" data-val="{{ i }}" onclick="pickCustStar({{ i }})">★</span>
+          {% endfor %}
+          <span class="star-clear" onclick="pickCustStar(0)">✕ مسح</span>
+        </div>
+        <input type="hidden" name="behavior_rating" id="cust_rating_input" value="{{ cur_r or '' }}">
+      </div>
+      <div class="adm-field" style="margin-bottom:10px">
+        <input type="text" name="behavior_note"
+               value="{{ cust_profile['behavior_note'] if cust_profile and cust_profile['behavior_note'] else '' }}"
+               placeholder="مثال: يرجع طلبات كثير / زبون ممتاز / يتأخر بالاستلام">
+      </div>
+      <button type="submit" class="btn-adm-sm">💾 حفظ</button>
+    </form>
+  </div>
+
+  {# ── تحديث الحالة ── #}
+  <div class="adm-card">
+    <h3>تحديث الحالة</h3>
+    <form method="post" action="{{ url_for('admin_order_status', oid=order.id) }}" id="status-form">
+
+      <div class="adm-field">
+        <label>الحالة الجديدة</label>
+        <select name="status" id="status-select">
+          {% for s, label in [('new','🆕 جديد'),('confirmed','✅ مؤكد'),('shipped','🚚 في الطريق'),('delayed','⏳ تأخير'),('delivered','📦 تم التسليم'),('cancelled','❌ ملغى')] %}
+          <option value="{{ s }}" {{ 'selected' if order.status == s }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="adm-field">
+        <label>ملاحظة للزبون <span style="color:var(--muted);font-size:0.72rem">(اختياري — تظهر بصفحة تتبع الطلب)</span></label>
+        <input type="text" name="note" id="note-input"
+               placeholder="مثال: طلبك مع المندوب، وصول متوقع قبل الساعة 5">
+      </div>
+
+      <div class="adm-field" id="tracking-field" style="display:none">
+        <label>رقم التتبع <span style="color:var(--muted);font-size:0.72rem">(اختياري — لشركة الدلفري)</span></label>
+        <input type="text" name="tracking_number" value="{{ order.tracking_number or '' }}"
+               placeholder="مثال: WKL-123456" dir="ltr">
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button type="submit" class="btn-adm-primary">💾 حفظ التحديث</button>
+        <button type="button" class="btn-adm-secondary" onclick="sendWa()">
+          📱 حفظ + إشعار WA
+        </button>
+      </div>
+    </form>
+
+    {# ── رسالة مخصصة ── #}
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <h4 style="margin:0 0 10px;font-size:0.88rem">📨 رسالة مخصصة للزبون</h4>
+      <p style="font-size:0.75rem;color:var(--muted);margin:0 0 10px">بدون تغيير الحالة — فقط رسالة واتساب مباشرة</p>
+      <div class="adm-field">
+        <textarea id="custom-msg" rows="3" style="width:100%;resize:vertical"
+                  placeholder="مثال: أهلاً، بودنا نعلمك أن طلبك سيصل غداً بدل اليوم بسبب ظروف طارئة. نعتذر منك 🙏"></textarea>
+      </div>
+      <button type="button" class="btn-adm-secondary" onclick="sendCustomWa()" style="width:100%">
+        📱 إرسال عبر واتساب
+      </button>
+    </div>
+  </div>
+
+</div>
+
+{# ── Timeline السجل ── #}
+<div class="adm-card" style="margin-top:16px">
+  <h3>سجل الحالات</h3>
+  {% if status_log %}
+  <div class="status-timeline">
+    {% for entry in status_log %}
+    <div class="stl-row">
+      <div class="stl-icon">{{ status_icon.get(entry.status, '•') }}</div>
+      <div class="stl-body">
+        <span class="stl-status">{{ ar_status.get(entry.status, entry.status) }}</span>
+        {% if entry.note %}
+        <span class="stl-note">"{{ entry.note }}"</span>
+        {% endif %}
+        <span class="stl-time">{{ entry.created_at[:16].replace('T',' ') }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:var(--muted);font-size:0.85rem">لا يوجد سجل بعد — أي تحديث للحالة سيُسجَّل هنا</p>
+  {% endif %}
+</div>
+
+{# ── المنتجات ── #}
+<div class="adm-card" style="margin-top:16px">
+  <h3>المنتجات</h3>
+  <table class="adm-table">
+    <thead>
+      <tr><th>المنتج</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td><a href="{{ url_for('product', slug=item.slug) }}" target="_blank" class="adm-link">{{ item.name_ar or item.name_en }}</a></td>
+        <td>{{ item.qty }}</td>
+        <td>${{ '%.2f'|format(item.price_at_order) }}</td>
+        <td>${{ '%.2f'|format(item.price_at_order * item.qty) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3"><strong>المجموع الكلي</strong></td>
+        <td><strong>${{ '%.2f'|format(order.total) }}</strong></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+{# ── قسم الإرجاع ── #}
+<div class="adm-card" style="margin-top:16px;border-color:rgba(248,113,113,.25)">
+  <h3 style="color:#f87171">🔄 إرجاع الطلب</h3>
+
+  {% if return_log %}
+  {# عرض سجل الإرجاعات الموجودة #}
+  {% for r in return_log %}
+  <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:10px;padding:10px 14px;margin-bottom:10px">
+    <div style="font-size:0.78rem;color:var(--muted)">{{ r.created_at[:16].replace('T',' ') }}</div>
+    {% if r.note %}
+    <div style="margin-top:4px;font-size:0.88rem">📝 {{ r.note }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  {# فورم تسجيل إرجاع جديد #}
+  <form method="post" action="{{ url_for('admin_order_status', oid=order.id) }}"
+        onsubmit="return confirm('تأكيد تسجيل إرجاع هذا الطلب؟')">
+    <input type="hidden" name="status" value="returned">
+    <div class="adm-field" style="margin-bottom:10px">
+      <label style="font-size:0.82rem">سبب الإرجاع <span style="color:var(--muted);font-size:0.72rem">(مطلوب)</span></label>
+      <input type="text" name="note" required
+             placeholder="مثال: المنتج تالف / الزبون غير راضي / طلب خاطئ">
+    </div>
+    <button type="submit" class="btn-adm-sm danger" style="width:100%">
+      🔄 تسجيل إرجاع
+    </button>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PHONE   = '961{{ order.phone|replace(" ","")|replace("-","")|replace("+","") }}';
+const NAME    = {{ order.customer_name|tojson }};
+const ORDER_ID = {{ order.id }};
+
+const statusMsg = {
+  confirmed: `أهلاً ${NAME} 😊\nطلبك رقم #${ORDER_ID} تم تأكيده ✅\nسنتواصل معك قريباً لتحديد موعد التوصيل.`,
+  shipped:   `أهلاً ${NAME} 🚚\nطلبك رقم #${ORDER_ID} خرج للتوصيل!\nالمندوب في طريقه إليك.`,
+  delayed:   `أهلاً ${NAME} 🙏\nنعتذر منك، طلبك رقم #${ORDER_ID} تأخر بسبب ظروف طارئة.\nسنتواصل معك فور الحل لتحديد موعد جديد. شكراً لتفهمك ❤️`,
+  delivered: `أهلاً ${NAME} 📦\nتم تسليم طلبك رقم #${ORDER_ID} بنجاح!\nشكراً لثقتك ببيلا بت 🐾`,
+  cancelled: `أهلاً ${NAME}\nللأسف تم إلغاء طلبك رقم #${ORDER_ID}.\nتواصل معنا لأي استفسار.`,
+};
+
+function sendWa() {
+  const status = document.getElementById('status-select').value;
+  const note   = document.getElementById('note-input').value.trim();
+  let msg = statusMsg[status] || `أهلاً ${NAME}، طلبك #${ORDER_ID} تم تحديثه.`;
+  if (note) msg += `\n\n📌 ${note}`;
+
+  // نحفظ بـ fetch أولاً (بدون تحويل الصفحة) ثم نفتح WA
+  const form = document.getElementById('status-form');
+  fetch(form.action, { method: 'POST', body: new FormData(form) })
+    .then(() => {
+      window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
+      location.reload();
+    });
+}
+
+function pickCustStar(val) {
+  document.getElementById('cust_rating_input').value = val || '';
+  document.querySelectorAll('#cust-star-picker .star-pick').forEach((s, i) => {
+    s.classList.toggle('active', i < val);
+  });
+}
+
+function sendCustomWa() {
+  const msg = document.getElementById('custom-msg').value.trim();
+  if (!msg) { alert('اكتب الرسالة أولاً'); return; }
+  window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// إظهار حقل رقم التتبع عند اختيار "في الطريق"
+document.getElementById('status-select').addEventListener('change', function() {
+  document.getElementById('tracking-field').style.display =
+    this.value === 'shipped' ? '' : 'none';
+});
+if (document.getElementById('status-select').value === 'shipped') {
+  document.getElementById('tracking-field').style.display = '';
+}
+</script>
+
+<style>
+.status-timeline { display:flex; flex-direction:column; gap:0; }
+.stl-row { display:flex; gap:14px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--border); }
+.stl-row:last-child { border-bottom:none; }
+.stl-icon { font-size:1.2rem; width:28px; text-align:center; flex-shrink:0; padding-top:1px; }
+.stl-body { display:flex; flex-direction:column; gap:2px; }
+.stl-status { font-weight:600; font-size:0.9rem; }
+.stl-note { font-size:0.82rem; color:var(--gold); font-style:italic; }
+.stl-time { font-size:0.72rem; color:var(--muted); direction:ltr; display:inline-block; }
+</style>
+{% endblock %}

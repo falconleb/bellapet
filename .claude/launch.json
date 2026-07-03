@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "petstore",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["app.py"],
+      "port": 5003,
+      "env": {
+        "FLASK_RUN_PORT": "5003"
+      }
+    }
+  ]
+}
