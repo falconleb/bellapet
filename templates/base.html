@@ -703,47 +703,48 @@ function updateSubCartBadge() {
 
 function openSubCart() {
   var isAr = _subLang === 'ar';
-  try {
-    var cart     = JSON.parse(localStorage.getItem('sub_cart') || '[]');
-    var customer = JSON.parse(localStorage.getItem('sub_customer') || 'null');
-    var custEl   = document.getElementById('sub-cart-customer');
-    var itemsEl  = document.getElementById('sub-cart-items');
-    var emptyEl  = document.getElementById('sub-cart-empty');
-    var footEl   = document.getElementById('sub-cart-foot');
-    var confirmBtn = document.getElementById('sub-cart-confirm');
+  var cart     = JSON.parse(localStorage.getItem('sub_cart') || '[]');
+  var customer = JSON.parse(localStorage.getItem('sub_customer') || 'null');
+  var custEl      = document.getElementById('sub-cart-customer');
+  var itemsEl     = document.getElementById('sub-cart-items');
+  var emptyEl     = document.getElementById('sub-cart-empty');
+  var footEl      = document.getElementById('sub-cart-foot');
+  var confirmBtn  = document.getElementById('sub-cart-confirm');
+  var editFormEl  = document.getElementById('sub-cart-edit-form');
+  var totalsEl    = document.getElementById('sub-cart-totals');
 
+  // ── Customer info — دايماً مرئي ──
+  if (customer && customer.name) {
+    editFormEl.style.display = 'none';
+    custEl.innerHTML =
+      '<div class="sub-cart-cust-row">' +
+        '<span>👤 ' + customer.name + '</span>' +
+        '<span>📞 ' + customer.phone + '</span>' +
+        (customer.area ? '<span>📍 ' + customer.area + (customer.address ? ' · ' + customer.address : '') + '</span>' : '') +
+        '<button class="sub-cart-edit-btn" onclick="showSubEditForm()">' + (isAr ? '✏️ تعديل' : '✏️ Edit') + '</button>' +
+      '</div>';
+  } else {
+    custEl.innerHTML = '';
+    if (customer) {
+      document.getElementById('sce-name').value    = customer.name    || '';
+      document.getElementById('sce-phone').value   = customer.phone   || '';
+      document.getElementById('sce-area').value    = customer.area    || '';
+      document.getElementById('sce-address').value = customer.address || '';
+    }
+    editFormEl.style.display = '';
+  }
+
+  try {
     if (cart.length === 0) {
       emptyEl.classList.remove('hidden');
       itemsEl.innerHTML = '';
-      custEl.innerHTML  = '';
+      totalsEl.style.display = 'none';
       footEl.style.display = 'none';
     } else {
       emptyEl.classList.add('hidden');
       footEl.style.display = '';
       confirmBtn.disabled = false;
       confirmBtn.textContent = isAr ? '✅ تأكيد الاشتراك' : '✅ Confirm Subscription';
-
-      // Customer row
-      var editFormEl = document.getElementById('sub-cart-edit-form');
-      if (customer && customer.name) {
-        editFormEl.style.display = 'none';
-        custEl.innerHTML = '<div class="sub-cart-cust-row">' +
-          '<span>👤 ' + customer.name + '</span>' +
-          '<span>📞 ' + customer.phone + '</span>' +
-          (customer.area ? '<span>📍 ' + customer.area + (customer.address ? ' · ' + customer.address : '') + '</span>' : '') +
-          '<button class="sub-cart-edit-btn" onclick="showSubEditForm()">' + (isAr ? '✏️ تعديل' : '✏️ Edit') + '</button>' +
-          '</div>';
-      } else {
-        custEl.innerHTML = '';
-        // Pre-fill if partial data
-        if (customer) {
-          document.getElementById('sce-name').value    = customer.name    || '';
-          document.getElementById('sce-phone').value   = customer.phone   || '';
-          document.getElementById('sce-area').value    = customer.area    || '';
-          document.getElementById('sce-address').value = customer.address || '';
-        }
-        editFormEl.style.display = '';
-      }
 
       // Read config
       var subCfg = {};
@@ -782,7 +783,6 @@ function openSubCart() {
       }).join('');
 
       // Totals + shipping — always show when cart has items
-      var totalsEl = document.getElementById('sub-cart-totals');
       var shipping = 0;
       var shipLabel = '';
       if (freeMin > 0 && subtotal > 0 && subtotal >= freeMin) {
