@@ -818,8 +818,8 @@ function openSubCart() {
           '<div class="sub-cart-item-info">' +
             '<strong>' + (item.name || '') + '</strong>' +
             '<span>🔄 ' + label + '</span>' +
+            priceStr +
           '</div>' +
-          priceStr +
           '<div class="sub-cart-item-qty">' +
             '<button onclick="subCartQtyChange(' + idx + ',-1)">−</button>' +
             '<span>' + qty + '</span>' +
