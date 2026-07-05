@@ -10,7 +10,23 @@
   <h1>طلب #{{ order.id }}
     <span class="status-badge status-{{ order.status }}">{{ ar_status.get(order.status, order.status) }}</span>
   </h1>
-  <a href="{{ url_for('admin_orders') }}" class="btn-adm-secondary">← رجوع</a>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button onclick="window.print()" class="btn-adm-secondary" style="display:flex;align-items:center;gap:6px">
+      🖨 طباعة / PDF
+    </button>
+    <a href="{{ url_for('admin_orders') }}" class="btn-adm-secondary">← رجوع</a>
+  </div>
+</div>
+
+{# ── رأس الطباعة — مخفي على الشاشة ── #}
+<div class="print-header" style="display:none">
+  <div class="ph-logo">🐾 Bella Pet Store</div>
+  <div class="ph-title">فاتورة / تفاصيل طلب</div>
+  <div class="ph-meta">
+    <span>طلب رقم: <strong>#{{ order.id }}</strong></span>
+    <span>التاريخ: {{ order.created_at[:16].replace('T',' ') }}</span>
+    <span>الحالة: {{ ar_status.get(order.status, order.status) }}</span>
+  </div>
 </div>
 
 <div class="adm-detail-grid">
@@ -266,5 +282,47 @@ if (document.getElementById('status-select').value === 'shipped') {
 .stl-status { font-weight:600; font-size:0.9rem; }
 .stl-note { font-size:0.82rem; color:var(--gold); font-style:italic; }
 .stl-time { font-size:0.72rem; color:var(--muted); direction:ltr; display:inline-block; }
+
+/* ══ Print / PDF ══ */
+@media print {
+  /* إخفاء كل عناصر الأدمن */
+  .adm-sidebar, .adm-topbar, .adm-page-head, .adm-detail-grid,
+  .adm-card:has(form), form, .btn-adm-primary, .btn-adm-secondary,
+  .btn-adm-sm, .adm-card h3 + form,
+  .adm-card:nth-child(2), .adm-card:nth-child(3),
+  button, a.btn-adm-secondary, a.btn-adm-sm,
+  .adm-card:has(.star-picker), .adm-card:has(#status-select),
+  .adm-card:has(#custom-msg), .adm-card:has([name="note"][required]) {
+    display: none !important;
+  }
+
+  /* إظهار رأس الطباعة */
+  .print-header { display: block !important; }
+
+  body, html { background: #fff !important; color: #111 !important; font-family: Arial, sans-serif; }
+
+  /* بطاقة المعلومات ومنتجات فقط */
+  .adm-card { border: 1px solid #ccc !important; border-radius: 6px; padding: 14px 18px !important;
+               box-shadow: none !important; background: #fff !important; margin-bottom: 16px; page-break-inside: avoid; }
+  .adm-card h3 { color: #111 !important; font-size: 1rem; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 10px; }
+  .adm-dl { display: grid; grid-template-columns: 120px 1fr; gap: 4px 12px; font-size: 0.88rem; }
+  .adm-dl dt { font-weight: 700; color: #555; }
+  .adm-dl dd { margin: 0; }
+  .adm-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  .adm-table th, .adm-table td { border: 1px solid #ddd; padding: 7px 10px; text-align: right; }
+  .adm-table th { background: #f5f5f5; font-weight: 700; }
+  .adm-table tfoot td { font-weight: 700; background: #f9f9f9; }
+  .adm-link { color: #111 !important; text-decoration: none !important; }
+
+  /* رأس الطباعة */
+  .print-header { text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #111; }
+  .ph-logo { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+  .ph-title { font-size: 1rem; color: #555; margin-bottom: 10px; }
+  .ph-meta { display: flex; justify-content: center; gap: 24px; font-size: 0.85rem; flex-wrap: wrap; }
+  .ph-meta span strong { color: #111; }
+
+  /* تجاهل ألوان dark mode */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
 </style>
 {% endblock %}
