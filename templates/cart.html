@@ -100,6 +100,32 @@
   </div>
   {% endif %}
 
+  {# ── بيانات التوصيل ── #}
+  <div class="cart-customer-card" id="cart-cust-card">
+    <div class="cart-cust-header" onclick="toggleCartCustForm()">
+      <span id="cart-cust-summary">👤 {{ 'أضف بيانات التوصيل' if lang == 'ar' else 'Add delivery info' }}</span>
+      <span class="cart-cust-chevron" id="cart-cust-chevron">﹀</span>
+    </div>
+    <div id="cart-cust-form" style="display:none">
+      <div class="cart-cust-row">
+        <input id="cc-name"  class="cart-cust-inp" type="text" placeholder="{{ 'الاسم الكامل *' if lang == 'ar' else 'Full name *' }}" autocomplete="name">
+        <input id="cc-phone" class="cart-cust-inp" type="tel"  placeholder="{{ 'رقم الهاتف *' if lang == 'ar' else 'Phone *' }}" autocomplete="tel" inputmode="tel">
+      </div>
+      <div class="cart-cust-row">
+        <select id="cc-area" class="cart-cust-inp cart-cust-sel">
+          <option value="">{{ '— اختر القضاء —' if lang == 'ar' else '— Select district —' }}</option>
+          {% for z in zones_list %}
+          <option value="{{ z.name_ar }}">{{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        <input id="cc-address" class="cart-cust-inp" type="text" placeholder="{{ 'العنوان التفصيلي' if lang == 'ar' else 'Detailed address' }}">
+      </div>
+      <button class="cart-cust-save" onclick="saveCartCustomer()">
+        💾 {{ 'حفظ البيانات' if lang == 'ar' else 'Save info' }}
+      </button>
+    </div>
+  </div>
+
   {# ── حاسبة السعر الكاملة ── #}
   <div class="cart-calculator">
 
@@ -296,6 +322,21 @@
 }
 .calc-actions .btn-wa-cart  { flex: 1; min-width: 160px; text-align: center; }
 .calc-actions .btn-checkout { flex: 1; min-width: 120px; text-align: center; }
+
+/* ── Cart Customer Card ── */
+.cart-customer-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:0; margin-top:20px; max-width:520px; overflow:hidden; }
+.cart-cust-header { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; cursor:pointer; user-select:none; }
+.cart-cust-header:hover { background:var(--surface2); }
+.cart-cust-header span:first-child { font-size:.88rem; font-weight:600; color:var(--text); }
+.cart-cust-chevron { font-size:.75rem; color:var(--muted); transition:transform .2s; }
+.cart-cust-chevron.open { transform:rotate(180deg); }
+#cart-cust-form { padding:0 16px 16px; display:flex; flex-direction:column; gap:10px; border-top:1px solid var(--border); padding-top:14px; }
+.cart-cust-row { display:flex; gap:8px; }
+.cart-cust-inp { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:.84rem; color:var(--text); outline:none; min-width:0; }
+.cart-cust-inp:focus { border-color:var(--gold,#d4a72c); }
+.cart-cust-sel { appearance:none; -webkit-appearance:none; cursor:pointer; }
+.cart-cust-sel option { color:#111; background:#fff; }
+.cart-cust-save { background:var(--gold,#d4a72c); color:#1a1209; border:none; border-radius:8px; padding:10px; font-size:.86rem; font-weight:700; cursor:pointer; }
 </style>
 
 <script>
@@ -453,5 +494,45 @@ function selectGift(promoId, giftId, btn) {
     .then(r => r.json())
     .then(() => location.reload());
 }
+
+/* ── Cart Customer Info ── */
+function initCartCustomer() {
+  var cust = null;
+  try { cust = JSON.parse(localStorage.getItem('cart_customer') || 'null'); } catch(e) {}
+  var summaryEl = document.getElementById('cart-cust-summary');
+  if (cust && cust.name) {
+    summaryEl.textContent = '👤 ' + cust.name + '  📞 ' + cust.phone + (cust.area ? '  📍 ' + cust.area : '');
+    document.getElementById('cc-name').value    = cust.name    || '';
+    document.getElementById('cc-phone').value   = cust.phone   || '';
+    document.getElementById('cc-area').value    = cust.area    || '';
+    document.getElementById('cc-address').value = cust.address || '';
+  }
+}
+
+function toggleCartCustForm() {
+  var form    = document.getElementById('cart-cust-form');
+  var chevron = document.getElementById('cart-cust-chevron');
+  var open    = form.style.display !== 'none';
+  form.style.display = open ? 'none' : '';
+  chevron.classList.toggle('open', !open);
+}
+
+function saveCartCustomer() {
+  var name    = document.getElementById('cc-name').value.trim();
+  var phone   = document.getElementById('cc-phone').value.trim();
+  var area    = document.getElementById('cc-area').value.trim();
+  var address = document.getElementById('cc-address').value.trim();
+  if (!name)  { document.getElementById('cc-name').focus();  return; }
+  if (!phone) { document.getElementById('cc-phone').focus(); return; }
+  try {
+    localStorage.setItem('cart_customer', JSON.stringify({ name, phone, area, address }));
+  } catch(e) {}
+  document.getElementById('cart-cust-summary').textContent =
+    '👤 ' + name + '  📞 ' + phone + (area ? '  📍 ' + area : '');
+  document.getElementById('cart-cust-form').style.display  = 'none';
+  document.getElementById('cart-cust-chevron').classList.remove('open');
+}
+
+document.addEventListener('DOMContentLoaded', initCartCustomer);
 </script>
 {% endblock %}
