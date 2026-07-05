@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ورقة شحن — طلب #{{ order.id }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    background: #fff;
+    color: #111;
+    padding: 24px;
+    font-size: 13px;
+    direction: rtl;
+  }
+
+  .slip {
+    max-width: 680px;
+    margin: 0 auto;
+    border: 2px solid #111;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* ── رأس الورقة ── */
+  .slip-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    background: #111;
+    color: #fff;
+  }
+  .slip-head-brand { font-size: 1.3rem; font-weight: 700; }
+  .slip-head-brand span { font-size: 0.8rem; font-weight: 400; opacity: .7; display: block; }
+  .slip-head-order { text-align: left; }
+  .slip-head-order .order-num { font-size: 1.6rem; font-weight: 800; letter-spacing: 1px; }
+  .slip-head-order .order-date { font-size: 0.75rem; opacity: .75; direction: ltr; }
+
+  /* ── الجسم ── */
+  .slip-body { padding: 0; }
+
+  .slip-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #ddd;
+  }
+  .slip-row:last-child { border-bottom: none; }
+
+  .slip-box {
+    padding: 14px 20px;
+    border-inline-end: 1px solid #ddd;
+  }
+  .slip-box:last-child { border-inline-end: none; }
+  .slip-box.full { grid-column: 1 / -1; border-inline-end: none; }
+
+  .box-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: #888;
+    margin-bottom: 6px;
+    border-bottom: 1px dashed #e0e0e0;
+    padding-bottom: 4px;
+  }
+  .box-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+  .box-line { font-size: 0.88rem; color: #333; margin-bottom: 2px; }
+  .box-line strong { color: #111; }
+  .box-line.muted { color: #666; font-size: 0.8rem; }
+
+  /* ── المبلغ COD ── */
+  .cod-box {
+    background: #f0fdf4;
+    border: 2px solid #22c55e;
+    border-radius: 6px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cod-label { font-size: 0.78rem; font-weight: 700; color: #15803d; }
+  .cod-amount { font-size: 1.6rem; font-weight: 800; color: #15803d; }
+
+  /* ── جدول المنتجات ── */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 7px 14px; text-align: right; font-size: 0.85rem; border-bottom: 1px solid #eee; }
+  th { background: #f5f5f5; font-weight: 700; color: #555; }
+  td.num { text-align: center; font-weight: 600; }
+  tfoot td { font-weight: 700; background: #f9f9f9; }
+
+  /* ── ذيل ── */
+  .slip-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: #fafafa;
+    border-top: 2px solid #111;
+    font-size: 0.78rem;
+    color: #555;
+  }
+  .barcode {
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    letter-spacing: 3px;
+    font-weight: 700;
+    color: #111;
+  }
+
+  /* ── أزرار (مخفية عند الطباعة) ── */
+  .no-print {
+    max-width: 680px;
+    margin: 16px auto 0;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .btn-print {
+    background: #111; color: #fff; border: none;
+    padding: 10px 24px; border-radius: 6px;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  }
+  .btn-back {
+    background: #eee; color: #111; border: none;
+    padding: 10px 20px; border-radius: 6px;
+    font-size: 0.9rem; cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center;
+  }
+
+  @media print {
+    body { padding: 0; }
+    .no-print { display: none !important; }
+    .slip { border-radius: 0; max-width: 100%; border-width: 1px; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="slip">
+
+  {# ── رأس ── #}
+  <div class="slip-head">
+    <div class="slip-head-brand">
+      🐾 {{ store_name }}
+      <span>+{{ store_phone }}</span>
+    </div>
+    <div class="slip-head-order">
+      <div class="order-num">#{{ order.id }}</div>
+      <div class="order-date">{{ order.created_at[:16].replace('T',' ') }}</div>
+    </div>
+  </div>
+
+  <div class="slip-body">
+
+    {# ── المرسل والمرسل إليه ── #}
+    <div class="slip-row">
+      <div class="slip-box">
+        <div class="box-label">📤 المرسل — Sender</div>
+        <div class="box-name">{{ store_name }}</div>
+        <div class="box-line">+{{ store_phone }}</div>
+        <div class="box-line muted">Bella Pet Store — Lebanon</div>
+      </div>
+      <div class="slip-box">
+        <div class="box-label">📥 المرسل إليه — Recipient</div>
+        <div class="box-name">{{ order.customer_name }}</div>
+        <div class="box-line">📞 {{ order.phone }}</div>
+        <div class="box-line">📍 {{ order.area }}</div>
+        {% if order.address_note %}
+        <div class="box-line muted">{{ order.address_note }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── الدفع عند الاستلام ── #}
+    <div class="slip-row">
+      <div class="slip-box full">
+        <div class="box-label">💵 الدفع عند الاستلام — Cash on Delivery</div>
+        <div class="cod-box">
+          <div>
+            <div class="cod-label">المبلغ المطلوب تحصيله</div>
+            <div class="cod-label">Amount to collect</div>
+          </div>
+          <div class="cod-amount">${{ '%.2f'|format(order.total) }}</div>
+        </div>
+      </div>
+    </div>
+
+    {# ── المنتجات ── #}
+    <div class="slip-row">
+      <div class="slip-box full">
+        <div class="box-label">📦 محتوى الطرد — Contents</div>
+        <table>
+          <thead>
+            <tr>
+              <th>المنتج</th>
+              <th style="width:60px;text-align:center">الكمية</th>
+              <th style="width:90px">السعر</th>
+              <th style="width:90px">الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            <tr>
+              <td>{{ item.name_ar or item.name_en }}</td>
+              <td class="num">{{ item.qty }}</td>
+              <td>${{ '%.2f'|format(item.price_at_order) }}</td>
+              <td>${{ '%.2f'|format(item.price_at_order * item.qty) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">المجموع</td>
+              <td>${{ '%.2f'|format(order.total) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    {# ── ملاحظات ── #}
+    {% if order.address_note %}
+    <div class="slip-row">
+      <div class="slip-box full">
+        <div class="box-label">📝 ملاحظات التوصيل — Delivery Notes</div>
+        <div class="box-line">{{ order.address_note }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  {# ── ذيل ── #}
+  <div class="slip-foot">
+    <span>Bella Pet Store © {{ order.created_at[:4] }}</span>
+    <span class="barcode">ORD-{{ '%06d'|format(order.id) }}</span>
+    <span>الطرد تم تجهيزه من مستودعنا</span>
+  </div>
+
+</div>
+
+<div class="no-print">
+  <a href="javascript:history.back()" class="btn-back">← رجوع</a>
+  <button class="btn-print" onclick="window.print()">🖨 طباعة / PDF</button>
+</div>
+
+<script>
+  // طباعة تلقائية عند فتح الصفحة
+  window.addEventListener('load', function() { window.print(); });
+</script>
+
+</body>
+</html>

@@ -11,8 +11,12 @@
     <span class="status-badge status-{{ order.status }}">{{ ar_status.get(order.status, order.status) }}</span>
   </h1>
   <div style="display:flex;gap:8px;align-items:center">
+    <a href="{{ url_for('admin_order_slip', oid=order.id) }}" target="_blank"
+       class="btn-adm-secondary" style="display:flex;align-items:center;gap:6px">
+      🚚 ورقة الشحن
+    </a>
     <button onclick="window.print()" class="btn-adm-secondary" style="display:flex;align-items:center;gap:6px">
-      🖨 طباعة / PDF
+      🖨 طباعة الطلب
     </button>
     <a href="{{ url_for('admin_orders') }}" class="btn-adm-secondary">← رجوع</a>
   </div>

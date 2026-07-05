@@ -1400,6 +1400,23 @@ def admin_order_detail(oid):
                            status_log=status_log, cust_profile=cust_profile,
                            active_admin='orders')
 
+@app.route('/admin/orders/<int:oid>/slip')
+@admin_required
+def admin_order_slip(oid):
+    db = get_db()
+    order = db.execute('SELECT * FROM orders WHERE id=?', (oid,)).fetchone()
+    if not order: db.close(); return redirect(url_for('admin_orders'))
+    items = db.execute(
+        """SELECT oi.qty, oi.price_at_order, p.name_ar, p.name_en
+           FROM order_items oi JOIN products p ON oi.product_id=p.id
+           WHERE oi.order_id=?""", (oid,)
+    ).fetchall()
+    db.close()
+    return render_template('admin/shipping_slip.html', order=order, items=items,
+                           store_name=config.SITE_NAME_AR,
+                           store_phone=config.WHATSAPP_NUMBER)
+
+
 @app.route('/admin/orders/<int:oid>/status', methods=['POST'])
 @admin_required
 def admin_order_status(oid):
