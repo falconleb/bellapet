@@ -352,9 +352,11 @@ function recalc() {
     savings.style.display  = '';
     savings.style.background = 'rgba(248,113,113,.1)';
     savings.style.color = '#f87171';
-    savings.innerHTML = LANG==='ar'
-      ? '🚫 نعتذر، التوصيل غير متاح لهذا القضاء حالياً'
-      : '🚫 Sorry, delivery is not available to this district';
+    var waUnavail = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(LANG==='ar' ? 'أهلاً، استفسار عن التوصيل لقضاء ' + areaName : 'Hi, inquiry about delivery to ' + areaName)}`;
+    savings.innerHTML = (LANG==='ar'
+      ? '🚫 نعتذر، التوصيل غير متاح لهذا القضاء حالياً — '
+      : '🚫 Delivery unavailable to this district — ')
+      + `<a href="${waUnavail}" target="_blank" style="color:#f87171;font-weight:700;text-decoration:underline">${LANG==='ar'?'تواصل معنا على واتساب':'Contact us on WhatsApp'}</a>`;
     if (waBtn) waBtn.style.pointerEvents = 'none', waBtn.style.opacity = '.4';
     if (coBtn) coBtn.style.pointerEvents = 'none', coBtn.style.opacity = '.4';
     return;

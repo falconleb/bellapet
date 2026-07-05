@@ -93,7 +93,11 @@
     <span class="field-error">{{ 'نعتذر، التوصيل غير متاح لهذا القضاء حالياً' if lang == 'ar' else 'Sorry, delivery is not available to this district' }}</span>
     {% endif %}
     <span class="field-error" id="co-area-unavail" style="display:none">
-      {{ 'نعتذر، التوصيل غير متاح لهذا القضاء حالياً' if lang == 'ar' else 'Sorry, delivery is not available to this district' }}
+      {{ 'نعتذر، التوصيل غير متاح لهذا القضاء حالياً — ' if lang == 'ar' else 'Delivery unavailable to this district — ' }}
+      <a id="co-area-wa-link" href="https://wa.me/{{ whatsapp_number }}" target="_blank"
+         style="color:inherit;font-weight:700;text-decoration:underline">
+        {{ 'تواصل معنا على واتساب' if lang == 'ar' else 'Contact us on WhatsApp' }}
+      </a>
     </span>
   </div>
 
@@ -130,12 +134,19 @@ function checkAreaAvail() {
   var sel = document.getElementById('co-area');
   var opt = sel ? sel.selectedOptions[0] : null;
   var unavailMsg = document.getElementById('co-area-unavail');
+  var waLink     = document.getElementById('co-area-wa-link');
   var submitBtn  = document.querySelector('.btn-place-order');
-  var disabled = opt && opt.dataset.enabled === '0';
-  if (unavailMsg) unavailMsg.style.display = disabled ? '' : 'none';
-  if (submitBtn)  submitBtn.disabled = disabled;
-  if (disabled && sel) sel.closest('.co-field').classList.add('has-error');
+  var isDisabled = opt && opt.dataset.enabled === '0';
+  if (unavailMsg) unavailMsg.style.display = isDisabled ? '' : 'none';
+  if (submitBtn)  submitBtn.disabled = isDisabled;
+  if (isDisabled && sel) sel.closest('.co-field').classList.add('has-error');
   else if (sel) sel.closest('.co-field').classList.remove('has-error');
+  if (isDisabled && waLink && opt) {
+    var areaName = opt.value;
+    var lang = document.documentElement.lang;
+    var msg = lang === 'ar' ? 'أهلاً، استفسار عن التوصيل لقضاء ' + areaName : 'Hi, inquiry about delivery to ' + areaName;
+    waLink.href = 'https://wa.me/{{ whatsapp_number }}?text=' + encodeURIComponent(msg);
+  }
 }
 
 // pre-fill from cart_customer localStorage if fields are empty

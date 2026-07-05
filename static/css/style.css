@@ -1922,18 +1922,6 @@ html[dir="rtl"] .product-card .thumb .badge-gold { left: 6px; right: 6px; }
 }
 .advisor-fab:active { transform: scale(0.92); }
 
-/* ── WhatsApp Contact FAB ── */
-.wa-contact-fab {
-  position: fixed; bottom: 20px; inset-inline-end: 16px;
-  width: 52px; height: 52px; border-radius: 50%;
-  background: #25D366; color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 16px rgba(37,211,102,.45);
-  z-index: 249; transition: transform .15s, box-shadow .15s;
-  text-decoration: none;
-}
-.wa-contact-fab:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(37,211,102,.6); }
-.wa-contact-fab:active { transform: scale(0.92); }
 
 .advisor-widget {
   position: fixed; top: 70px; bottom: 70px; inset-inline-end: 12px;
