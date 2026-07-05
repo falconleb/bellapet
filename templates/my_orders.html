@@ -90,7 +90,7 @@
 
         {# ── المنتجات ── #}
         <div class="order-items">
-          {% for item in entry.items %}
+          {% for item in entry['items'] %}
           <div class="order-item-row">
             <span class="order-item-name">{{ pick(item.name_en, item.name_ar) }}</span>
             <span class="order-item-qty text-muted">× {{ item.qty }}</span>
