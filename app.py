@@ -1778,7 +1778,8 @@ def admin_shipping():
                     fee = float(fee)
                 except ValueError:
                     fee = 4.0
-                db.execute("UPDATE shipping_zones SET fee=?, enabled=? WHERE id=?", (fee, enabled, zid))
+                name_en = request.form.get(f'name_en_{zid}', '').strip()
+                db.execute("UPDATE shipping_zones SET fee=?, enabled=?, name_en=? WHERE id=?", (fee, enabled, name_en, zid))
             # إعدادات الأيام
             for key in ('sub_delivery_days_min', 'sub_delivery_days_max'):
                 val = request.form.get(key, '').strip()
