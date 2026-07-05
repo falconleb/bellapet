@@ -122,11 +122,11 @@
     <span class="pet-picker-ai-badge">✦</span>
   </div>
   <div class="pet-picker-btns">
-    <button onclick="pickPet('cat')"  class="ppb" id="ppb-cat">🐱 {{ 'قطة' if lang == 'ar' else 'Cat' }}</button>
-    <button onclick="pickPet('dog')"  class="ppb" id="ppb-dog">🐶 {{ 'كلب' if lang == 'ar' else 'Dog' }}</button>
-    <button onclick="pickPet('bird')" class="ppb" id="ppb-bird">🐦 {{ 'طير' if lang == 'ar' else 'Bird' }}</button>
-    <button onclick="pickPet('fish')" class="ppb" id="ppb-fish">🐠 {{ 'سمك' if lang == 'ar' else 'Fish' }}</button>
-    <button onclick="pickPet('small')" class="ppb" id="ppb-small">🐇 {{ 'أرنب/هامستر' if lang == 'ar' else 'Small Pet' }}</button>
+    <button onclick="pickPet('cat')"  class="ppb" id="ppb-cat"><span class="ppb-emoji">🐱</span>{{ 'قطة' if lang == 'ar' else 'Cat' }}</button>
+    <button onclick="pickPet('dog')"  class="ppb" id="ppb-dog"><span class="ppb-emoji">🐶</span>{{ 'كلب' if lang == 'ar' else 'Dog' }}</button>
+    <button onclick="pickPet('bird')" class="ppb" id="ppb-bird"><span class="ppb-emoji">🐦</span>{{ 'طير' if lang == 'ar' else 'Bird' }}</button>
+    <button onclick="pickPet('fish')" class="ppb" id="ppb-fish"><span class="ppb-emoji">🐠</span>{{ 'سمك' if lang == 'ar' else 'Fish' }}</button>
+    <button onclick="pickPet('small')" class="ppb" id="ppb-small"><span class="ppb-emoji">🐇</span>{{ 'صغار' if lang == 'ar' else 'Small' }}</button>
   </div>
   <span class="pet-picker-hint">
     {{ 'مستشار ذكي يختار لك المنتج المناسب 🐾' if lang == 'ar' else 'AI advisor picks the right product for you 🐾' }}

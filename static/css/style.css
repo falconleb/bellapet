@@ -79,18 +79,19 @@ a { color: inherit; }
 }
 /* ── Pet Picker Bar ─────────────────────────────────── */
 .pet-picker-bar {
-  display: flex; align-items: center; justify-content: center;
-  flex-wrap: wrap; gap: 10px;
-  padding: 14px 16px;
-  background: rgba(255,255,255,.04);
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px;
+  padding: 18px 16px 16px;
+  background: var(--surface-2);
+  border-top: 2px solid rgba(212,167,44,.35);
   border-bottom: 1px solid var(--border);
 }
 .pet-picker-label {
-  font-size: 0.85rem; font-weight: 700;
-  color: var(--muted); white-space: nowrap;
+  font-size: 1rem; font-weight: 700;
+  color: var(--text); white-space: nowrap;
 }
 .pet-picker-start {
-  display: flex; align-items: center; gap: 7px; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
 }
 .pet-picker-ai-badge {
   font-size: 0.65rem; font-weight: 800; letter-spacing: .06em;
@@ -105,20 +106,32 @@ a { color: inherit; }
 }
 @media (max-width: 600px) {
   .pet-picker-hint { display: none; }
-  .pet-picker-bar  { gap: 8px; }
 }
-.pet-picker-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.pet-picker-btns {
+  display: flex; gap: 10px; flex-wrap: nowrap; justify-content: center;
+  width: 100%;
+}
 .ppb {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
   color: var(--text);
-  border-radius: 22px; padding: 7px 16px;
-  font-size: 0.84rem; font-weight: 600; cursor: pointer;
+  border-radius: 14px;
+  padding: 10px 6px 8px;
+  font-size: 0.78rem; font-weight: 700; cursor: pointer;
   transition: all .18s;
   white-space: nowrap;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  flex: 1; min-width: 0;
 }
-.ppb:hover   { border-color: var(--gold); color: var(--gold); transform: translateY(-1px); }
-.ppb-active  { background: rgba(212,167,44,.15); border-color: var(--gold); color: var(--gold); }
+.ppb .ppb-emoji { font-size: 1.9rem; line-height: 1; }
+.ppb:hover   { border-color: var(--gold); color: var(--gold); transform: translateY(-2px); }
+.ppb-active  { background: rgba(212,167,44,.12); border-color: var(--gold); color: var(--gold); }
+@media (min-width: 601px) {
+  .pet-picker-bar { flex-direction: row; flex-wrap: wrap; }
+  .pet-picker-btns { width: auto; }
+  .ppb { flex-direction: row; padding: 8px 16px; gap: 6px; flex: none; }
+  .ppb .ppb-emoji { font-size: 1.1rem; }
+}
 
 .trust-strip {
   display: grid;
