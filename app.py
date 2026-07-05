@@ -48,9 +48,9 @@ def _get_zones(db):
     return db.execute("SELECT * FROM shipping_zones ORDER BY sort_order, name_ar").fetchall()
 
 
-def _zones_list(db, enabled_only=True):
-    """list of dicts [{name_ar, name_en, fee}] للعرض في الـ templates."""
-    q = "SELECT name_ar, name_en, fee FROM shipping_zones"
+def _zones_list(db, enabled_only=False):
+    """list of dicts [{name_ar, name_en, fee, enabled}] للعرض في الـ templates."""
+    q = "SELECT name_ar, name_en, fee, enabled FROM shipping_zones"
     if enabled_only:
         q += " WHERE enabled=1"
     q += " ORDER BY sort_order, name_ar"
@@ -391,7 +391,7 @@ def inject_globals():
         try:
             db = get_db()
             rows = db.execute(
-                "SELECT name_ar, name_en, fee FROM shipping_zones WHERE enabled=1 ORDER BY sort_order, name_ar"
+                "SELECT name_ar, name_en, fee, enabled FROM shipping_zones ORDER BY sort_order, name_ar"
             ).fetchall()
             db.close()
             return [dict(r) for r in rows]
@@ -683,6 +683,10 @@ def checkout():
             errors["phone"] = True
         if not area:
             errors["area"] = True
+        else:
+            zone_row = db.execute("SELECT enabled FROM shipping_zones WHERE name_ar=?", (area,)).fetchone()
+            if not zone_row or not zone_row['enabled']:
+                errors["area_unavailable"] = True
 
         # تطبيق ميزة الولاء
         perk, cond_ok, cond_msg = _get_perk(db, phone, total)

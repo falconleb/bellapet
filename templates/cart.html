@@ -115,7 +115,7 @@
         <select id="cc-area" class="cart-cust-inp cart-cust-sel" onchange="recalc()">
           <option value="">{{ '— القضاء —' if lang == 'ar' else '— District —' }}</option>
           {% for z in zones_list %}
-          <option value="{{ z.name_ar }}" data-fee="{{ z.fee }}">{{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}</option>
+          <option value="{{ z.name_ar }}" data-fee="{{ z.fee }}" data-enabled="{{ 1 if z.enabled else 0 }}">{{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}{% if not z.enabled %} — {{ 'غير متاح' if lang == 'ar' else 'Unavailable' }}{% endif %}</option>
           {% endfor %}
         </select>
         <input id="cc-neighborhood" class="cart-cust-inp" type="text"
@@ -328,16 +328,41 @@ function fmt(n) { return CUR + n.toFixed(2); }
 function recalc() {
   const sel  = document.getElementById('cc-area');
   if (!sel) return;
-  const opt  = sel.selectedOptions[0];
-  const fee  = opt && opt.dataset.fee ? parseFloat(opt.dataset.fee) : null;
+  const opt     = sel.selectedOptions[0];
+  const enabled = !opt || opt.dataset.enabled !== '0';
+  const fee     = opt && opt.dataset.fee ? parseFloat(opt.dataset.fee) : null;
   const areaName = sel.value || '';
 
-  const deliveryRow = document.getElementById('delivery-row');
-  const noAreaHint  = document.getElementById('no-area-hint');
-  const calcDel     = document.getElementById('calc-delivery');
-  const calcTotal   = document.getElementById('calc-total');
-  const areaSpan    = document.getElementById('calc-area-name');
-  const savings     = document.getElementById('calc-savings');
+  const deliveryRow  = document.getElementById('delivery-row');
+  const noAreaHint   = document.getElementById('no-area-hint');
+  const calcDel      = document.getElementById('calc-delivery');
+  const calcTotal    = document.getElementById('calc-total');
+  const areaSpan     = document.getElementById('calc-area-name');
+  const savings      = document.getElementById('calc-savings');
+  const waBtn        = document.getElementById('wa-order-btn');
+  const coBtn        = document.querySelector('.btn-checkout');
+
+  // قضاء معطّل
+  if (areaName && !enabled) {
+    deliveryRow.style.display = '';
+    noAreaHint.style.display  = 'none';
+    calcDel.innerHTML = `<span style="color:#f87171;font-weight:600">${LANG==='ar'?'غير متاح':'Unavailable'}</span>`;
+    areaSpan.textContent = '';
+    calcTotal.textContent = fmt(SUBTOTAL);
+    savings.style.display  = '';
+    savings.style.background = 'rgba(248,113,113,.1)';
+    savings.style.color = '#f87171';
+    savings.innerHTML = LANG==='ar'
+      ? '🚫 نعتذر، التوصيل غير متاح لهذا القضاء حالياً'
+      : '🚫 Sorry, delivery is not available to this district';
+    if (waBtn) waBtn.style.pointerEvents = 'none', waBtn.style.opacity = '.4';
+    if (coBtn) coBtn.style.pointerEvents = 'none', coBtn.style.opacity = '.4';
+    return;
+  }
+
+  // أعِد تفعيل الأزرار
+  if (waBtn) waBtn.style.pointerEvents = '', waBtn.style.opacity = '';
+  if (coBtn) coBtn.style.pointerEvents = '', coBtn.style.opacity = '';
 
   if (fee !== null) {
     const actualFee = FREE_SHIPPING_UNLOCKED ? 0 : fee;
@@ -360,6 +385,8 @@ function recalc() {
         : `🎁 Your gift: ${SELECTED_GIFT.name_en}`);
     if (savingsMsgs.length) {
       savings.style.display = '';
+      savings.style.background = '';
+      savings.style.color = '';
       savings.innerHTML = savingsMsgs.join('<br>');
     } else {
       savings.style.display = 'none';

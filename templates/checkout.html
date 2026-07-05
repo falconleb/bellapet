@@ -74,19 +74,27 @@
     {% endif %}
   </div>
 
-  <div class="co-field {{ 'has-error' if errors.get('area') else '' }}">
+  <div class="co-field {{ 'has-error' if errors.get('area') or errors.get('area_unavailable') else '' }}">
     <label for="co-area">{{ 'القضاء *' if lang == 'ar' else 'District *' }}</label>
-    <select id="co-area" name="area" autocomplete="address-level2">
+    <select id="co-area" name="area" autocomplete="address-level2" onchange="checkAreaAvail()">
       <option value="">{{ '— اختر قضاءك —' if lang == 'ar' else '— Select your district —' }}</option>
       {% for z in zones_list %}
-      <option value="{{ z.name_ar }}" {% if form.get('area') == z.name_ar %}selected{% endif %}>
-        {{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}
+      <option value="{{ z.name_ar }}"
+              data-enabled="{{ 1 if z.enabled else 0 }}"
+              {% if form.get('area') == z.name_ar %}selected{% endif %}>
+        {{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}{% if not z.enabled %} — {{ 'غير متاح' if lang == 'ar' else 'Unavailable' }}{% endif %}
       </option>
       {% endfor %}
     </select>
     {% if errors.get('area') %}
     <span class="field-error">{{ 'مطلوب' if lang == 'ar' else 'Required' }}</span>
     {% endif %}
+    {% if errors.get('area_unavailable') %}
+    <span class="field-error">{{ 'نعتذر، التوصيل غير متاح لهذا القضاء حالياً' if lang == 'ar' else 'Sorry, delivery is not available to this district' }}</span>
+    {% endif %}
+    <span class="field-error" id="co-area-unavail" style="display:none">
+      {{ 'نعتذر، التوصيل غير متاح لهذا القضاء حالياً' if lang == 'ar' else 'Sorry, delivery is not available to this district' }}
+    </span>
   </div>
 
   <div class="co-field">
@@ -117,6 +125,18 @@
 if (window.psTrack) psTrack('begin_checkout', {
   extra: JSON.stringify({ total: {{ total }} })
 });
+
+function checkAreaAvail() {
+  var sel = document.getElementById('co-area');
+  var opt = sel ? sel.selectedOptions[0] : null;
+  var unavailMsg = document.getElementById('co-area-unavail');
+  var submitBtn  = document.querySelector('.btn-place-order');
+  var disabled = opt && opt.dataset.enabled === '0';
+  if (unavailMsg) unavailMsg.style.display = disabled ? '' : 'none';
+  if (submitBtn)  submitBtn.disabled = disabled;
+  if (disabled && sel) sel.closest('.co-field').classList.add('has-error');
+  else if (sel) sel.closest('.co-field').classList.remove('has-error');
+}
 
 // pre-fill from cart_customer localStorage if fields are empty
 (function() {

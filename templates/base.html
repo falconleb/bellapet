@@ -163,7 +163,7 @@
             <select id="sce-area" class="sub-cart-edit-inp sub-cart-edit-sel">
               <option value="">{{ '— اختر القضاء —' if lang == 'ar' else '— Select district —' }}</option>
               {% for z in global_zones %}
-              <option value="{{ z.name_ar }}">{{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}</option>
+              <option value="{{ z.name_ar }}" data-enabled="{{ 1 if z.enabled else 0 }}">{{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}{% if not z.enabled %} — {{ 'غير متاح' if lang == 'ar' else 'Unavailable' }}{% endif %}</option>
               {% endfor %}
             </select>
             <input id="sce-address" class="sub-cart-edit-inp" type="text" placeholder="{{ 'العنوان التفصيلي' if lang == 'ar' else 'Detailed address' }}">
@@ -684,6 +684,7 @@ function mcAfterAdd(count) {
 <script>
 // ── Subscription Cart ─────────────────────────────────────
 var _subLang = '{{ lang }}';
+var _DISABLED_ZONES = new Set({{ global_zones | selectattr('enabled', 'eq', 0) | map(attribute='name_ar') | list | tojson }});
 
 function updateSubCartBadge() {
   try {
@@ -785,13 +786,17 @@ function openSubCart() {
       // Totals + shipping — always show when cart has items
       var shipping = 0;
       var shipLabel = '';
-      if (freeMin > 0 && subtotal > 0 && subtotal >= freeMin) {
+      var area = (customer && customer.area) ? customer.area : '';
+      if (area && _DISABLED_ZONES.has(area)) {
+        shipLabel = '<span style="color:#f87171;font-weight:600">🚫 ' + (isAr ? 'نعتذر، التوصيل غير متاح لهذا القضاء حالياً' : 'Sorry, delivery unavailable to this district') + '</span>';
+        var confirmBtn2 = document.getElementById('sub-cart-confirm');
+        if (confirmBtn2) confirmBtn2.disabled = true;
+      } else if (freeMin > 0 && subtotal > 0 && subtotal >= freeMin) {
         shipLabel = '<span style="color:#4caf50">🎁 ' + (isAr ? 'شحن مجاني' : 'Free shipping') + '</span>';
       } else {
-        var area = (customer && customer.area) ? customer.area : '';
         var fee  = (area && deliveryFees[area] != null) ? deliveryFees[area] : null;
-        if (fee == null && area) fee = 4.0;          // fallback flat fee when area known
-        if (fee == null && !Object.keys(deliveryFees).length) fee = 4.0; // config not loaded yet
+        if (fee == null && area) fee = 4.0;
+        if (fee == null && !Object.keys(deliveryFees).length) fee = 4.0;
         if (fee != null) {
           shipping  = fee;
           shipLabel = cur + fee.toFixed(2) + ' &nbsp;<small style="color:var(--muted)">' + (isAr ? '2-4 أيام عمل' : '2-4 business days') + '</small>';
@@ -844,6 +849,13 @@ function saveSubCustomer() {
   var address = document.getElementById('sce-address').value.trim();
   if (!name)  { document.getElementById('sce-name').focus();  return; }
   if (!phone) { document.getElementById('sce-phone').focus(); return; }
+  if (area && _DISABLED_ZONES.has(area)) {
+    var sel = document.getElementById('sce-area');
+    sel.style.borderColor = '#f87171';
+    var msg = isAr ? 'نعتذر، التوصيل غير متاح لهذا القضاء حالياً' : 'Sorry, delivery is not available to this district';
+    alert(msg);
+    return;
+  }
   try {
     var existing = JSON.parse(localStorage.getItem('sub_customer') || '{}');
     localStorage.setItem('sub_customer', JSON.stringify({
