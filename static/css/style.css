@@ -1421,6 +1421,7 @@ html[dir="rtl"] .product-card .thumb .badge-gold { left: 6px; right: 6px; }
   transition: background .15s;
 }
 .btn-wa-problem:hover { background: rgba(248,113,113,.14); }
+.order-wa-problem { margin: 0 16px 16px; }
 
 .btn-back-home {
   display: flex; align-items: center; justify-content: center;

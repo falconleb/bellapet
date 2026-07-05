@@ -104,12 +104,10 @@
           <span class="order-total">${{ '%.2f'|format(o.total) }}</span>
         </div>
 
-        {% set phone_clean = o.phone|replace(' ','')|replace('-','')|replace('+','') %}
-        {% set wa_problem_msg = ('أهلاً، عندي مشكلة بطلبي رقم #' + o.id|string + ' — ' + pick('', '')) if lang == 'ar' else ('Hi, I have an issue with my order #' + o.id|string) %}
-        <a class="btn-wa-problem"
-           href="https://wa.me/{{ whatsapp_number }}?text={{ wa_problem_msg|urlencode }}"
+        <a class="btn-wa-problem order-wa-problem"
+           href="https://wa.me/{{ whatsapp_number }}?text={{ ('أهلاً، عندي مشكلة بطلبي رقم #' + o.id|string if lang == 'ar' else 'Hi, I have an issue with my order #' + o.id|string)|urlencode }}"
            target="_blank">
-          ⚠️ {{ pick('Issue with your order or delivery? Contact us', 'مشكلة بطلبك أو بالتوصيل؟ تواصل معنا') }}
+          ⚠️ {{ 'مشكلة بطلبك أو بالتوصيل؟ تواصل معنا' if lang == 'ar' else 'Issue with your order or delivery? Contact us' }}
         </a>
 
       </div>
