@@ -1412,6 +1412,16 @@ html[dir="rtl"] .product-card .thumb .badge-gold { left: 6px; right: 6px; }
 }
 .btn-wa-confirm .btn-icon { width: 18px; height: 18px; }
 
+.btn-wa-problem {
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid rgba(248,113,113,.35);
+  color: #f87171; background: rgba(248,113,113,.07);
+  border-radius: var(--radius-sm); padding: 11px 14px;
+  font-size: 0.84rem; font-weight: 600; text-decoration: none;
+  transition: background .15s;
+}
+.btn-wa-problem:hover { background: rgba(248,113,113,.14); }
+
 .btn-back-home {
   display: flex; align-items: center; justify-content: center;
   border: 1.5px solid rgba(255,255,255,0.12);

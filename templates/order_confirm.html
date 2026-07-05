@@ -45,11 +45,16 @@
       <span>{{ currency }}{{ '%.2f'|format(item.price_at_order * item.qty) }}</span>
     </div>
     {% endfor %}
+    {% if order.delivery_fee and order.delivery_fee > 0 %}
+    <div class="confirm-item">
+      <span>{{ 'التوصيل' if lang == 'ar' else 'Delivery' }}</span>
+      <span>{{ currency }}{{ '%.2f'|format(order.delivery_fee) }}</span>
+    </div>
+    {% endif %}
     <div class="confirm-item total">
-      <strong>{{ 'المجموع' if lang == 'ar' else 'Total' }}</strong>
+      <strong>{{ 'المجموع الكلي' if lang == 'ar' else 'Total (incl. delivery)' }}</strong>
       <strong>{{ currency }}{{ '%.2f'|format(order.total) }}</strong>
     </div>
-    <p class="co-delivery-note">{{ '+ رسوم التوصيل حسب منطقتك' if lang == 'ar' else '+ Delivery fee based on your area' }}</p>
   </div>
 
   {# زر واتساب — رسالة كاملة بتفاصيل الطلب والزبون #}
@@ -66,9 +71,10 @@
 
 🛒 المنتجات:
 {{ wa_items|join('\n') }}
-
-💰 المجموع: {{ currency }}{{ '%.2f'|format(order.total) }}
-(+ رسوم التوصيل حسب المنطقة){% endset %}
+──────────────
+قيمة المنتجات: {{ currency }}{{ '%.2f'|format(order.total - (order.delivery_fee or 0)) }}
+🚚 التوصيل: {% if order.delivery_fee and order.delivery_fee > 0 %}{{ currency }}{{ '%.2f'|format(order.delivery_fee) }}{% else %}مجاناً 🎉{% endif %}
+💰 المجموع الكلي: {{ currency }}{{ '%.2f'|format(order.total) }}{% endset %}
   {% set wa_msg_en %}🧾 New Order #{{ order.id }}
 
 👤 Name: {{ order.customer_name }}
@@ -78,15 +84,22 @@
 
 🛒 Items:
 {{ wa_items|join('\n') }}
-
-💰 Total: {{ currency }}{{ '%.2f'|format(order.total) }}
-(+ Delivery fee based on area){% endset %}
+──────────────
+Items subtotal: {{ currency }}{{ '%.2f'|format(order.total - (order.delivery_fee or 0)) }}
+🚚 Delivery: {% if order.delivery_fee and order.delivery_fee > 0 %}{{ currency }}{{ '%.2f'|format(order.delivery_fee) }}{% else %}FREE 🎉{% endif %}
+💰 Grand Total: {{ currency }}{{ '%.2f'|format(order.total) }}{% endset %}
 
   <a class="btn-wa-confirm"
      href="https://wa.me/{{ whatsapp_number }}?text={{ (wa_msg_ar if lang == 'ar' else wa_msg_en)|urlencode }}"
      target="_blank">
     {{ icons.icon_chat("btn-icon") }}
     {{ '📲 أرسل الطلب على واتساب' if lang == 'ar' else '📲 Send Order via WhatsApp' }}
+  </a>
+
+  <a class="btn-wa-problem"
+     href="https://wa.me/{{ whatsapp_number }}?text={{ ('مرحباً، عندي مشكلة بطلبي رقم #' + order.id|string)|urlencode }}"
+     target="_blank">
+    {{ '⚠️ مشكلة بطلبك أو بالتوصيل؟ تواصل معنا' if lang == 'ar' else '⚠️ Issue with your order or delivery? Contact us' }}
   </a>
 
   <a href="{{ url_for('index') }}" class="btn-back-home">
