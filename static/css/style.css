@@ -80,14 +80,14 @@ a { color: inherit; }
 /* ── Pet Picker Bar ─────────────────────────────────── */
 .pet-picker-bar {
   display: flex; flex-direction: column; align-items: center;
-  gap: 12px;
-  padding: 18px 16px 16px;
+  gap: 14px;
+  padding: 20px 16px 18px;
   background: var(--surface-2);
-  border-top: 2px solid rgba(212,167,44,.35);
+  border-top: 2px solid rgba(212,167,44,.4);
   border-bottom: 1px solid var(--border);
 }
 .pet-picker-label {
-  font-size: 1rem; font-weight: 700;
+  font-size: 1.05rem; font-weight: 700;
   color: var(--text); white-space: nowrap;
 }
 .pet-picker-start {
@@ -101,7 +101,7 @@ a { color: inherit; }
   border-radius: 20px; padding: 2px 7px;
 }
 .pet-picker-hint {
-  font-size: 0.72rem; color: var(--muted);
+  font-size: 0.75rem; color: var(--muted);
   white-space: nowrap;
 }
 @media (max-width: 600px) {
@@ -116,21 +116,21 @@ a { color: inherit; }
   border: 1.5px solid var(--border);
   color: var(--text);
   border-radius: 14px;
-  padding: 10px 6px 8px;
-  font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  padding: 14px 8px 12px;
+  font-size: 0.82rem; font-weight: 700; cursor: pointer;
   transition: all .18s;
   white-space: nowrap;
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
   flex: 1; min-width: 0;
 }
-.ppb .ppb-emoji { font-size: 1.9rem; line-height: 1; }
-.ppb:hover   { border-color: var(--gold); color: var(--gold); transform: translateY(-2px); }
+.ppb .ppb-emoji { font-size: 2.1rem; line-height: 1; }
+.ppb:hover   { border-color: var(--gold); color: var(--gold); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(212,167,44,.15); }
 .ppb-active  { background: rgba(212,167,44,.12); border-color: var(--gold); color: var(--gold); }
-@media (min-width: 601px) {
+@media (min-width: 700px) {
   .pet-picker-bar { flex-direction: row; flex-wrap: wrap; }
   .pet-picker-btns { width: auto; }
-  .ppb { flex-direction: row; padding: 8px 16px; gap: 6px; flex: none; }
-  .ppb .ppb-emoji { font-size: 1.1rem; }
+  .ppb { flex-direction: row; padding: 12px 22px; gap: 8px; flex: none; }
+  .ppb .ppb-emoji { font-size: 1.4rem; }
 }
 
 .trust-strip {
