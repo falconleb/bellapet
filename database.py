@@ -498,6 +498,7 @@ def init_db():
         ('gift_note',       'TEXT'),
         ('review_token',    'TEXT'),
         ('tracking_number', 'TEXT'),
+        ('delivery_fee',    'REAL NOT NULL DEFAULT 0'),
     ]:
         try:
             cur.execute(f'ALTER TABLE orders ADD COLUMN {col} {dfn}')

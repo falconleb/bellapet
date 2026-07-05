@@ -184,7 +184,18 @@
       {% endfor %}
     </tbody>
     <tfoot>
+      {% set products_sub = order.total - (order.delivery_fee or 0) %}
+      {% if order.delivery_fee and order.delivery_fee > 0 %}
       <tr>
+        <td colspan="3">قيمة المنتجات</td>
+        <td>${{ '%.2f'|format(products_sub) }}</td>
+      </tr>
+      <tr>
+        <td colspan="3">التوصيل — {{ order.area }}</td>
+        <td>${{ '%.2f'|format(order.delivery_fee) }}</td>
+      </tr>
+      {% endif %}
+      <tr style="font-size:1.05rem">
         <td colspan="3"><strong>المجموع الكلي</strong></td>
         <td><strong>${{ '%.2f'|format(order.total) }}</strong></td>
       </tr>

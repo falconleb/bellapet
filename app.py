@@ -684,7 +684,7 @@ def checkout():
         if not area:
             errors["area"] = True
         else:
-            zone_row = db.execute("SELECT enabled FROM shipping_zones WHERE name_ar=?", (area,)).fetchone()
+            zone_row = db.execute("SELECT enabled, fee FROM shipping_zones WHERE name_ar=?", (area,)).fetchone()
             if not zone_row or not zone_row['enabled']:
                 errors["area_unavailable"] = True
 
@@ -733,11 +733,18 @@ def checkout():
                 selected_gift = None
 
         if not errors and items:
+            # رسوم التوصيل — صفر إذا الشحن مجاني
+            delivery_fee = 0.0
+            if zone_row and zone_row['enabled']:
+                is_free_ship = perk and perk['perk_type'] == 'free_shipping' and cond_ok
+                delivery_fee = 0.0 if is_free_ship else float(zone_row['fee'])
+            grand_total = round(final_total + delivery_fee, 2)
+
             cur = db.cursor()
             rev_token = secrets.token_urlsafe(20)
             cur.execute(
-                "INSERT INTO orders (customer_name, phone, area, address_note, total, gift_note, review_token) VALUES (?,?,?,?,?,?,?)",
-                (name, phone, area, note or None, final_total, gift_note, rev_token),
+                "INSERT INTO orders (customer_name, phone, area, address_note, total, delivery_fee, gift_note, review_token) VALUES (?,?,?,?,?,?,?,?)",
+                (name, phone, area, note or None, grand_total, delivery_fee, gift_note, rev_token),
             )
             order_id = cur.lastrowid
             for item in items:
