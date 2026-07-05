@@ -127,10 +127,15 @@ if (window.psTrack) psTrack('begin_checkout', {
     var phone = document.getElementById('co-phone');
     var area  = document.getElementById('co-area');
     var note  = document.getElementById('co-note');
-    if (name  && !name.value)  name.value  = cust.name    || '';
-    if (phone && !phone.value) phone.value = cust.phone   || '';
-    if (area  && !area.value)  area.value  = cust.area    || '';
-    if (note  && !note.value && cust.address) note.value  = cust.address;
+    if (name  && !name.value)  name.value  = cust.name  || '';
+    if (phone && !phone.value) phone.value = cust.phone || '';
+    if (area  && !area.value)  area.value  = cust.area  || '';
+    if (note  && !note.value) {
+      var parts = [];
+      if (cust.neighborhood) parts.push(cust.neighborhood);
+      if (cust.notes)        parts.push(cust.notes);
+      if (parts.length) note.value = parts.join(' | ');
+    }
   } catch(e) {}
 })();
 </script>

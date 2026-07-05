@@ -100,7 +100,7 @@
   </div>
   {% endif %}
 
-  {# ── بيانات التوصيل ── #}
+  {# ── بطاقة 1: بيانات التوصيل ── #}
   <div class="cart-customer-card" id="cart-cust-card">
     <div class="cart-cust-header" onclick="toggleCartCustForm()">
       <span id="cart-cust-summary">👤 {{ 'أضف بيانات التوصيل' if lang == 'ar' else 'Add delivery info' }}</span>
@@ -112,62 +112,50 @@
         <input id="cc-phone" class="cart-cust-inp" type="tel"  placeholder="{{ 'رقم الهاتف *' if lang == 'ar' else 'Phone *' }}" autocomplete="tel" inputmode="tel">
       </div>
       <div class="cart-cust-row">
-        <select id="cc-area" class="cart-cust-inp cart-cust-sel">
-          <option value="">{{ '— اختر القضاء —' if lang == 'ar' else '— Select district —' }}</option>
+        <select id="cc-area" class="cart-cust-inp cart-cust-sel" onchange="recalc()">
+          <option value="">{{ '— القضاء —' if lang == 'ar' else '— District —' }}</option>
           {% for z in zones_list %}
-          <option value="{{ z.name_ar }}">{{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}</option>
+          <option value="{{ z.name_ar }}" data-fee="{{ z.fee }}">{{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}</option>
           {% endfor %}
         </select>
-        <input id="cc-address" class="cart-cust-inp" type="text" placeholder="{{ 'العنوان التفصيلي' if lang == 'ar' else 'Detailed address' }}">
+        <input id="cc-neighborhood" class="cart-cust-inp" type="text"
+               placeholder="{{ 'المنطقة / البلدة' if lang == 'ar' else 'Area / Town' }}">
       </div>
+      <input id="cc-notes" class="cart-cust-inp" type="text"
+             placeholder="{{ 'مثال: التسليم بعد 6 مساءً أو بتاريخ 15/07' if lang == 'ar' else 'e.g. Deliver after 6pm or by 15/07' }}"
+             style="width:100%;box-sizing:border-box">
       <button class="cart-cust-save" onclick="saveCartCustomer()">
         💾 {{ 'حفظ البيانات' if lang == 'ar' else 'Save info' }}
       </button>
     </div>
   </div>
 
-  {# ── حاسبة السعر الكاملة ── #}
+  {# ── بطاقة 2: ملخص الطلب (قراءة فقط) ── #}
   <div class="cart-calculator">
-
-    {# اختيار المنطقة #}
-    <div class="calc-area-row">
-      <label class="calc-label">
-        {{ '📍 منطقة التوصيل' if lang == 'ar' else '📍 Delivery Area' }}
-      </label>
-      <select id="area-select" class="calc-area-select" onchange="recalc()">
-        <option value="">{{ '— اختر منطقتك —' if lang == 'ar' else '— Select your area —' }}</option>
-        {% for z in zones_list %}
-        <option value="{{ z.fee }}" data-area="{{ z.name_ar }}">{{ z.name_ar }}{% if z.name_en %} / {{ z.name_en }}{% endif %}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    {# تفاصيل السعر #}
     <div class="calc-breakdown">
       <div class="calc-row">
         <span>{{ 'قيمة المنتجات' if lang == 'ar' else 'Items subtotal' }}</span>
         <span class="calc-val" id="calc-subtotal">{{ currency }}{{ '%.2f'|format(total) }}</span>
       </div>
       <div class="calc-row calc-delivery-row" id="delivery-row" style="display:none">
-        <span>{{ 'رسوم التوصيل' if lang == 'ar' else 'Delivery fee' }}
+        <span>{{ 'التوصيل' if lang == 'ar' else 'Delivery' }}
           <span class="calc-area-name" id="calc-area-name"></span>
         </span>
         <span class="calc-val" id="calc-delivery">—</span>
       </div>
       <div class="calc-row calc-row-hint" id="no-area-hint">
-        <span class="text-muted" style="font-size:0.8rem">
-          {{ '← اختر منطقتك لمعرفة رسوم التوصيل' if lang == 'ar' else '← Select your area to see delivery fee' }}
+        <span style="font-size:0.78rem;color:var(--muted)">
+          {{ '← اختر القضاء من البطاقة أعلاه لمعرفة رسوم التوصيل' if lang == 'ar' else '← Select district above to see delivery fee' }}
         </span>
       </div>
+      <div id="calc-savings" class="calc-savings" style="display:none"></div>
       <div class="calc-divider"></div>
       <div class="calc-row calc-total-row">
         <span>{{ 'المجموع الكلي' if lang == 'ar' else 'Total' }}</span>
         <span class="calc-total-val" id="calc-total">{{ currency }}{{ '%.2f'|format(total) }}</span>
       </div>
-      <div id="calc-savings" class="calc-savings" style="display:none"></div>
     </div>
 
-    {# أزرار الطلب #}
     <div class="calc-actions">
       <a class="btn-wa-cart" id="wa-order-btn"
          href="https://wa.me/{{ whatsapp_number }}?text={{ ('أهلاً، بدي أطلب:\n')|urlencode }}"
@@ -240,34 +228,6 @@
   padding: 22px;
   margin-top: 20px;
   max-width: 520px;
-}
-
-.calc-area-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-.calc-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-}
-.calc-area-select {
-  width: 100%;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface2);
-  color: var(--text);
-  font-size: 0.88rem;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color .15s;
-}
-.calc-area-select:focus {
-  outline: none;
-  border-color: rgba(212,167,44,.6);
 }
 
 .calc-breakdown {
@@ -366,9 +326,11 @@ const ITEMS = [
 function fmt(n) { return CUR + n.toFixed(2); }
 
 function recalc() {
-  const sel      = document.getElementById('area-select');
-  const fee      = sel.value ? parseFloat(sel.value) : null;
-  const areaName = sel.selectedOptions[0]?.dataset.area || '';
+  const sel  = document.getElementById('cc-area');
+  if (!sel) return;
+  const opt  = sel.selectedOptions[0];
+  const fee  = opt && opt.dataset.fee ? parseFloat(opt.dataset.fee) : null;
+  const areaName = sel.value || '';
 
   const deliveryRow = document.getElementById('delivery-row');
   const noAreaHint  = document.getElementById('no-area-hint');
@@ -386,7 +348,7 @@ function recalc() {
     } else {
       calcDel.textContent = fmt(fee);
     }
-    areaSpan.textContent = '(' + areaName + ')';
+    areaSpan.textContent = areaName ? '(' + areaName + ')' : '';
     calcTotal.textContent = fmt(SUBTOTAL + actualFee);
 
     const savingsMsgs = [];
@@ -412,11 +374,20 @@ function recalc() {
 
 function buildWaLink(e) {
   e.preventDefault();
-  const sel       = document.getElementById('area-select');
-  const rawFee    = sel.value ? parseFloat(sel.value) : null;
+  const sel  = document.getElementById('cc-area');
+  const opt  = sel ? sel.selectedOptions[0] : null;
+  const rawFee    = opt && opt.dataset.fee ? parseFloat(opt.dataset.fee) : null;
   const actualFee = (rawFee !== null && FREE_SHIPPING_UNLOCKED) ? 0 : rawFee;
-  const areaName  = sel.selectedOptions[0]?.dataset.area || '';
+  const areaName  = sel ? sel.value : '';
   const grandTotal = SUBTOTAL + (actualFee ?? 0);
+
+  /* customer info */
+  var cust = null;
+  try { cust = JSON.parse(localStorage.getItem('cart_customer') || 'null'); } catch(ex) {}
+  const custName  = cust && cust.name  ? cust.name  : '';
+  const custPhone = cust && cust.phone ? cust.phone : '';
+  const custNbhd  = cust && cust.neighborhood ? cust.neighborhood : '';
+  const custNotes = cust && cust.notes ? cust.notes : '';
 
   /* ── 1. منتجات السلة + عروض المنتج (B2G1F) ── */
   const lines = ITEMS.map(it => {
@@ -448,10 +419,15 @@ function buildWaLink(e) {
       if (FREE_SHIPPING_UNLOCKED)
         msg += `التوصيل: مجاناً 🚚\n`;
       else
-        msg += `التوصيل (${areaName}): ${fmt(rawFee)}\n`;
+        msg += `التوصيل (${areaName}${custNbhd ? ' — ' + custNbhd : ''}): ${fmt(rawFee)}\n`;
     }
-    msg += `الإجمالي: ${fmt(grandTotal)}`;
-    if (!sel.value) msg += '\n(لم تُحدَّد منطقة التوصيل بعد)';
+    msg += `الإجمالي: ${fmt(grandTotal)}\n`;
+    msg += '──────────────\n';
+    if (custName)  msg += `الاسم: ${custName}\n`;
+    if (custPhone) msg += `الهاتف: ${custPhone}\n`;
+    if (areaName)  msg += `القضاء: ${areaName}${custNbhd ? ' — ' + custNbhd : ''}\n`;
+    if (custNotes) msg += `ملاحظات: ${custNotes}\n`;
+    if (!areaName) msg += '(لم تُحدَّد منطقة التوصيل بعد)\n';
   } else {
     msg  = "Hi, I'd like to order:\n";
     msg += lines.join('\n') + '\n';
@@ -461,10 +437,15 @@ function buildWaLink(e) {
       if (FREE_SHIPPING_UNLOCKED)
         msg += `Delivery: FREE 🚚\n`;
       else
-        msg += `Delivery (${areaName}): ${fmt(rawFee)}\n`;
+        msg += `Delivery (${areaName}${custNbhd ? ' — ' + custNbhd : ''}): ${fmt(rawFee)}\n`;
     }
-    msg += `Total: ${fmt(grandTotal)}`;
-    if (!sel.value) msg += '\n(Delivery area not selected yet)';
+    msg += `Total: ${fmt(grandTotal)}\n`;
+    msg += '──────────────\n';
+    if (custName)  msg += `Name: ${custName}\n`;
+    if (custPhone) msg += `Phone: ${custPhone}\n`;
+    if (areaName)  msg += `District: ${areaName}${custNbhd ? ' — ' + custNbhd : ''}\n`;
+    if (custNotes) msg += `Notes: ${custNotes}\n`;
+    if (!areaName) msg += '(Delivery area not selected yet)\n';
   }
 
   window.open(`https://wa.me/${WA_NUM}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -496,16 +477,25 @@ function selectGift(promoId, giftId, btn) {
 }
 
 /* ── Cart Customer Info ── */
+function _custSummary(name, phone, area, neighborhood) {
+  var s = '👤 ' + name + '  📞 ' + phone;
+  if (area) s += '  📍 ' + area;
+  if (neighborhood) s += ' — ' + neighborhood;
+  return s;
+}
+
 function initCartCustomer() {
   var cust = null;
   try { cust = JSON.parse(localStorage.getItem('cart_customer') || 'null'); } catch(e) {}
-  var summaryEl = document.getElementById('cart-cust-summary');
   if (cust && cust.name) {
-    summaryEl.textContent = '👤 ' + cust.name + '  📞 ' + cust.phone + (cust.area ? '  📍 ' + cust.area : '');
-    document.getElementById('cc-name').value    = cust.name    || '';
-    document.getElementById('cc-phone').value   = cust.phone   || '';
-    document.getElementById('cc-area').value    = cust.area    || '';
-    document.getElementById('cc-address').value = cust.address || '';
+    document.getElementById('cart-cust-summary').textContent =
+      _custSummary(cust.name, cust.phone, cust.area || '', cust.neighborhood || '');
+    document.getElementById('cc-name').value         = cust.name         || '';
+    document.getElementById('cc-phone').value        = cust.phone        || '';
+    document.getElementById('cc-area').value         = cust.area         || '';
+    document.getElementById('cc-neighborhood').value = cust.neighborhood || '';
+    document.getElementById('cc-notes').value        = cust.notes        || '';
+    recalc();
   }
 }
 
@@ -518,19 +508,20 @@ function toggleCartCustForm() {
 }
 
 function saveCartCustomer() {
-  var name    = document.getElementById('cc-name').value.trim();
-  var phone   = document.getElementById('cc-phone').value.trim();
-  var area    = document.getElementById('cc-area').value.trim();
-  var address = document.getElementById('cc-address').value.trim();
+  var name         = document.getElementById('cc-name').value.trim();
+  var phone        = document.getElementById('cc-phone').value.trim();
+  var area         = document.getElementById('cc-area').value.trim();
+  var neighborhood = document.getElementById('cc-neighborhood').value.trim();
+  var notes        = document.getElementById('cc-notes').value.trim();
   if (!name)  { document.getElementById('cc-name').focus();  return; }
   if (!phone) { document.getElementById('cc-phone').focus(); return; }
   try {
-    localStorage.setItem('cart_customer', JSON.stringify({ name, phone, area, address }));
+    localStorage.setItem('cart_customer', JSON.stringify({ name, phone, area, neighborhood, notes }));
   } catch(e) {}
-  document.getElementById('cart-cust-summary').textContent =
-    '👤 ' + name + '  📞 ' + phone + (area ? '  📍 ' + area : '');
+  document.getElementById('cart-cust-summary').textContent = _custSummary(name, phone, area, neighborhood);
   document.getElementById('cart-cust-form').style.display  = 'none';
   document.getElementById('cart-cust-chevron').classList.remove('open');
+  recalc();
 }
 
 document.addEventListener('DOMContentLoaded', initCartCustomer);
