@@ -34,8 +34,11 @@
   {# ── hreflang — ثنائي اللغة AR/EN ── #}
   {% set _base_url = request.host_url.rstrip('/') %}
   {% set _path = request.path %}
-  <link rel="alternate" hreflang="ar" href="{{ _base_url }}{{ _path }}{% if lang == 'en' %}?lang=ar{% endif %}">
-  <link rel="alternate" hreflang="en" href="{{ _base_url }}{{ _path }}{% if lang == 'ar' %}?lang=en{% endif %}">
+  {% set _qs_ar = request.args|reject('eq','lang')|list %}
+  {% set _ar_url = _base_url + _path + '?lang=ar' + (('&' + request.query_string.decode().replace('lang=en','').replace('lang=ar','').strip('&')) if request.args|length > 1 else '') %}
+  {% set _en_url = _base_url + _path + '?lang=en' + (('&' + request.query_string.decode().replace('lang=en','').replace('lang=ar','').strip('&')) if request.args|length > 1 else '') %}
+  <link rel="alternate" hreflang="ar" href="{{ _ar_url }}">
+  <link rel="alternate" hreflang="en" href="{{ _en_url }}">
   <link rel="alternate" hreflang="x-default" href="{{ _base_url }}{{ _path }}">
 
   {# noindex لصفحات بلا قيمة SEO #}

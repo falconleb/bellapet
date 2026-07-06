@@ -27,9 +27,9 @@
       {% set o = entry.order %}
       {% set log = entry.log %}
 
-      {% set status_ar = {'new':'استلمنا طلبك','confirmed':'تم التأكيد','shipped':'في الطريق','delayed':'تأخير مؤقت','delivered':'تم التسليم','cancelled':'ملغى'} %}
-      {% set status_en = {'new':'Order Received','confirmed':'Confirmed','shipped':'On the Way','delayed':'Slight Delay','delivered':'Delivered','cancelled':'Cancelled'} %}
-      {% set status_icon = {'new':'📋','confirmed':'✅','shipped':'🚚','delayed':'⏳','delivered':'📦','cancelled':'❌'} %}
+      {% set status_ar = {'new':'استلمنا طلبك','confirmed':'تم التأكيد','shipped':'في الطريق','delayed':'تأخير مؤقت','delivered':'تم التسليم','cancelled':'ملغى','returned':'تم الإرجاع'} %}
+      {% set status_en = {'new':'Order Received','confirmed':'Confirmed','shipped':'On the Way','delayed':'Slight Delay','delivered':'Delivered','cancelled':'Cancelled','returned':'Returned'} %}
+      {% set status_icon = {'new':'📋','confirmed':'✅','shipped':'🚚','delayed':'⏳','delivered':'📦','cancelled':'❌','returned':'↩️'} %}
 
       <div class="order-card">
 

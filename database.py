@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS product_images (
     filename TEXT NOT NULL,
     sort_order INTEGER DEFAULT 0
 );
+CREATE INDEX IF NOT EXISTS idx_product_images_pid_sort ON product_images(product_id, sort_order);
 
 CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

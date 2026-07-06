@@ -509,15 +509,25 @@ def cart():
     total = 0.0
     db = get_db()
     if cart_data:
+        pids = [int(k) for k in cart_data.keys()]
+        placeholders = ','.join('?' * len(pids))
+        all_products = {
+            str(r['id']): r for r in db.execute(
+                f"SELECT * FROM products WHERE id IN ({placeholders}) AND is_active=1", pids
+            ).fetchall()
+        }
+        all_tiers_rows = db.execute(
+            f"SELECT * FROM product_price_tiers WHERE product_id IN ({placeholders}) ORDER BY min_qty",
+            pids
+        ).fetchall()
+        tiers_by_pid = {}
+        for t in all_tiers_rows:
+            tiers_by_pid.setdefault(t['product_id'], []).append(t)
+
         for pid_str, qty in cart_data.items():
-            p = db.execute(
-                "SELECT * FROM products WHERE id = ? AND is_active = 1", (int(pid_str),)
-            ).fetchone()
+            p = all_products.get(pid_str)
             if p:
-                tiers = db.execute(
-                    'SELECT * FROM product_price_tiers WHERE product_id=? ORDER BY min_qty',
-                    (p['id'],)
-                ).fetchall()
+                tiers = tiers_by_pid.get(p['id'], [])
                 base_price = p["discount_price"] if p["discount_price"] else p["price"]
                 tier_price = _best_tier_price(tiers, qty)
                 price      = tier_price if tier_price is not None else base_price
@@ -1120,7 +1130,7 @@ def admin_product_edit(pid):
         if not errors:
             slug = form.get('slug','').strip() or slugify(form.get('name_en',''))
             if db.execute('SELECT id FROM products WHERE slug=? AND id!=?', (slug, pid)).fetchone():
-                slug += '-2'
+                slug += '-' + os.urandom(2).hex()
             cur = db.cursor()
             cur.execute(
                 """UPDATE products SET category_id=?,subcategory_id=?,slug=?,name_en=?,name_ar=?,
@@ -1170,6 +1180,13 @@ def admin_product_edit(pid):
 @admin_required
 def admin_product_delete(pid):
     db = get_db()
+    imgs = db.execute('SELECT filename FROM product_images WHERE product_id=?', (pid,)).fetchall()
+    for img in imgs:
+        fpath = os.path.join(config.UPLOAD_FOLDER, img['filename'])
+        try:
+            if os.path.exists(fpath): os.remove(fpath)
+        except OSError:
+            pass
     db.execute('DELETE FROM products WHERE id=?', (pid,))
     db.commit(); db.close()
     return redirect(url_for('admin_products'))
