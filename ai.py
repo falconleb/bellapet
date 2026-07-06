@@ -5,10 +5,16 @@ ai.py — محرك الذكاء الاصطناعي المركزي للمتجر
 
 import json
 import hashlib
+import time
+import sys
 import urllib.request
 import urllib.error
 import config
 from database import get_db
+
+# ── Cache مؤقت في الذاكرة للكاتالوج (يتجدد كل 5 دقائق) ──────────
+_ctx_cache: dict = {'catalog': None, 'catalog_ts': 0, 'promos': None, 'promos_ts': 0}
+_CTX_TTL = 300  # ثواني
 
 
 # ── Groq client بسيط بدون dependencies خارجية ──────────────────
@@ -37,7 +43,11 @@ def _call_groq(messages: list, temperature=0.2, max_tokens=1024) -> str:
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read())
             return data['choices'][0]['message']['content'].strip()
-    except Exception:
+    except urllib.error.HTTPError as e:
+        print(f'[ai] Groq HTTP {e.code}: {e.read()[:200]}', file=sys.stderr)
+        return ''
+    except Exception as e:
+        print(f'[ai] Groq error: {e}', file=sys.stderr)
         return ''
 
 
@@ -70,7 +80,11 @@ def _cache_set(key: str, result: str):
 # ── بناء context الكاتالوج ─────────────────────────────────────
 
 def _build_promos_context() -> str:
-    """يبني نص عن العروض النشطة وطبقات الأسعار."""
+    """يبني نص عن العروض النشطة وطبقات الأسعار — مخزّن 5 دقائق."""
+    now = time.time()
+    if _ctx_cache['promos'] is not None and now - _ctx_cache['promos_ts'] < _CTX_TTL:
+        return _ctx_cache['promos']
+
     db = get_db()
     promos = db.execute(
         'SELECT DISTINCT offer_type, threshold_amount, title_ar FROM cart_promotions WHERE is_active=1 ORDER BY threshold_amount'
@@ -113,11 +127,18 @@ def _build_promos_context() -> str:
             ppu_str = f'${ppu:.2f}' if ppu is not None else '?'
             lines.append(f'  - {t["min_qty"]} حبات أو أكتر → {ppu_str}/حبة')
 
-    return '\n'.join(lines) if lines else ''
+    result = '\n'.join(lines) if lines else ''
+    _ctx_cache['promos'] = result
+    _ctx_cache['promos_ts'] = time.time()
+    return result
 
 
 def _build_catalog_context() -> str:
-    """يبني نص مضغوط عن كل المنتجات النشطة لإرساله للـ AI."""
+    """يبني نص مضغوط عن كل المنتجات النشطة — مخزّن 5 دقائق."""
+    now = time.time()
+    if _ctx_cache['catalog'] is not None and now - _ctx_cache['catalog_ts'] < _CTX_TTL:
+        return _ctx_cache['catalog']
+
     db = get_db()
     products = db.execute('''
         SELECT p.id, p.name_ar, p.name_en, p.brand,
@@ -169,7 +190,38 @@ def _build_catalog_context() -> str:
             f'{" | " + benefit if benefit else ""}'
         )
         lines.append(line)
-    return '\n'.join(lines)
+    result = '\n'.join(lines)
+    _ctx_cache['catalog'] = result
+    _ctx_cache['catalog_ts'] = time.time()
+    return result
+
+
+# ── رسائل الخطأ الافتراضية ───────────────────────────────────
+_FALLBACK = {
+    'ar': 'آسف، ما قدرت أجاوبك هلق. جرب مرة تانية بعد شوي، أو تواصل معنا على واتساب 🙏',
+    'en': 'Sorry, I couldn\'t respond right now. Please try again in a moment or contact us on WhatsApp.',
+}
+
+
+def _parse_advisor_json(text: str) -> dict | None:
+    """يستخرج أول JSON object صالح من النص — يتحمل نصاً قبله/بعده."""
+    if not text:
+        return None
+    start = text.find('{')
+    if start == -1:
+        return None
+    depth = 0
+    for i in range(start, len(text)):
+        if text[i] == '{':
+            depth += 1
+        elif text[i] == '}':
+            depth -= 1
+            if depth == 0:
+                try:
+                    return json.loads(text[start:i + 1])
+                except json.JSONDecodeError:
+                    break
+    return None
 
 
 # ══════════════════════════════════════════════════════════════
@@ -221,15 +273,9 @@ def smart_search(query: str) -> list[int]:
     )
 
     ids = []
-    try:
-        # استخرج JSON حتى لو في نص حواليه
-        start = response.find('{')
-        end   = response.rfind('}') + 1
-        if start != -1:
-            data = json.loads(response[start:end])
-            ids  = [int(i) for i in data.get('ids', []) if str(i).isdigit()]
-    except Exception:
-        pass
+    data = _parse_advisor_json(response)
+    if data:
+        ids = [int(i) for i in data.get('ids', []) if str(i).isdigit()]
 
     _cache_set(cache_key, json.dumps(ids))
     return ids
@@ -332,24 +378,23 @@ def product_advisor(message: str, history: list[dict] | None = None, lang: str =
 
     messages = [{'role': 'system', 'content': system}]
     if history:
-        messages.extend(history[-14:])  # آخر 7 رسائل — كافي للسياق
+        messages.extend(history[-10:])  # آخر 5 تبادلات — يوفر tokens بدون فقدان سياق
     messages.append({'role': 'user', 'content': message})
 
-    response = _call_groq(messages, temperature=0.4, max_tokens=512)
+    response = _call_groq(messages, temperature=0.4, max_tokens=600)
 
-    try:
-        start = response.find('{')
-        end   = response.rfind('}') + 1
-        if start != -1:
-            data = json.loads(response[start:end])
-            return {
-                'reply':       data.get('reply', response),
-                'product_ids': [int(i) for i in data.get('ids', [])],
-                'action':      data.get('action', ''),
-            }
-    except Exception:
-        pass
+    if not response:
+        return {'reply': _FALLBACK.get(lang, _FALLBACK['ar']), 'product_ids': [], 'action': ''}
 
+    data = _parse_advisor_json(response)
+    if data:
+        return {
+            'reply':       data.get('reply', '') or _FALLBACK.get(lang, _FALLBACK['ar']),
+            'product_ids': [int(i) for i in data.get('ids', []) if str(i).isdigit()],
+            'action':      data.get('action', ''),
+        }
+
+    # الـ model رد بنص خالص بدون JSON — نستخدمه مباشرة
     return {'reply': response, 'product_ids': [], 'action': ''}
 
 
@@ -426,18 +471,16 @@ Reply as JSON: {{"reply": "your message", "ids": [premium_id, budget_id], "actio
 
     response = _call_groq_vision(image_b64, vision_prompt)
 
-    try:
-        start = response.find('{')
-        end   = response.rfind('}') + 1
-        if start != -1:
-            data = json.loads(response[start:end])
+    if response:
+        data = _parse_advisor_json(response)
+        if data:
             return {
-                'reply':       data.get('reply', response),
-                'product_ids': [int(i) for i in data.get('ids', [])],
+                'reply':       data.get('reply', '') or _FALLBACK.get(lang, _FALLBACK['ar']),
+                'product_ids': [int(i) for i in data.get('ids', []) if str(i).isdigit()],
                 'action':      data.get('action', ''),
             }
-    except Exception:
-        pass
+        # رد نصي خالص
+        return {'reply': response, 'product_ids': [], 'action': ''}
 
     fallback = ("I can see your pet! Let me know what you need — food, accessories, or something else?" if lang == 'en'
                 else "شايف حيوانك الحلو! شو بدك تشتري لو — أكل، لوازم، أو شي تاني؟")
@@ -521,11 +564,10 @@ def generate_description(product_id: int) -> dict:
         max_tokens=600,
     )
 
+    data = _parse_advisor_json(response)
+    if not data:
+        return {'ok': False, 'error': 'invalid JSON from model', 'raw': response}
     try:
-        start = response.find('{')
-        end   = response.rfind('}') + 1
-        data  = json.loads(response[start:end])
-
         # حفظ كـ draft — لا ننشر مباشرة
         db = get_db()
         db.execute('''INSERT INTO product_desc_drafts
@@ -634,13 +676,10 @@ def get_upsell(product_id: int) -> list[int]:
     )
 
     ids = []
-    try:
-        start = response.find('{')
-        end   = response.rfind('}') + 1
-        ids   = [int(i) for i in json.loads(response[start:end]).get('ids', [])
-                 if str(i).isdigit() and int(i) != product_id][:6]
-    except Exception:
-        pass
+    data = _parse_advisor_json(response)
+    if data:
+        ids = [int(i) for i in data.get('ids', [])
+               if str(i).isdigit() and int(i) != product_id][:6]
 
     db = get_db()
     db.execute('''INSERT INTO ai_upsell_cache (product_id, ids_json)
