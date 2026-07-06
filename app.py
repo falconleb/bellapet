@@ -176,7 +176,7 @@ def _api_auth():
     key = (
         request.headers.get('X-API-Key') or
         request.args.get('api_key') or
-        (request.json.get('api_key') if request.is_json else None)
+        ((request.get_json(silent=True) or {}).get('api_key') if request.is_json else None)
     )
     if not key:
         return False
@@ -288,20 +288,24 @@ def _save_images(files, product_id, cur):
 app = Flask(__name__)
 app.config.from_object(config)
 
-# ── Rate Limiting (in-memory) ───────────────────────────────────
-_rl_store: dict = defaultdict(list)
-_rl_lock = threading.Lock()
-
+# ── Rate Limiting (SQLite — works across all gunicorn workers) ──
 def _rate_limited(key: str, max_calls: int = 10, window: int = 60) -> bool:
     now = time.time()
-    with _rl_lock:
-        calls = [t for t in _rl_store[key] if now - t < window]
-        if len(calls) >= max_calls:
-            _rl_store[key] = calls
+    cutoff = now - window
+    db = get_db()
+    try:
+        db.execute("DELETE FROM rate_limit_log WHERE ts < ?", (cutoff,))
+        count = db.execute(
+            "SELECT COUNT(*) FROM rate_limit_log WHERE key=? AND ts >= ?", (key, cutoff)
+        ).fetchone()[0]
+        if count >= max_calls:
+            db.commit()
             return True
-        calls.append(now)
-        _rl_store[key] = calls
-    return False
+        db.execute("INSERT INTO rate_limit_log (key, ts) VALUES (?,?)", (key, now))
+        db.commit()
+        return False
+    finally:
+        db.close()
 
 def _client_ip() -> str:
     return request.headers.get('X-Forwarded-For', request.remote_addr or '0').split(',')[0].strip()
@@ -1023,6 +1027,7 @@ def admin_logout():
 @app.route('/admin/')
 @admin_required
 def admin_dashboard():
+    from werkzeug.security import check_password_hash
     db = get_db()
     stats = {
         'products':    db.execute("SELECT COUNT(*) FROM products WHERE is_active=1").fetchone()[0],
@@ -1031,8 +1036,12 @@ def admin_dashboard():
         'blog':        db.execute("SELECT COUNT(*) FROM blog_posts WHERE is_published=1").fetchone()[0],
     }
     recent = db.execute("SELECT * FROM orders ORDER BY created_at DESC LIMIT 6").fetchall()
+    admin_row = db.execute("SELECT password_hash FROM admin_users WHERE username=?",
+                           (session.get('admin_username','admin'),)).fetchone()
+    default_pw = admin_row and check_password_hash(admin_row['password_hash'], 'changeme123')
     db.close()
-    return render_template('admin/dashboard.html', stats=stats, recent=recent, active_admin='dashboard')
+    return render_template('admin/dashboard.html', stats=stats, recent=recent,
+                           active_admin='dashboard', default_pw_warning=default_pw)
 
 # ── Products ──
 
