@@ -103,7 +103,8 @@
           {% endif %}
           {% if p['primary_img'] %}
           <img src="{{ url_for('static', filename='img/products/' + p['primary_img']) }}"
-               alt="{{ pick(p['name_en'], p['name_ar'])|e }}" loading="lazy">
+               alt="{{ pick(p['name_en'], p['name_ar'])|e }}"
+               width="145" height="145" loading="lazy" decoding="async">
           {% else %}
           <span class="hub-thumb-ph">🐾</span>
           {% endif %}

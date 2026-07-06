@@ -2294,7 +2294,8 @@ def my_orders():
     if request.method == "POST":
         phone = request.form.get("phone", "").strip()
         searched = True
-        if phone:
+        phone_digits = ''.join(c for c in phone if c.isdigit())
+        if phone and 7 <= len(phone_digits) <= 15:
             db = get_db()
             orders_raw = db.execute(
                 """SELECT * FROM orders WHERE phone=? ORDER BY created_at DESC LIMIT 10""",
