@@ -2415,6 +2415,18 @@ img { decoding: async; }
   33%       { transform: translateY(-7px) rotate(4deg); }
   66%       { transform: translateY(3px) rotate(-3deg); }
 }
+/* idle tilt on mobile when not being touched */
+@media (hover: none) {
+  .hero-card:not(.hero-tilting) {
+    animation: hero-idle-tilt 5s ease-in-out infinite;
+  }
+}
+@keyframes hero-idle-tilt {
+  0%, 100% { transform: rotateX(0deg)   rotateY(0deg); }
+  25%       { transform: rotateX(2.5deg) rotateY(-4deg); }
+  75%       { transform: rotateX(-1.5deg) rotateY(4deg); }
+}
+
 /* محتوى الهيرو — فوق كل شي */
 .hero-content {
   position: relative;

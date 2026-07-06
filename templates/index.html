@@ -740,14 +740,31 @@ function pickPet(type) {
     paws.forEach(p => { p.style.transform = ''; });
   });
 
-  if (window.DeviceOrientationEvent) {
-    window.addEventListener('deviceorientation', function (e) {
-      if (e.beta == null) return;
-      const rx = Math.max(-MAX, Math.min(MAX, (e.beta - 45) * .4));
-      const ry = Math.max(-MAX, Math.min(MAX,  e.gamma      * .4));
-      applyTilt(rx, ry);
-    });
+  function resetTilt() {
+    card.style.transition = 'transform .5s cubic-bezier(.23,1,.32,1), box-shadow .5s';
+    applyTilt(0, 0);
+    setTimeout(() => {
+      card.style.transition = 'transform .08s linear, box-shadow .2s';
+      card.classList.remove('hero-tilting');
+    }, 500);
+    gloss.style.background = 'radial-gradient(circle at 30% 30%, rgba(255,255,255,.12), transparent 60%)';
+    paws.forEach(p => { p.style.transform = ''; });
   }
+
+  scene.addEventListener('touchstart', function () {
+    card.classList.add('hero-tilting');
+  }, { passive: true });
+
+  scene.addEventListener('touchmove', function (e) {
+    const t = e.touches[0];
+    const r = card.getBoundingClientRect();
+    const rx = -((t.clientY - (r.top  + r.height / 2)) / (r.height / 2)) * MAX;
+    const ry =  ((t.clientX - (r.left + r.width  / 2)) / (r.width  / 2)) * MAX;
+    applyTilt(rx, ry);
+  }, { passive: true });
+
+  scene.addEventListener('touchend',    resetTilt);
+  scene.addEventListener('touchcancel', resetTilt);
 
   card.addEventListener('click', function () {
     card.style.transition = 'transform .15s cubic-bezier(.34,1.56,.64,1)';
