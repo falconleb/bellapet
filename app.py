@@ -4559,10 +4559,14 @@ def contact():
 
 @app.route("/returns")
 def returns():
+    return render_template("returns.html")
+
+@app.route("/shipping")
+def shipping_info():
     db = get_db()
-    page = db.execute("SELECT * FROM content_pages WHERE slug='returns'").fetchone()
+    zones = db.execute("SELECT * FROM shipping_zones ORDER BY sort_order, name_ar").fetchall()
     db.close()
-    return render_template("content_page.html", page=page)
+    return render_template("shipping_info.html", zones=zones)
 
 @app.route("/pages/<slug>")
 def content_page(slug):

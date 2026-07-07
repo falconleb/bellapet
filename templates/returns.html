@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ 'سياسة الإرجاع' if lang == 'ar' else 'Returns Policy' }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+
+{% block content %}
+<div class="content-page-wrap" style="max-width:680px">
+
+  <nav class="breadcrumb">
+    <a href="{{ url_for('index') }}">{{ 'الرئيسية' if lang == 'ar' else 'Home' }}</a>
+    <span class="bc-sep">›</span>
+    <span>{{ 'سياسة الإرجاع' if lang == 'ar' else 'Returns Policy' }}</span>
+  </nav>
+
+  <h1 class="cp-title">{{ '🔄 سياسة الإرجاع' if lang == 'ar' else '🔄 Returns Policy' }}</h1>
+
+  <div class="bento-grid">
+
+    <div class="bento-card bento-wide bento-highlight">
+      <span class="bento-big-icon">🐾</span>
+      <div>
+        <h2>{{ 'رضاك يهمنا' if lang == 'ar' else 'Your satisfaction matters' }}</h2>
+        <p>{{ 'بنقف معك لو في أي مشكلة بالمنتج — تواصل معنا وبنحلها سريع.' if lang == 'ar' else "We stand behind every product. If something's wrong, reach out and we'll sort it fast." }}</p>
+      </div>
+    </div>
+
+    <div class="bento-card">
+      <span class="bento-icon">⏱</span>
+      <h3>{{ '٤٨ ساعة' if lang == 'ar' else '48 Hours' }}</h3>
+      <p>{{ 'بلّغنا خلال ٤٨ ساعة من استلام الطلب.' if lang == 'ar' else 'Report any issue within 48 hours of receiving your order.' }}</p>
+    </div>
+
+    <div class="bento-card">
+      <span class="bento-icon">📦</span>
+      <h3>{{ 'حالة المنتج' if lang == 'ar' else 'Product Condition' }}</h3>
+      <p>{{ 'يجب أن يكون المنتج سليماً وغير مستخدم بغلافه الأصلي.' if lang == 'ar' else 'Must be unused and in its original packaging.' }}</p>
+    </div>
+
+    <div class="bento-card">
+      <span class="bento-icon">📸</span>
+      <h3>{{ 'أرسل صورة' if lang == 'ar' else 'Send a Photo' }}</h3>
+      <p>{{ 'صوّر المنتج وأرسله على واتساب وبنتواصل معك فوراً.' if lang == 'ar' else 'Photo the product and send it on WhatsApp — we respond immediately.' }}</p>
+    </div>
+
+    <div class="bento-card">
+      <span class="bento-icon">💰</span>
+      <h3>{{ 'الاسترداد' if lang == 'ar' else 'Refund' }}</h3>
+      <p>{{ 'كاش أو رصيد لطلبك القادم — أنت تختار.' if lang == 'ar' else 'Cash refund or store credit — your choice.' }}</p>
+    </div>
+
+    <div class="bento-card">
+      <span class="bento-icon">🚫</span>
+      <h3>{{ 'استثناءات' if lang == 'ar' else 'Exceptions' }}</h3>
+      <p>{{ 'الأغذية والعلاجات لا تُسترجع لأسباب صحية.' if lang == 'ar' else 'Food and medication are non-returnable for health reasons.' }}</p>
+    </div>
+
+  </div>
+
+  <div class="cp-footer-links" style="margin-top:28px">
+    <a href="{{ url_for('index') }}" class="cp-back">← {{ 'الرئيسية' if lang == 'ar' else 'Home' }}</a>
+    <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="btn-wa-confirm">
+      💬 {{ 'تواصل معنا' if lang == 'ar' else 'Contact Us' }}
+    </a>
+  </div>
+
+</div>
+
+<style>
+.bento-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+.bento-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.bento-wide {
+  grid-column: span 2;
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+}
+.bento-highlight {
+  background: var(--surface-2);
+  border-color: var(--gold);
+}
+.bento-big-icon { font-size: 2.4rem; flex-shrink: 0; }
+.bento-icon { font-size: 1.6rem; }
+.bento-card h2 { font-size: 1rem; font-weight: 700; margin: 0; }
+.bento-card h3 { font-size: 0.9rem; font-weight: 700; margin: 0; }
+.bento-card p  { font-size: 0.82rem; color: var(--text-muted); margin: 0; line-height: 1.55; }
+@media (max-width: 420px) {
+  .bento-grid { grid-template-columns: 1fr; }
+  .bento-wide { flex-direction: column; text-align: center; }
+}
+</style>
+{% endblock %}

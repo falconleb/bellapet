@@ -688,6 +688,7 @@ function pickPet(type) {
   <p>
     <a href="{{ url_for('about') }}" class="f-link">{{ 'عن المتجر' if lang == 'ar' else 'About' }}</a>
     · <a href="{{ url_for('contact') }}" class="f-link">{{ 'تواصل معنا' if lang == 'ar' else 'Contact' }}</a>
+    · <a href="{{ url_for('shipping_info') }}" class="f-link">{{ 'الشحن' if lang == 'ar' else 'Shipping' }}</a>
     · <a href="{{ url_for('returns') }}" class="f-link">{{ 'سياسة الإرجاع' if lang == 'ar' else 'Returns' }}</a>
   </p>
   <p>© 2026 {{ site_name_ar if lang == 'ar' else site_name_en }}</p>
