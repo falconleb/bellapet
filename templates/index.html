@@ -511,7 +511,7 @@ function pickPet(type) {
         {% endif %}
         {{ product_img(p['primary_img'], pick(p['name_en'], p['name_ar']), loop.index0) }}
         {% if not p['primary_img'] %}
-        <span class="thumb-placeholder">{{ icons.icon_by_name(p['cat_slug'] if p['cat_slug'] is defined else 'dog', "thumb-icon") }}</span>
+        <span class="thumb-placeholder">{{ icons.icon_by_name(p['cat_slug'] or 'dog', "thumb-icon") }}</span>
         {% endif %}
         <button class="wish-btn"
           data-slug="{{ p['slug'] }}"
@@ -553,12 +553,12 @@ function pickPet(type) {
         {% endif %}
         {{ product_img(p['primary_img'], pick(p['name_en'], p['name_ar']), loop.index0) }}
         {% if not p['primary_img'] %}
-        <span class="thumb-placeholder">{{ icons.icon_by_name(p['cat_slug'] if p['cat_slug'] is defined else 'dog', "thumb-icon") }}</span>
+        <span class="thumb-placeholder">{{ icons.icon_by_name(p['cat_slug'] or 'dog', "thumb-icon") }}</span>
         {% endif %}
         <button class="wish-btn"
           data-slug="{{ p['slug'] }}"
           data-name="{{ pick(p['name_en'],p['name_ar'])|e }}"
-          data-price="{{ p['price'] }}"
+          data-price="{{ p['discount_price'] or p['price'] }}"
           data-img="{{ p['primary_img'] or '' }}"
           title="{{ 'أضف للمفضلة' if lang == 'ar' else 'Add to wishlist' }}"
           aria-label="{{ 'أضف للمفضلة' if lang == 'ar' else 'Add to wishlist' }}">
@@ -567,7 +567,9 @@ function pickPet(type) {
       </div>
       <div class="info">
         <span class="p-name">{{ pick(p['name_en'], p['name_ar']) }}</span>
-        <span class="p-price">{{ currency }}{{ '%.2f'|format(p['price']) }}</span>
+        <span class="p-price">{{ currency }}{{ '%.2f'|format(p['discount_price'] or p['price']) }}
+          {% if p['discount_price'] %}<span class="old">{{ currency }}{{ '%.2f'|format(p['price']) }}</span>{% endif %}
+        </span>
       </div>
     </a>
     {% endfor %}
@@ -683,10 +685,6 @@ function pickPet(type) {
   <p>© 2026 {{ site_name_ar if lang == 'ar' else site_name_en }}</p>
 </footer>
 
-<p class="scaffold-note">
-  {{ '✅ هاي بيانات تجريبية للمعاينة فقط (منتجات ومقالات)، رح تنحذف وتنعوض بالكاتالوج الحقيقي من لوحة التحكم.' if lang == 'ar'
-     else '✅ Sample demo data shown for preview only — will be replaced via the admin panel.' }}
-</p>
 
 {% endblock %}
 
