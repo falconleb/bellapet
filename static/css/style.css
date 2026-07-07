@@ -444,21 +444,38 @@ html[dir="rtl"] .product-card .thumb .badge-gold { left: 6px; right: 6px; }
 /* Social buttons */
 .soc-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 58px;
+  height: auto;
+  border-radius: 16px;
+  padding: 10px 6px 7px;
+  gap: 4px;
   color: #fff;
   text-decoration: none;
   transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s;
   animation: soc-float 3s ease-in-out infinite;
 }
-.soc-btn svg { width: 20px; height: 20px; }
+.soc-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
 
 .soc-fb { background: #1877f2; animation-delay: 0s; }
 .soc-ig { background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285aeb 90%); animation-delay: .4s; }
 .soc-wa { background: #25D366; animation-delay: .8s; }
+
+.soc-label {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  line-height: 1;
+  animation: soc-label-bob 1.8s ease-in-out infinite;
+}
+.soc-label-join { animation-duration: 1.4s; }
+
+@keyframes soc-label-bob {
+  0%, 100% { transform: translateY(0);    opacity: .9; }
+  50%       { transform: translateY(-2px); opacity: .6; }
+}
 
 .soc-btn:hover {
   transform: scale(1.22) translateY(-4px);
