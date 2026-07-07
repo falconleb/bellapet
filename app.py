@@ -4712,40 +4712,6 @@ def admin_loyalty_check():
     })
 
 
-@app.route("/admin/content")
-@admin_required
-def admin_content():
-    db = get_db()
-    pages = db.execute("SELECT * FROM content_pages ORDER BY slug").fetchall()
-    db.close()
-    return render_template("admin/content_pages.html", pages=pages, active_admin="content")
-
-@app.route("/admin/content/save", methods=["POST"])
-@admin_required
-def admin_content_save():
-    slug     = request.form.get("slug", "").strip()
-    title_ar = request.form.get("title_ar", "").strip()
-    title_en = request.form.get("title_en", "").strip()
-    body_ar  = request.form.get("body_ar", "").strip()
-    body_en  = request.form.get("body_en", "").strip()
-    if not slug:
-        return redirect(url_for("admin_content"))
-    db = get_db()
-    db.execute("""
-        INSERT INTO content_pages (slug, title_ar, title_en, body_ar, body_en, updated_at)
-        VALUES (?,?,?,?,?, datetime('now'))
-        ON CONFLICT(slug) DO UPDATE SET
-            title_ar=excluded.title_ar, title_en=excluded.title_en,
-            body_ar=excluded.body_ar, body_en=excluded.body_en,
-            updated_at=excluded.updated_at
-    """, (slug, title_ar, title_en, body_ar, body_en))
-    db.commit()
-    db.close()
-    from flask import flash
-    flash("تم الحفظ ✓", "success")
-    return redirect(url_for("admin_content"))
-
-
 # ── Admin: Telegram Monitor Settings ────────────────────────────
 
 @app.route("/admin/monitor")
