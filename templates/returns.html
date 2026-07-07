@@ -52,6 +52,22 @@
       <p>{{ 'الأغذية والعلاجات لا تُسترجع لأسباب صحية.' if lang == 'ar' else 'Food and medication are non-returnable for health reasons.' }}</p>
     </div>
 
+    <div class="bento-card bento-wide bento-reject-free">
+      <span class="bento-big-icon">✅</span>
+      <div>
+        <h3>{{ 'رفض الطلب فوراً — بدون أي كلفة' if lang == 'ar' else 'Reject on arrival — no charge' }}</h3>
+        <p>{{ 'تقدر ترفض الطلب مباشرة عند الاستلام في حالتين: المنتج مختلف عمّا طلبته، أو التوصيل تأخر عن الوقت المتفق عليه. لا رسوم شحن ولا أي تكلفة عليك.' if lang == 'ar' else 'You can reject the order on the spot in two cases: the item differs from what you ordered, or delivery arrived later than the agreed timeframe. No shipping fee, no charge at all.' }}</p>
+      </div>
+    </div>
+
+    <div class="bento-card bento-wide bento-reject-paid">
+      <span class="bento-big-icon">💸</span>
+      <div>
+        <h3>{{ 'رفض لأسباب أخرى' if lang == 'ar' else 'Rejection for other reasons' }}</h3>
+        <p>{{ 'إذا رُفض الطلب لأي سبب آخر غير ما ذُكر أعلاه، بتُحسب رسوم الشحن فقط على العميل.' if lang == 'ar' else 'If the order is rejected for any other reason, only the shipping fee applies.' }}</p>
+      </div>
+    </div>
+
   </div>
 
   <div class="cp-footer-links" style="margin-top:28px">
@@ -94,6 +110,9 @@
 .bento-card h2 { font-size: 1rem; font-weight: 700; margin: 0; }
 .bento-card h3 { font-size: 0.9rem; font-weight: 700; margin: 0; }
 .bento-card p  { font-size: 0.82rem; color: var(--text-muted); margin: 0; line-height: 1.55; }
+.bento-reject-free { border-color: #22c55e44; background: rgba(34,197,94,.06); }
+.bento-reject-free .bento-big-icon { filter: drop-shadow(0 0 6px #22c55e66); }
+.bento-reject-paid  { border-color: var(--border); }
 @media (max-width: 420px) {
   .bento-grid { grid-template-columns: 1fr; }
   .bento-wide { flex-direction: column; text-align: center; }
