@@ -2091,6 +2091,7 @@ def sitemap():
     base = request.host_url.rstrip('/')
     urls = [
         {'loc': base + '/', 'priority': '1.0', 'freq': 'daily'},
+        {'loc': base + url_for('blog'),     'priority': '0.7', 'freq': 'weekly'},
         {'loc': base + url_for('my_orders'), 'priority': '0.4', 'freq': 'monthly'},
     ]
     for c in categories:
@@ -4519,6 +4520,28 @@ def admin_homepage():
 
 
 # ── صفحات المحتوى (فرونت إند) ──────────────────────────────────
+
+@app.route("/blog")
+def blog():
+    db = get_db()
+    posts = db.execute(
+        "SELECT * FROM blog_posts WHERE is_published=1 ORDER BY created_at DESC"
+    ).fetchall()
+    db.close()
+    return render_template("blog.html", posts=posts)
+
+
+@app.route("/blog/<slug>")
+def blog_post(slug):
+    db = get_db()
+    post = db.execute(
+        "SELECT * FROM blog_posts WHERE slug=? AND is_published=1", (slug,)
+    ).fetchone()
+    db.close()
+    if not post:
+        return page_not_found(None)
+    return render_template("blog_post.html", post=post)
+
 
 @app.route("/about")
 def about():

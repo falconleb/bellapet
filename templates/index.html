@@ -584,7 +584,7 @@ function pickPet(type) {
   </div>
   <div class="blog-scroll">
     {% for post in blog_posts %}
-    <a href="#" class="blog-card">
+    <a href="{{ url_for('blog_post', slug=post['slug']) }}" class="blog-card">
       <div class="thumb"></div>
       <div class="info">
         <span class="b-title">{{ pick(post['title_en'], post['title_ar']) }}</span>
