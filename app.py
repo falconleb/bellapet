@@ -4543,19 +4543,6 @@ def blog_post(slug):
     return render_template("blog_post.html", post=post)
 
 
-@app.route("/about")
-def about():
-    db = get_db()
-    page = db.execute("SELECT * FROM content_pages WHERE slug='about'").fetchone()
-    db.close()
-    return render_template("content_page.html", page=page)
-
-@app.route("/contact")
-def contact():
-    db = get_db()
-    page = db.execute("SELECT * FROM content_pages WHERE slug='contact'").fetchone()
-    db.close()
-    return render_template("content_page.html", page=page)
 
 @app.route("/returns")
 def returns():
