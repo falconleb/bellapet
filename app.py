@@ -5011,7 +5011,7 @@ def admin_redirects():
             to_path   = request.form.get("to_path", "").strip()
             if from_path and to_path:
                 db.execute(
-                    "INSERT OR REPLACE INTO redirects (from_path, to_path, is_active) VALUES (?,?,1)",
+                    "INSERT OR REPLACE INTO redirects (from_path, to_path, is_active, created_at) VALUES (?,?,1,datetime('now'))",
                     (from_path, to_path)
                 )
                 db.commit()
