@@ -2160,9 +2160,8 @@ def admin_seo_generate_all():
     return jsonify({'ok': True, 'done': done})
 
 
-@app.route('/feed.xml')
-def merchant_feed():
-    db  = get_db()
+def _build_merchant_feed(lang):
+    db = get_db()
     products = db.execute("""
         SELECT p.slug, p.name_ar, p.name_en, p.brand,
                p.price, p.discount_price, p.stock_qty,
@@ -2172,21 +2171,36 @@ def merchant_feed():
         FROM products p WHERE p.is_active=1
     """).fetchall()
     db.close()
-    base = request.host_url.rstrip('/')
-    lines = ['<?xml version="1.0" encoding="UTF-8"?>',
-             '<rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">',
-             '<channel>',
-             f'<title>{config.SITE_NAME_EN}</title>',
-             f'<link>{base}</link>',
-             '<description>متجر بيلا لجميع مستلزمات وحيوانات أليفة</description>']
+
+    base  = request.host_url.rstrip('/')
+    is_ar = (lang == 'ar')
+
+    def esc(s):
+        return (s or '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+    site_name = config.SITE_NAME_AR if is_ar else config.SITE_NAME_EN
+    ch_desc   = 'متجر بيلا لجميع مستلزمات وحيوانات أليفة' if is_ar else 'Bella Pet Store — pet supplies for your beloved animals'
+
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">',
+        '<channel>',
+        f'<title>{esc(site_name)}</title>',
+        f'<link>{base}</link>',
+        f'<description>{ch_desc}</description>',
+    ]
+
     for p in products:
         price    = p['discount_price'] or p['price']
         avail    = 'in_stock' if (p['stock_qty'] or 0) > 0 else 'out_of_stock'
-        name     = (p['name_en'] or p['name_ar'] or '').replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
-        desc     = (p['description_en'] or p['description_ar'] or name).replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
+        name_p   = (p['name_ar'] if is_ar else p['name_en']) or (p['name_en'] if is_ar else p['name_ar']) or ''
+        desc_p   = (p['description_ar'] if is_ar else p['description_en']) or (p['description_en'] if is_ar else p['description_ar']) or name_p
+        name     = esc(name_p)
+        desc     = esc(desc_p)
         img_url  = f"{base}/static/img/products/{p['img']}" if p['img'] else ''
-        prod_url = f"{base}/products/{p['slug']}"
-        brand    = (p['brand'] or config.SITE_NAME_EN).replace('&','&amp;').replace('<','&lt;')
+        prod_url = f"{base}/products/{p['slug']}?lang={lang}"
+        brand    = esc(p['brand'] or (config.SITE_NAME_AR if is_ar else config.SITE_NAME_EN))
+
         lines += [
             '<item>',
             f'  <g:id>{p["slug"]}</g:id>',
@@ -2202,8 +2216,24 @@ def merchant_feed():
             f'  <g:identifier_exists>no</g:identifier_exists>',
             '</item>',
         ]
+
     lines += ['</channel>', '</rss>']
     return Response('\n'.join(l for l in lines if l), mimetype='application/xml')
+
+
+@app.route('/feed-en.xml')
+def merchant_feed_en():
+    return _build_merchant_feed('en')
+
+
+@app.route('/feed-ar.xml')
+def merchant_feed_ar():
+    return _build_merchant_feed('ar')
+
+
+@app.route('/feed.xml')
+def merchant_feed():
+    return redirect('/feed-en.xml', code=301)
 
 
 @app.route('/sitemap.xml')
