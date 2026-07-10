@@ -4878,15 +4878,104 @@ def admin_loyalty_check():
 @admin_required
 def admin_monitor():
     db = get_db()
-    rows = db.execute(
+
+    # ── Telegram config ──
+    tg_rows = db.execute(
         "SELECT key, value FROM integration_settings WHERE key IN (?,?)",
         ("telegram_token", "telegram_chat_id")
     ).fetchall()
+    cfg = {r["key"]: r["value"] for r in tg_rows}
+
+    # ── Products: no image ──
+    no_img = db.execute("""
+        SELECT p.id, p.name_ar, p.slug
+        FROM products p
+        WHERE p.is_active=1
+          AND (SELECT COUNT(*) FROM product_images WHERE product_id=p.id) = 0
+        ORDER BY p.name_ar
+    """).fetchall()
+
+    # ── Products: no description ──
+    no_desc = db.execute("""
+        SELECT id, name_ar, slug FROM products
+        WHERE is_active=1 AND (description_ar IS NULL OR description_ar='')
+        ORDER BY name_ar
+    """).fetchall()
+
+    # ── Products: out of stock ──
+    out_of_stock = db.execute("""
+        SELECT id, name_ar, slug FROM products
+        WHERE is_active=1 AND stock_qty=0
+        ORDER BY name_ar
+    """).fetchall()
+
+    # ── Products: low stock (1-3) ──
+    low_stock = db.execute("""
+        SELECT id, name_ar, slug, stock_qty FROM products
+        WHERE is_active=1 AND stock_qty > 0 AND stock_qty <= 3
+        ORDER BY stock_qty
+    """).fetchall()
+
+    # ── Recent 404s (top repeated) ──
+    top_404 = db.execute("""
+        SELECT path, COUNT(*) as hits, MAX(hit_at) as last_hit
+        FROM not_found_log
+        WHERE hit_at >= datetime('now','-7 days')
+        GROUP BY path ORDER BY hits DESC LIMIT 10
+    """).fetchall()
+
+    # ── Orders today ──
+    orders_today = db.execute("""
+        SELECT COUNT(*) as cnt, COALESCE(SUM(total),0) as rev
+        FROM orders WHERE date(created_at)=date('now')
+    """).fetchone()
+
+    # ── Pending orders ──
+    pending_orders = db.execute(
+        "SELECT COUNT(*) as cnt FROM orders WHERE status='new'"
+    ).fetchone()["cnt"]
+
+    # ── Large images (>500KB on disk) ──
+    large_imgs = []
+    try:
+        img_dir = config.UPLOAD_FOLDER
+        for fname in os.listdir(img_dir):
+            # skip srcset variants
+            if any(fname.endswith(f'_{w}.jpg') for w in (400, 800)):
+                continue
+            fpath = os.path.join(img_dir, fname)
+            try:
+                size = os.path.getsize(fpath)
+                if size > 500 * 1024:
+                    large_imgs.append({'filename': fname, 'size_kb': size // 1024})
+            except OSError:
+                pass
+        large_imgs.sort(key=lambda x: -x['size_kb'])
+        large_imgs = large_imgs[:10]
+    except Exception:
+        pass
+
+    # ── Products: no SEO meta ──
+    total_products = db.execute("SELECT COUNT(*) FROM products WHERE is_active=1").fetchone()[0]
+    seo_covered = db.execute("""
+        SELECT COUNT(DISTINCT page_id) FROM seo_meta WHERE page_type='product'
+    """).fetchone()[0]
+
     db.close()
-    cfg = {r["key"]: r["value"] for r in rows}
+
     return render_template("admin/monitor.html",
                            telegram_token=cfg.get("telegram_token",""),
                            telegram_chat_id=cfg.get("telegram_chat_id",""),
+                           no_img=no_img,
+                           no_desc=no_desc,
+                           out_of_stock=out_of_stock,
+                           low_stock=low_stock,
+                           top_404=top_404,
+                           orders_today=orders_today,
+                           pending_orders=pending_orders,
+                           large_imgs=large_imgs,
+                           total_products=total_products,
+                           seo_covered=seo_covered,
                            active_admin="monitor")
 
 @app.route("/admin/monitor/save", methods=["POST"])

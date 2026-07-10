@@ -1,12 +1,11 @@
 {% extends "admin/base.html" %}
-{% block title %}مراقبة المتجر{% endblock %}
+{% block title %}لوحة المراقبة{% endblock %}
 
 {% block content %}
 <div class="adm-page-head">
-  <h1>🤖 مراقبة المتجر — Telegram Bot</h1>
+  <h1>🔍 لوحة المراقبة</h1>
   <div style="display:flex;gap:10px;">
-    <a href="{{ url_for('admin_monitor_test') }}" class="adm-btn-secondary">📨 اختبار</a>
-    <a href="{{ url_for('admin_monitor_run_now') }}" class="adm-btn">🔍 فحص الآن</a>
+    <a href="{{ url_for('admin_monitor_run_now') }}" class="adm-btn">📨 فحص + تيليغرام</a>
   </div>
 </div>
 
@@ -16,48 +15,207 @@
 {% endfor %}
 {% endwith %}
 
+{# ── KPI strip ── #}
+<div class="mon-kpi-row">
+  <div class="mon-kpi {{ 'mon-kpi-warn' if pending_orders > 0 }}">
+    <span class="mon-kpi-num">{{ pending_orders }}</span>
+    <span class="mon-kpi-label">طلبات جديدة</span>
+  </div>
+  <div class="mon-kpi">
+    <span class="mon-kpi-num">{{ orders_today['cnt'] }}</span>
+    <span class="mon-kpi-label">طلبات اليوم</span>
+  </div>
+  <div class="mon-kpi {{ 'mon-kpi-bad' if out_of_stock|length > 0 }}">
+    <span class="mon-kpi-num">{{ out_of_stock|length }}</span>
+    <span class="mon-kpi-label">نفد المخزون</span>
+  </div>
+  <div class="mon-kpi {{ 'mon-kpi-warn' if low_stock|length > 0 }}">
+    <span class="mon-kpi-num">{{ low_stock|length }}</span>
+    <span class="mon-kpi-label">مخزون ناقص (≤3)</span>
+  </div>
+  <div class="mon-kpi {{ 'mon-kpi-bad' if no_img|length > 0 }}">
+    <span class="mon-kpi-num">{{ no_img|length }}</span>
+    <span class="mon-kpi-label">بدون صورة</span>
+  </div>
+  <div class="mon-kpi {{ 'mon-kpi-warn' if no_desc|length > 0 }}">
+    <span class="mon-kpi-num">{{ no_desc|length }}</span>
+    <span class="mon-kpi-label">بدون وصف</span>
+  </div>
+  <div class="mon-kpi {% if seo_covered < total_products %}mon-kpi-warn{% endif %}">
+    <span class="mon-kpi-num">{{ seo_covered }}/{{ total_products }}</span>
+    <span class="mon-kpi-label">SEO مكتمل</span>
+  </div>
+</div>
+
 <div class="mon-grid">
 
-  {# إعدادات الـ Bot #}
-  <div class="mon-card">
-    <h3>⚙️ إعدادات التيليغرام</h3>
-    <form method="POST" action="{{ url_for('admin_monitor_save') }}">
-      <div class="adm-form-row">
-        <label>Bot Token</label>
-        <input class="adm-input" type="text" name="telegram_token"
-               value="{{ telegram_token }}" placeholder="123456:ABC...">
-      </div>
-      <div class="adm-form-row">
-        <label>Chat ID</label>
-        <input class="adm-input" type="text" name="telegram_chat_id"
-               value="{{ telegram_chat_id }}" placeholder="991560539">
-      </div>
-      <button type="submit" class="adm-btn">💾 حفظ</button>
-    </form>
+  {# ── المخزون ── #}
+  <div class="mon-card {{ 'mon-card-bad' if out_of_stock }}">
+    <div class="mon-card-head">
+      <h3>🔴 نفد المخزون</h3>
+      <span class="mon-badge {{ 'mon-badge-bad' if out_of_stock else 'mon-badge-ok' }}">{{ out_of_stock|length }}</span>
+    </div>
+    {% if out_of_stock %}
+    <ul class="mon-list">
+      {% for p in out_of_stock %}
+      <li><a href="{{ url_for('admin_product_edit', pid=p['id']) }}">{{ p['name_ar'] }}</a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mon-ok">✅ كل المنتجات متوفرة</p>
+    {% endif %}
   </div>
 
-  {# جدول التنبيهات #}
-  <div class="mon-card">
-    <h3>🔔 شو بيراقبه النظام</h3>
-    <table class="adm-table">
-      <thead><tr><th>الفحص</th><th>التكرار</th><th>الشرط</th></tr></thead>
-      <tbody>
-        <tr><td>🔴 خطأ 500</td><td>كل 30 دقيقة</td><td>أي خطأ بالساعة الأخيرة</td></tr>
-        <tr><td>🚀 ضغط مفاجئ</td><td>كل 30 دقيقة</td><td>4x المعدل العادي</td></tr>
-        <tr><td>⚠️ مخزون صفر</td><td>كل 30 دقيقة</td><td>أي منتج نفد</td></tr>
-        <tr><td>😴 ما في طلبات</td><td>مرة كل 6 ساعات</td><td>خلال ساعات العمل (10ص–10م)</td></tr>
-        <tr><td>📦 محتوى ناقص</td><td>كل 6 ساعات</td><td>منتج بدون صورة أو وصف</td></tr>
-        <tr><td>☀️ تقرير صباحي</td><td>يومياً 8:00ص</td><td>دائماً</td></tr>
-      </tbody>
-    </table>
+  {# ── مخزون ناقص ── #}
+  <div class="mon-card {{ 'mon-card-warn' if low_stock }}">
+    <div class="mon-card-head">
+      <h3>🟡 مخزون قليل</h3>
+      <span class="mon-badge {{ 'mon-badge-warn' if low_stock else 'mon-badge-ok' }}">{{ low_stock|length }}</span>
+    </div>
+    {% if low_stock %}
+    <ul class="mon-list">
+      {% for p in low_stock %}
+      <li>
+        <a href="{{ url_for('admin_product_edit', pid=p['id']) }}">{{ p['name_ar'] }}</a>
+        <span class="mon-tag-warn">{{ p['stock_qty'] }} قطعة</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mon-ok">✅ المخزون كافي</p>
+    {% endif %}
+  </div>
+
+  {# ── منتجات بدون صورة ── #}
+  <div class="mon-card {{ 'mon-card-bad' if no_img }}">
+    <div class="mon-card-head">
+      <h3>🖼 بدون صورة</h3>
+      <span class="mon-badge {{ 'mon-badge-bad' if no_img else 'mon-badge-ok' }}">{{ no_img|length }}</span>
+    </div>
+    {% if no_img %}
+    <ul class="mon-list">
+      {% for p in no_img %}
+      <li><a href="{{ url_for('admin_product_edit', pid=p['id']) }}">{{ p['name_ar'] }}</a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mon-ok">✅ كل المنتجات عندها صور</p>
+    {% endif %}
+  </div>
+
+  {# ── منتجات بدون وصف ── #}
+  <div class="mon-card {{ 'mon-card-warn' if no_desc }}">
+    <div class="mon-card-head">
+      <h3>✍️ بدون وصف</h3>
+      <span class="mon-badge {{ 'mon-badge-warn' if no_desc else 'mon-badge-ok' }}">{{ no_desc|length }}</span>
+    </div>
+    {% if no_desc %}
+    <ul class="mon-list">
+      {% for p in no_desc %}
+      <li><a href="{{ url_for('admin_product_edit', pid=p['id']) }}">{{ p['name_ar'] }}</a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mon-ok">✅ كل المنتجات عندها وصف</p>
+    {% endif %}
+  </div>
+
+  {# ── صور كبيرة الحجم ── #}
+  <div class="mon-card {{ 'mon-card-warn' if large_imgs }}">
+    <div class="mon-card-head">
+      <h3>⚖️ صور كبيرة (+500KB)</h3>
+      <span class="mon-badge {{ 'mon-badge-warn' if large_imgs else 'mon-badge-ok' }}">{{ large_imgs|length }}</span>
+    </div>
+    {% if large_imgs %}
+    <ul class="mon-list">
+      {% for img in large_imgs %}
+      <li>
+        <span style="font-size:.8rem;color:var(--text-muted)">{{ img['filename'][:30] }}…</span>
+        <span class="mon-tag-warn">{{ img['size_kb'] }} KB</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mon-ok">✅ كل الصور بحجم مناسب</p>
+    {% endif %}
+  </div>
+
+  {# ── روابط 404 متكررة ── #}
+  <div class="mon-card {{ 'mon-card-warn' if top_404 }}">
+    <div class="mon-card-head">
+      <h3>🔗 404 متكررة (7 أيام)</h3>
+      <a href="{{ url_for('admin_404_log') }}" style="font-size:.75rem;color:var(--gold)">عرض الكل ←</a>
+    </div>
+    {% if top_404 %}
+    <ul class="mon-list">
+      {% for r in top_404 %}
+      <li>
+        <code style="font-size:.75rem;color:var(--gold)">{{ r['path'] }}</code>
+        <span class="mon-tag-warn">{{ r['hits'] }}×</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mon-ok">✅ ما في روابط مكسورة</p>
+    {% endif %}
   </div>
 
 </div>
 
+{# ── Telegram ── #}
+<div class="adm-card" style="margin-top:24px">
+  <div class="adm-card-head">
+    <h2>📱 إعدادات تيليغرام (اختياري)</h2>
+    <p class="adm-hint">للتنبيهات التلقائية على هاتفك</p>
+  </div>
+  <form method="POST" action="{{ url_for('admin_monitor_save') }}" class="adm-form-row" style="gap:12px;align-items:flex-end">
+    <div class="adm-field" style="flex:1">
+      <label>Bot Token</label>
+      <input class="adm-input" type="text" name="telegram_token"
+             value="{{ telegram_token }}" placeholder="123456:ABC...">
+    </div>
+    <div class="adm-field" style="flex:1">
+      <label>Chat ID</label>
+      <input class="adm-input" type="text" name="telegram_chat_id"
+             value="{{ telegram_chat_id }}" placeholder="991560539">
+    </div>
+    <button type="submit" class="adm-btn" style="margin-bottom:0">💾 حفظ</button>
+    <a href="{{ url_for('admin_monitor_test') }}" class="adm-btn-secondary" style="margin-bottom:0;text-decoration:none;padding:10px 16px">📨 اختبار</a>
+  </form>
+</div>
+
 <style>
-.mon-grid { display: grid; gap: 20px; grid-template-columns: 1fr 1fr; }
-.mon-card { background: var(--surface); border-radius: 14px; padding: 20px; }
-.mon-card h3 { font-size: .95rem; color: var(--gold); margin-bottom: 16px; }
-@media(max-width:700px){ .mon-grid { grid-template-columns: 1fr; } }
+/* KPI strip */
+.mon-kpi-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+.mon-kpi { flex:1; min-width:110px; background:var(--adm-surface,#1e1e24); border:1px solid var(--adm-border,#2a2a35); border-radius:12px; padding:14px 16px; text-align:center; }
+.mon-kpi-num { display:block; font-size:1.6rem; font-weight:800; color:var(--text); }
+.mon-kpi-label { font-size:.7rem; color:var(--adm-muted,#888); }
+.mon-kpi-warn { border-color:#d4a72c; }
+.mon-kpi-warn .mon-kpi-num { color:#d4a72c; }
+.mon-kpi-bad { border-color:#f87171; }
+.mon-kpi-bad .mon-kpi-num { color:#f87171; }
+
+/* Grid */
+.mon-grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); }
+.mon-card { background:var(--adm-surface,#1e1e24); border:1px solid var(--adm-border,#2a2a35); border-radius:14px; padding:18px; }
+.mon-card-bad  { border-color:#f87171; }
+.mon-card-warn { border-color:#d4a72c88; }
+.mon-card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.mon-card-head h3 { font-size:.88rem; font-weight:700; margin:0; }
+
+/* Badge */
+.mon-badge { display:inline-flex; align-items:center; justify-content:center; min-width:24px; height:24px; border-radius:99px; font-size:.75rem; font-weight:700; padding:0 7px; }
+.mon-badge-ok   { background:rgba(74,222,128,.15); color:#4ade80; }
+.mon-badge-warn { background:rgba(212,167,44,.15);  color:#d4a72c; }
+.mon-badge-bad  { background:rgba(248,113,113,.15); color:#f87171; }
+
+/* List */
+.mon-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:7px; max-height:220px; overflow-y:auto; }
+.mon-list li { display:flex; justify-content:space-between; align-items:center; font-size:.82rem; gap:8px; }
+.mon-list a { color:var(--text); text-decoration:none; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mon-list a:hover { color:var(--gold); }
+.mon-tag-warn { flex-shrink:0; font-size:.72rem; font-weight:700; color:#d4a72c; background:rgba(212,167,44,.12); padding:2px 8px; border-radius:99px; }
+.mon-ok { color:#4ade80; font-size:.84rem; margin:0; }
+@media(max-width:600px){ .mon-kpi-row { gap:8px; } .mon-kpi { min-width:80px; } }
 </style>
 {% endblock %}
