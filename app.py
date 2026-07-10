@@ -2214,9 +2214,10 @@ def sitemap():
 
     base = request.host_url.rstrip('/')
     urls = [
-        {'loc': base + '/', 'priority': '1.0', 'freq': 'daily'},
-        {'loc': base + url_for('blog'),     'priority': '0.7', 'freq': 'weekly'},
-        {'loc': base + url_for('my_orders'), 'priority': '0.4', 'freq': 'monthly'},
+        {'loc': base + '/',                        'priority': '1.0', 'freq': 'daily'},
+        {'loc': base + url_for('blog'),            'priority': '0.7', 'freq': 'weekly'},
+        {'loc': base + url_for('shipping_info'),   'priority': '0.6', 'freq': 'monthly'},
+        {'loc': base + url_for('returns'),         'priority': '0.6', 'freq': 'monthly'},
     ]
     for c in categories:
         urls.append({'loc': base + url_for('category', slug=c['slug']), 'priority': '0.8', 'freq': 'weekly'})

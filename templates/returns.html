@@ -1,6 +1,49 @@
 {% extends "base.html" %}
 {% block title %}{{ 'سياسة الإرجاع' if lang == 'ar' else 'Returns Policy' }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
 
+{% block schema %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "{{ 'ما هي مدة الإرجاع؟' if lang == 'ar' else 'What is the return window?' }}",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "{{ '24 ساعة من استلام الطلب.' if lang == 'ar' else '24 hours from receiving the order.' }}"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "{{ 'هل يمكنني رفض الطلب مجاناً؟' if lang == 'ar' else 'Can I reject the order for free?' }}",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "{{ 'نعم، إذا كان الطلب مختلفاً عما طلبته أو وصل متأخراً عن المدة المحددة، يمكنك الرفض مجاناً بدون أي رسوم.' if lang == 'ar' else 'Yes, if the order is different from what you ordered or arrives late, you can reject it for free with no charges.' }}"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "{{ 'ما هي حالة المنتج المقبولة للإرجاع؟' if lang == 'ar' else 'What condition must the product be in for a return?' }}",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "{{ 'يجب أن يكون المنتج بحالته الأصلية غير مستخدم مع عبوته الأصلية.' if lang == 'ar' else 'The product must be in its original unused condition with original packaging.' }}"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "{{ 'كيف أطلب الإرجاع؟' if lang == 'ar' else 'How do I request a return?' }}",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "{{ 'تواصل معنا عبر واتساب خلال 24 ساعة من الاستلام وأرسل صورة للمنتج.' if lang == 'ar' else 'Contact us via WhatsApp within 24 hours of receipt and send a photo of the product.' }}"
+      }
+    }
+  ]
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="content-page-wrap" style="max-width:680px">
 

@@ -1,6 +1,49 @@
 {% extends "base.html" %}
 {% block title %}{{ 'الشحن والتوصيل' if lang == 'ar' else 'Shipping & Delivery' }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
 
+{% block schema %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "{{ 'كم يستغرق التوصيل؟' if lang == 'ar' else 'How long does delivery take?' }}",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "{{ 'من 1 إلى 4 أيام عمل حسب المنطقة.' if lang == 'ar' else '1 to 4 business days depending on your area.' }}"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "{{ 'هل التوصيل مجاني؟' if lang == 'ar' else 'Is delivery free?' }}",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "{{ 'نعم، التوصيل مجاني للطلبات التي تتجاوز الحد الأدنى المحدد.' if lang == 'ar' else 'Yes, delivery is free for orders above the minimum threshold.' }}"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "{{ 'هل توصلون لكل لبنان؟' if lang == 'ar' else 'Do you deliver all over Lebanon?' }}",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "{{ 'نعم، نوصل لجميع المناطق اللبنانية.' if lang == 'ar' else 'Yes, we deliver to all Lebanese regions.' }}"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "{{ 'ما طريقة الدفع المتاحة؟' if lang == 'ar' else 'What payment methods are available?' }}",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "{{ 'الدفع كاش عند الاستلام فقط.' if lang == 'ar' else 'Cash on delivery only.' }}"
+      }
+    }
+  ]
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="content-page-wrap" style="max-width:680px">
 
