@@ -21,7 +21,9 @@ CREATE TABLE IF NOT EXISTS categories (
     name_ar TEXT NOT NULL,
     icon TEXT,
     sort_order INTEGER DEFAULT 0,
-    card_size TEXT DEFAULT 'small'   -- 'large' أو 'small' لتحديد حجم البطاقة بالرئيسية
+    card_size TEXT DEFAULT 'small',   -- 'large' أو 'small' لتحديد حجم البطاقة بالرئيسية
+    description_ar TEXT,
+    description_en TEXT
 );
 
 CREATE TABLE IF NOT EXISTS subcategories (

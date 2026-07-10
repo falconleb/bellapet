@@ -89,6 +89,15 @@
                 onclick="return confirm('حذف صورة {{ c['name_ar'] }}؟')">🗑 حذف</button>
       </form>
       {% endif %}
+      <form method="POST" class="hp-cat-desc-form">
+        <input type="hidden" name="action" value="cat_description">
+        <input type="hidden" name="cat_slug" value="{{ c['slug'] }}">
+        <textarea name="description_ar" class="adm-input hp-cat-desc" rows="2"
+                  placeholder="وصف القسم بالعربي (لـ SEO)..." dir="rtl">{{ c['description_ar'] or '' }}</textarea>
+        <textarea name="description_en" class="adm-input hp-cat-desc" rows="2"
+                  placeholder="Category description in English (for SEO)...">{{ c['description_en'] or '' }}</textarea>
+        <button type="submit" class="adm-btn-secondary" style="width:100%;margin-top:6px;font-size:.78rem">💾 حفظ الوصف</button>
+      </form>
     </div>
     {% endfor %}
   </div>

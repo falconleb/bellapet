@@ -168,6 +168,11 @@
 </div>
 {% endif %}
 
+{% set cat_desc = category['description_ar'] if lang == 'ar' else category['description_en'] %}
+{% if cat_desc and not active_sub %}
+<p class="cat-seo-desc">{{ cat_desc }}</p>
+{% endif %}
+
 {% if products %}
 <div class="product-grid">
   {% for p in products %}

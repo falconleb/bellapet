@@ -869,6 +869,17 @@ html[dir="rtl"] .product-card .thumb .badge-gold { left: 6px; right: 6px; }
   font-size: 1.6rem;
 }
 
+.cat-seo-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
 /* ===== الأقسام الفرعية — pills أفقية ===== */
 .subcat-grid {
   display: flex;

@@ -2091,6 +2091,50 @@ def admin_seo_generate_all():
     return jsonify({'ok': True, 'done': done})
 
 
+@app.route('/feed.xml')
+def merchant_feed():
+    db  = get_db()
+    products = db.execute("""
+        SELECT p.slug, p.name_ar, p.name_en, p.brand,
+               p.price, p.discount_price, p.stock_qty,
+               p.description_ar, p.description_en,
+               (SELECT filename FROM product_images
+                WHERE product_id=p.id ORDER BY sort_order,id LIMIT 1) as img
+        FROM products p WHERE p.is_active=1
+    """).fetchall()
+    db.close()
+    base = request.host_url.rstrip('/')
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>',
+             '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">',
+             '<channel>',
+             f'<title>{config.SITE_NAME_EN}</title>',
+             f'<link>{base}</link>',
+             '<description>Pet store product feed</description>']
+    for p in products:
+        price     = p['discount_price'] or p['price']
+        avail     = 'in stock' if (p['stock_qty'] or 0) > 0 else 'out of stock'
+        name      = (p['name_en'] or p['name_ar'] or '').replace('&','&amp;').replace('<','&lt;')
+        desc      = (p['description_en'] or p['description_ar'] or name).replace('&','&amp;').replace('<','&lt;')
+        img_url   = f"{base}/static/img/products/{p['img']}" if p['img'] else ''
+        prod_url  = f"{base}/products/{p['slug']}"
+        lines += [
+            '<item>',
+            f'<g:id>{p["slug"]}</g:id>',
+            f'<g:title>{name}</g:title>',
+            f'<g:description>{desc[:5000]}</g:description>',
+            f'<g:link>{prod_url}</g:link>',
+            f'<g:image_link>{img_url}</g:image_link>' if img_url else '',
+            f'<g:price>{price:.2f} USD</g:price>',
+            f'<g:availability>{avail}</g:availability>',
+            f'<g:condition>new</g:condition>',
+            f'<g:brand>{(p["brand"] or config.SITE_NAME_EN).replace("&","&amp;")}</g:brand>',
+            f'<g:identifier_exists>no</g:identifier_exists>',
+            '</item>',
+        ]
+    lines += ['</channel>', '</rss>']
+    return Response('\n'.join(l for l in lines if l), mimetype='application/xml')
+
+
 @app.route('/sitemap.xml')
 def sitemap():
     db = get_db()
@@ -4507,6 +4551,17 @@ def admin_homepage():
                 except OSError:
                     pass
                 db.execute("DELETE FROM category_card_images WHERE category_slug=?", (cat_slug,))
+                db.commit()
+
+        elif action == "cat_description":
+            cat_slug    = request.form.get("cat_slug", "").strip()
+            desc_ar     = request.form.get("description_ar", "").strip() or None
+            desc_en     = request.form.get("description_en", "").strip() or None
+            if cat_slug:
+                db.execute(
+                    "UPDATE categories SET description_ar=?, description_en=? WHERE slug=?",
+                    (desc_ar, desc_en, cat_slug)
+                )
                 db.commit()
 
         db.close()
