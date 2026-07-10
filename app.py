@@ -2174,30 +2174,32 @@ def merchant_feed():
     db.close()
     base = request.host_url.rstrip('/')
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
-             '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">',
+             '<rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">',
              '<channel>',
              f'<title>{config.SITE_NAME_EN}</title>',
              f'<link>{base}</link>',
-             '<description>Pet store product feed</description>']
+             '<description>متجر بيلا لجميع مستلزمات وحيوانات أليفة</description>']
     for p in products:
-        price     = p['discount_price'] or p['price']
-        avail     = 'in stock' if (p['stock_qty'] or 0) > 0 else 'out of stock'
-        name      = (p['name_en'] or p['name_ar'] or '').replace('&','&amp;').replace('<','&lt;')
-        desc      = (p['description_en'] or p['description_ar'] or name).replace('&','&amp;').replace('<','&lt;')
-        img_url   = f"{base}/static/img/products/{p['img']}" if p['img'] else ''
-        prod_url  = f"{base}/products/{p['slug']}"
+        price    = p['discount_price'] or p['price']
+        avail    = 'in_stock' if (p['stock_qty'] or 0) > 0 else 'out_of_stock'
+        name     = (p['name_en'] or p['name_ar'] or '').replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
+        desc     = (p['description_en'] or p['description_ar'] or name).replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
+        img_url  = f"{base}/static/img/products/{p['img']}" if p['img'] else ''
+        prod_url = f"{base}/products/{p['slug']}"
+        brand    = (p['brand'] or config.SITE_NAME_EN).replace('&','&amp;').replace('<','&lt;')
         lines += [
             '<item>',
-            f'<g:id>{p["slug"]}</g:id>',
-            f'<g:title>{name}</g:title>',
-            f'<g:description>{desc[:5000]}</g:description>',
-            f'<g:link>{prod_url}</g:link>',
-            f'<g:image_link>{img_url}</g:image_link>' if img_url else '',
-            f'<g:price>{price:.2f} USD</g:price>',
-            f'<g:availability>{avail}</g:availability>',
-            f'<g:condition>new</g:condition>',
-            f'<g:brand>{(p["brand"] or config.SITE_NAME_EN).replace("&","&amp;")}</g:brand>',
-            f'<g:identifier_exists>no</g:identifier_exists>',
+            f'  <g:id>{p["slug"]}</g:id>',
+            f'  <g:title>{name}</g:title>',
+            f'  <g:description>{desc[:5000]}</g:description>',
+            f'  <g:link>{prod_url}</g:link>',
+            f'  <g:image_link>{img_url}</g:image_link>' if img_url else '',
+            f'  <g:condition>new</g:condition>',
+            f'  <g:availability>{avail}</g:availability>',
+            f'  <g:price>{price:.2f} USD</g:price>',
+            f'  <g:brand>{brand}</g:brand>',
+            '  <g:google_product_category>Animals &amp; Pet Supplies &gt; Pet Supplies</g:google_product_category>',
+            f'  <g:identifier_exists>no</g:identifier_exists>',
             '</item>',
         ]
     lines += ['</channel>', '</rss>']
