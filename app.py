@@ -2230,6 +2230,11 @@ def sitemap():
     return Response(xml, mimetype='application/xml')
 
 
+@app.route('/googlea9170893005bbdb7.html')
+def google_verify():
+    return Response('google-site-verification: googlea9170893005bbdb7.html', mimetype='text/html')
+
+
 @app.route('/robots.txt')
 def robots():
     base = request.host_url.rstrip('/')
