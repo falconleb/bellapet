@@ -41,11 +41,14 @@ CREATE TABLE IF NOT EXISTS products (
     category_id INTEGER NOT NULL REFERENCES categories(id),
     subcategory_id INTEGER REFERENCES subcategories(id),
     slug TEXT UNIQUE NOT NULL,
+    slug_ar TEXT UNIQUE,
     name_en TEXT NOT NULL,
     name_ar TEXT NOT NULL,
     brand TEXT,
     benefit_en TEXT,                  -- جملة الفايدة الأساسية (تستخدم كعنوان بصفحة المنتج)
     benefit_ar TEXT,
+    short_desc_ar TEXT,
+    short_desc_en TEXT,
     description_en TEXT,
     description_ar TEXT,
     price REAL NOT NULL,
@@ -569,6 +572,9 @@ def init_db():
         ('suitable_for_en', 'TEXT'),
         ('rating_cons_ar',  'TEXT'),
         ('rating_cons_en',  'TEXT'),
+        ('slug_ar',         'TEXT UNIQUE'),
+        ('short_desc_ar',   'TEXT'),
+        ('short_desc_en',   'TEXT'),
     ]:
         try:
             cur.execute(f'ALTER TABLE products ADD COLUMN {col} {definition}')

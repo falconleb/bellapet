@@ -230,15 +230,26 @@ def _validate_product(form):
         errors['price'] = True
     return errors
 
-def _product_vals(form, slug):
+def _slugify_ar(text):
+    """Convert Arabic text to URL slug: keep Arabic chars + hyphens, replace spaces."""
+    import re as _re
+    text = text.strip()
+    text = _re.sub(r'[^؀-ۿ\w\s-]', '', text, flags=_re.UNICODE)
+    text = _re.sub(r'\s+', '-', text)
+    text = _re.sub(r'-+', '-', text)
+    return text.strip('-')
+
+def _product_vals(form, slug, slug_ar=None):
     def fi(k): return int(form.get(k)) if form.get(k) else None
     def ff(k): return float(form.get(k)) if form.get(k) else None
     return (
-        fi('category_id'), fi('subcategory_id'), slug,
+        fi('category_id'), fi('subcategory_id'), slug, slug_ar or None,
         form.get('name_en','').strip(), form.get('name_ar','').strip(),
         form.get('brand','').strip() or None,
         form.get('benefit_en','').strip() or None,
         form.get('benefit_ar','').strip() or None,
+        form.get('short_desc_ar','').strip() or None,
+        form.get('short_desc_en','').strip() or None,
         form.get('description_en','').strip() or None,
         form.get('description_ar','').strip() or None,
         ff('price'), ff('discount_price'),
@@ -1121,14 +1132,17 @@ def admin_product_new():
             slug = form.get('slug','').strip() or slugify(form.get('name_en',''))
             if db.execute('SELECT id FROM products WHERE slug=?', (slug,)).fetchone():
                 slug += '-' + os.urandom(2).hex()
+            slug_ar_raw = form.get('slug_ar','').strip() or _slugify_ar(form.get('name_ar',''))
+            if db.execute('SELECT id FROM products WHERE slug_ar=?', (slug_ar_raw,)).fetchone():
+                slug_ar_raw += '-' + os.urandom(2).hex()
             cur = db.cursor()
             cur.execute(
-                """INSERT INTO products (category_id,subcategory_id,slug,name_en,name_ar,brand,
-                   benefit_en,benefit_ar,description_en,description_ar,price,discount_price,
+                """INSERT INTO products (category_id,subcategory_id,slug,slug_ar,name_en,name_ar,brand,
+                   benefit_en,benefit_ar,short_desc_ar,short_desc_en,description_en,description_ar,price,discount_price,
                    stock_qty,is_consumable,consumption_grams_per_kg_day,package_weight_grams,
                    min_age_months,max_age_months,size_tag,health_tags,is_featured,is_active)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                _product_vals(form, slug))
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                _product_vals(form, slug, slug_ar_raw))
             new_pid  = cur.lastrowid
             name_ar  = request.form.get('name_ar', '').strip()
             prod_slug = slug
@@ -1172,10 +1186,13 @@ def admin_product_edit(pid):
             slug = form.get('slug','').strip() or slugify(form.get('name_en',''))
             if db.execute('SELECT id FROM products WHERE slug=? AND id!=?', (slug, pid)).fetchone():
                 slug += '-' + os.urandom(2).hex()
+            slug_ar_raw = form.get('slug_ar','').strip() or _slugify_ar(form.get('name_ar',''))
+            if db.execute('SELECT id FROM products WHERE slug_ar=? AND id!=?', (slug_ar_raw, pid)).fetchone():
+                slug_ar_raw += '-' + os.urandom(2).hex()
             cur = db.cursor()
             cur.execute(
-                """UPDATE products SET category_id=?,subcategory_id=?,slug=?,name_en=?,name_ar=?,
-                   brand=?,benefit_en=?,benefit_ar=?,description_en=?,description_ar=?,price=?,
+                """UPDATE products SET category_id=?,subcategory_id=?,slug=?,slug_ar=?,name_en=?,name_ar=?,
+                   brand=?,benefit_en=?,benefit_ar=?,short_desc_ar=?,short_desc_en=?,description_en=?,description_ar=?,price=?,
                    discount_price=?,stock_qty=?,is_consumable=?,consumption_grams_per_kg_day=?,
                    package_weight_grams=?,min_age_months=?,max_age_months=?,size_tag=?,
                    health_tags=?,is_featured=?,is_active=?,
@@ -1185,7 +1202,7 @@ def admin_product_edit(pid):
                    suitable_for_ar=?,suitable_for_en=?,
                    rating_cons_ar=?,rating_cons_en=?
                    WHERE id=?""",
-                _product_vals(form, slug) + (
+                _product_vals(form, slug, slug_ar_raw) + (
                     1 if form.get('is_bundle') else 0,
                     form.get('bundle_note_ar','').strip() or None,
                     form.get('bundle_note_en','').strip() or None,
@@ -2284,7 +2301,7 @@ def robots():
     return Response(txt, mimetype='text/plain')
 
 
-@app.route("/product/<slug>")
+@app.route("/product/<path:slug>")
 def product(slug):
     db = get_db()
     p = db.execute(
@@ -2294,12 +2311,15 @@ def product(slug):
            FROM products p
            JOIN categories c ON p.category_id = c.id
            LEFT JOIN subcategories s ON p.subcategory_id = s.id
-           WHERE p.slug = ?""",
-        (slug,),
+           WHERE p.slug = ? OR p.slug_ar = ?""",
+        (slug, slug),
     ).fetchone()
     if not p:
         db.close()
         return render_template('404.html'), 404
+    # إذا وصل عبر slug_ar → فرض اللغة العربية
+    if p['slug_ar'] and slug == p['slug_ar']:
+        session['lang'] = 'ar'
     if not p['is_active']:
         alternatives = db.execute(
             """SELECT p.*,

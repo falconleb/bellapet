@@ -42,7 +42,7 @@ DEFAULT_LANGUAGE = "en"  # اللغة الافتراضية للموقع
 SUPPORTED_LANGUAGES = ("en", "ar")
 
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'img', 'products')
-MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB حد أقصى لرفع الصور
+MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB حد أقصى لرفع الصور
 
 # Anthropic API — للمستشار الذكي (اختياري)
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')

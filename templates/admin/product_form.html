@@ -4,7 +4,12 @@
 
 <div class="adm-page-head">
   <h1>{{ 'تعديل: ' + (product.name_ar or product.name_en) if product else 'منتج جديد' }}</h1>
-  <a href="{{ url_for('admin_products') }}" class="btn-adm-secondary">← رجوع</a>
+  <div style="display:flex;gap:8px;align-items:center">
+    {% if product %}
+    <a href="{{ url_for('product', slug=product.slug) }}" target="_blank" class="btn-adm-secondary">👁 معاينة</a>
+    {% endif %}
+    <a href="{{ url_for('admin_products') }}" class="btn-adm-secondary">← رجوع</a>
+  </div>
 </div>
 
 <form method="post" enctype="multipart/form-data" class="adm-form" novalidate>
@@ -26,9 +31,14 @@
         <input type="text" name="brand" value="{{ form.get('brand', '') }}">
       </div>
       <div class="adm-field">
-        <label>الرابط (Slug) <span class="hint">يُولَّد تلقائياً</span></label>
-        <input type="text" name="slug" value="{{ form.get('slug', '') }}"
+        <label>الرابط الإنجليزي (Slug) <span class="hint">يُولَّد تلقائياً</span></label>
+        <input type="text" id="slug" name="slug" value="{{ form.get('slug', '') }}"
                placeholder="مثال: royal-canin-kitten">
+      </div>
+      <div class="adm-field">
+        <label>الرابط العربي <span class="hint">يُولَّد تلقائياً من الاسم</span></label>
+        <input type="text" id="slug_ar" name="slug_ar" dir="rtl" value="{{ form.get('slug_ar', product.slug_ar if product else '') }}"
+               placeholder="مثال: رويال-كانين-قطط">
       </div>
       <div class="adm-field {{ 'has-error' if errors.get('category_id') }}">
         <label>التصنيف *</label>
@@ -74,6 +84,14 @@
       <div class="adm-field">
         <label>الفائدة بالإنجليزي</label>
         <input type="text" name="benefit_en" id="benefit_en" value="{{ form.get('benefit_en', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>وصف قصير بالعربي <span class="hint">يظهر كصندوق تحت الصورة</span></label>
+        <textarea name="short_desc_ar" dir="rtl" rows="2">{{ form.get('short_desc_ar', product.short_desc_ar if product else '') }}</textarea>
+      </div>
+      <div class="adm-field">
+        <label>وصف قصير بالإنجليزي</label>
+        <textarea name="short_desc_en" rows="2">{{ form.get('short_desc_en', product.short_desc_en if product else '') }}</textarea>
       </div>
       <div class="adm-field">
         <label>الوصف بالعربي</label>
@@ -964,5 +982,29 @@ async function saveSpecs() {
     msg.style.display='inline'; setTimeout(()=>msg.style.display='none',2500);
   }
 }
+
+/* ── Auto-generate slugs from names ── */
+(function() {
+  const nameAr = document.querySelector('input[name="name_ar"]');
+  const nameEn = document.querySelector('input[name="name_en"]');
+  const slugEn = document.getElementById('slug');
+  const slugAr = document.getElementById('slug_ar');
+
+  function toEnSlug(v) {
+    return v.toLowerCase().trim()
+      .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  }
+  function toArSlug(v) {
+    return v.trim()
+      .replace(/[^؀-ۿ\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  {% if not product %}
+  nameEn.addEventListener('input', () => { if (!slugEn._touched) slugEn.value = toEnSlug(nameEn.value); });
+  nameAr.addEventListener('input', () => { if (!slugAr._touched) slugAr.value = toArSlug(nameAr.value); });
+  slugEn.addEventListener('input', () => { slugEn._touched = !!slugEn.value; });
+  slugAr.addEventListener('input', () => { slugAr._touched = !!slugAr.value; });
+  {% endif %}
+})();
 </script>
 {% endblock %}

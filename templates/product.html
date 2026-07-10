@@ -22,6 +22,14 @@
 {% endif %}
 {% endblock %}
 
+{% block head_extra %}
+{% if p['slug_ar'] %}
+<link rel="alternate" hreflang="en" href="{{ request.host_url }}product/{{ p['slug'] }}">
+<link rel="alternate" hreflang="ar" href="{{ request.host_url }}product/{{ p['slug_ar'] }}">
+<link rel="alternate" hreflang="x-default" href="{{ request.host_url }}product/{{ p['slug'] }}">
+{% endif %}
+{% endblock %}
+
 {% block schema %}
 <script type="application/ld+json">
 {
@@ -145,6 +153,12 @@
     {% if p['brand'] %}<span class="pbrand">{{ p['brand'] }}</span>{% endif %}
   </p>
 </div>
+
+{# ── Short description box ── #}
+{% set _sdesc = (p['short_desc_ar'] if lang == 'ar' else p['short_desc_en']) or (p['short_desc_en'] if lang == 'ar' else p['short_desc_ar']) %}
+{% if _sdesc %}
+<div class="product-short-desc">{{ _sdesc }}</div>
+{% endif %}
 
 {# ── Price + Stock ── #}
 {% set _unit = p['discount_price'] if p['discount_price'] else p['price'] %}
@@ -531,32 +545,6 @@
   <div class="pt-item">{{ icons.icon_seal("pt-icon") }}<span>{{ 'ضمان استبدال' if lang == 'ar' else 'Exchange guarantee' }}</span></div>
 </div>
 
-{# ── Consumable calculator ── #}
-{% if p['is_consumable'] and p['package_weight_grams'] %}
-<details class="collapsible" id="calc-section">
-  <summary>
-    {{ icons.icon_bowl("coll-icon") }}
-    <span>{{ 'كم بتدوم هاي العبوة؟' if lang == 'ar' else 'How long does this pack last?' }}</span>
-    <span class="coll-arrow">›</span>
-  </summary>
-  <div class="calc-body">
-    <div class="calc-fields">
-      <label>
-        <span>{{ 'وزن الحيوان (كغ)' if lang == 'ar' else 'Pet weight (kg)' }}</span>
-        <input type="number" id="calc-weight" value="4" min="0.5" max="80" step="0.5" oninput="calcDuration()">
-      </label>
-      <label>
-        <span>{{ 'عدد الحيوانات' if lang == 'ar' else 'Number of pets' }}</span>
-        <input type="number" id="calc-count" value="1" min="1" max="10" step="1" oninput="calcDuration()">
-      </label>
-    </div>
-    <div class="calc-result" id="calc-result">
-      <div class="calc-result-days" id="calc-days">—</div>
-      <div class="calc-result-cost" id="calc-cost"></div>
-    </div>
-  </div>
-</details>
-{% endif %}
 
 {# ── Suitability ── #}
 {% set has_suit = p['min_age_months'] or p['max_age_months'] or (p['size_tag'] and p['size_tag'] != 'all') or p['health_tags'] %}
@@ -879,30 +867,6 @@ function showToast() {
   setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-// ── Consumable calculator ──
-{% if p['is_consumable'] and p['package_weight_grams'] and p['consumption_grams_per_kg_day'] %}
-const pkgGrams = {{ p['package_weight_grams'] }};
-const consGKgDay = {{ p['consumption_grams_per_kg_day'] }};
-const prodPrice = {{ p['discount_price'] if p['discount_price'] else p['price'] }};
-
-function calcDuration() {
-  const weight = parseFloat(document.getElementById('calc-weight').value) || 0;
-  const count  = parseInt(document.getElementById('calc-count').value) || 1;
-  if (weight <= 0) return;
-  const dailyGrams = consGKgDay * weight * count;
-  const days = Math.round(pkgGrams / dailyGrams);
-  const monthlyCost = (30 / days * prodPrice).toFixed(2);
-  const daysEl = document.getElementById('calc-days');
-  const costEl = document.getElementById('calc-cost');
-  daysEl.textContent = lang === 'ar'
-    ? `تدوم تقريباً ${days} يوم`
-    : `Lasts approximately ${days} days`;
-  costEl.textContent = lang === 'ar'
-    ? `الكلفة الشهرية التقريبية: ${cur}${monthlyCost}`
-    : `Estimated monthly cost: ${cur}${monthlyCost}`;
-}
-calcDuration();
-{% endif %}
 
 // ── Gallery ──
 function switchImg(btn, src) {
