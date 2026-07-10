@@ -49,7 +49,7 @@
   {# Schema.org ── يُحقن من كل صفحة #}
   {% block schema %}{% endblock %}
 
-  <link rel="canonical" href="{{ request.url.split('?')[0] }}">
+  <link rel="canonical" href="{% block canonical %}{{ request.host_url }}{{ request.path.lstrip('/') }}{% endblock %}">
 
   {# ── PWA ── #}
   <link rel="manifest" href="/static/manifest.json">

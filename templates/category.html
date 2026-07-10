@@ -3,6 +3,7 @@
 {% from "_components.html" import product_img, preload_hint %}
 
 {% block title %}{{ pick(category['name_en'], category['name_ar']) }} — {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+{% block canonical %}{{ request.host_url }}categories/{{ category['slug'] }}{% if active_sub %}?sub={{ active_sub }}{% endif %}{% endblock %}
 {% block og_image %}
 {% if category_image %}
 <meta property="og:image"     content="{{ request.host_url }}static/img/{{ category_image }}">

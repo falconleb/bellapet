@@ -39,12 +39,19 @@
       {% endif %}
       "offers": {
         "@type": "Offer",
-        "url": "{{ request.url }}",
+        "url": "{{ request.host_url }}products/{{ p['slug'] }}",
         "priceCurrency": "USD",
         "price": "{{ '%.2f'|format(p['discount_price'] if p['discount_price'] else p['price']) }}",
         "availability": "{% if p['stock_qty'] > 0 %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
         "seller": { "@type": "Organization", "name": "{{ site_name_en }}", "@id": "{{ request.host_url }}#organization" }
-      }
+      }{% if cust_rating and cust_rating['cnt'] >= 1 %},
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "{{ cust_rating['avg'] }}",
+        "reviewCount": "{{ cust_rating['cnt'] }}",
+        "bestRating": "5",
+        "worstRating": "1"
+      }{% endif %}
     },
     {
       "@type": "BreadcrumbList",
