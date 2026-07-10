@@ -253,7 +253,7 @@ def _product_vals(form, slug):
     )
 
 def _compress_image(src_path, max_width=1200, quality=82):
-    """Resize to max_width and re-encode as JPEG for smaller file size."""
+    """Resize to max_width and save as WebP for best compression."""
     if not _PILLOW:
         return
     try:
@@ -261,28 +261,30 @@ def _compress_image(src_path, max_width=1200, quality=82):
         if img.width > max_width:
             ratio = max_width / img.width
             img = img.resize((max_width, int(img.height * ratio)), Image.LANCZOS)
-        # Always save as JPEG regardless of original format
-        jpeg_path = os.path.splitext(src_path)[0] + '.jpg'
-        img.save(jpeg_path, 'JPEG', quality=quality, optimize=True)
-        if jpeg_path != src_path:
-            os.remove(src_path)
-        return os.path.basename(jpeg_path)
+        webp_path = os.path.splitext(src_path)[0] + '.webp'
+        img.save(webp_path, 'WEBP', quality=quality, method=4)
+        if webp_path != src_path:
+            try:
+                os.remove(src_path)
+            except OSError:
+                pass
+        return os.path.basename(webp_path)
     except Exception:
         return None
 
 def _generate_srcset_sizes(base_path, widths=(400, 800)):
-    """Generate smaller-width variants for srcset alongside the full image."""
+    """Generate smaller-width WebP variants for srcset alongside the full image."""
     if not _PILLOW:
         return
     try:
         img = Image.open(base_path).convert('RGB')
-        stem, ext = os.path.splitext(base_path)
+        stem = os.path.splitext(base_path)[0]
         for w in widths:
             if img.width <= w:
                 continue
             ratio = w / img.width
             thumb = img.resize((w, int(img.height * ratio)), Image.LANCZOS)
-            thumb.save(f'{stem}_{w}{ext}', 'JPEG', quality=78, optimize=True)
+            thumb.save(f'{stem}_{w}.webp', 'WEBP', quality=78, method=4)
     except Exception:
         pass
 

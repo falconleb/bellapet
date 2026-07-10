@@ -14,10 +14,9 @@
 {% macro product_img(filename, alt, index=0, css_class='thumb-img') %}
 {% if filename %}
 {% set stem = filename.rsplit('.', 1)[0] %}
-{% set ext  = '.' + filename.rsplit('.', 1)[1] if '.' in filename else '.jpg' %}
 <img src="/static/img/products/{{ filename }}"
-     srcset="/static/img/products/{{ stem }}_400{{ ext }} 400w,
-             /static/img/products/{{ stem }}_800{{ ext }} 800w,
+     srcset="/static/img/products/{{ stem }}_400.webp 400w,
+             /static/img/products/{{ stem }}_800.webp 800w,
              /static/img/products/{{ filename }} 1200w"
      sizes="(max-width:480px) 400px, (max-width:900px) 800px, 1200px"
      alt="{{ alt | e }}"
