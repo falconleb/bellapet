@@ -88,6 +88,14 @@ CREATE TABLE IF NOT EXISTS order_items (
     price_at_order REAL NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS redirects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_path TEXT UNIQUE NOT NULL,
+    to_path TEXT NOT NULL,
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS blog_posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     slug TEXT UNIQUE NOT NULL,

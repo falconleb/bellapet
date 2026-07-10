@@ -21,7 +21,7 @@
     <div class="rv-card {{ 'rv-done' if already_rated }}">
       <div class="rv-product">
         {% if item.img %}
-        <img src="/static/img/products/{{ item.img }}" alt="" class="rv-img" loading="lazy" decoding="async">
+        <img src="/static/img/products/{{ item.img }}" alt="{{ (item.name_ar if lang == 'ar' else item.name_en)|e }}" class="rv-img" loading="lazy" decoding="async">
         {% else %}
         <div class="rv-img rv-img-ph">🐾</div>
         {% endif %}

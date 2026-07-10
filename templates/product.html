@@ -130,7 +130,7 @@
     <button class="thumb-btn {{ 'is-active' if loop.first else '' }}"
             onclick="switchImg(this, '{{ url_for('static', filename='img/products/' + img['filename']) }}')">
       <img src="{{ url_for('static', filename='img/products/' + img['filename']) }}"
-           alt="" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async">
+           alt="{{ pick(p['name_en'], p['name_ar']) }}" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async">
     </button>
     {% endfor %}
   </div>
@@ -498,7 +498,7 @@
             <input type="checkbox" class="sub-related-chk" data-pid="{{ r.id }}"
                    data-name="{{ (r.name_ar if lang == 'ar' else r.name_en)|e }}">
             {% if r.primary_img %}
-            <img src="/static/uploads/{{ r.primary_img }}" alt="" class="sub-related-img">
+            <img src="/static/uploads/{{ r.primary_img }}" alt="{{ (r.name_ar if lang == 'ar' else r.name_en)|e }}" class="sub-related-img">
             {% endif %}
             <span class="sub-related-name">{{ r.name_ar if lang == 'ar' else r.name_en }}</span>
           </label>

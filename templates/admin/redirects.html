@@ -1,0 +1,84 @@
+{% extends "admin/base.html" %}
+{% block title %}إدارة التحويلات (301){% endblock %}
+
+{% block content %}
+<div class="adm-page-head">
+  <h1>🔀 إدارة التحويلات (301 Redirects)</h1>
+  <p style="color:var(--muted);font-size:.85rem;margin-top:4px;">حوّل الروابط القديمة لروابط جديدة بدون خسارة ترتيب جوجل</p>
+</div>
+
+<div class="adm-card" style="margin-bottom:24px">
+  <h2 style="font-size:.95rem;font-weight:700;margin-bottom:14px">➕ إضافة تحويل جديد</h2>
+  <form method="POST" class="adm-redirect-form">
+    <input type="hidden" name="action" value="add">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px">
+        <label style="font-size:.78rem;color:var(--muted)">من (الرابط القديم)</label>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+          <span style="color:var(--muted);font-size:.85rem">/</span>
+          <input class="adm-input" name="from_path" placeholder="old-path" required style="flex:1">
+        </div>
+      </div>
+      <div style="color:var(--muted);font-size:1.2rem;padding-top:18px">→</div>
+      <div style="flex:1;min-width:180px">
+        <label style="font-size:.78rem;color:var(--muted)">إلى (الرابط الجديد)</label>
+        <input class="adm-input" name="to_path" placeholder="/new-path أو https://..." required style="margin-top:4px">
+      </div>
+      <button type="submit" class="adm-btn" style="margin-top:18px">حفظ</button>
+    </div>
+  </form>
+</div>
+
+{% if rows %}
+<table class="adm-table">
+  <thead>
+    <tr>
+      <th>من</th>
+      <th>إلى</th>
+      <th>الحالة</th>
+      <th>التاريخ</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr style="{{ 'opacity:.45' if not r['is_active'] }}">
+      <td><code style="font-size:.8rem">{{ r['from_path'] }}</code></td>
+      <td><code style="font-size:.8rem">{{ r['to_path'] }}</code></td>
+      <td>
+        <form method="POST" style="display:inline">
+          <input type="hidden" name="action" value="toggle">
+          <input type="hidden" name="id" value="{{ r['id'] }}">
+          <button type="submit" class="adm-tag {{ 'adm-tag-green' if r['is_active'] else 'adm-tag-gray' }}">
+            {{ 'فعّال' if r['is_active'] else 'معطّل' }}
+          </button>
+        </form>
+      </td>
+      <td style="font-size:.78rem;color:var(--muted)">{{ r['created_at'][:10] }}</td>
+      <td>
+        <form method="POST" onsubmit="return confirm('حذف هذا التحويل؟')">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="id" value="{{ r['id'] }}">
+          <button type="submit" class="adm-btn-danger-sm">🗑</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state" style="margin-top:30px">
+  <span style="font-size:2.5rem">🔀</span>
+  <p>ما في تحويلات بعد. أضف أول تحويل من الفورم فوق.</p>
+</div>
+{% endif %}
+
+<style>
+.adm-redirect-form .adm-input { width:100%; }
+.adm-tag { border:none; border-radius:20px; padding:3px 10px; font-size:.75rem; font-weight:700; cursor:pointer; }
+.adm-tag-green { background:#22c55e22; color:#22c55e; }
+.adm-tag-gray  { background:var(--surface-2); color:var(--muted); }
+.adm-btn-danger-sm { background:transparent; border:1px solid #f8717144; color:#f87171; border-radius:8px; padding:4px 10px; cursor:pointer; font-size:.8rem; }
+.adm-btn-danger-sm:hover { background:#f8717122; }
+</style>
+{% endblock %}

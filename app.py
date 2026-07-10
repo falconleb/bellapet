@@ -355,6 +355,17 @@ def ensure_language():
     if "lang" not in session:
         session["lang"] = config.DEFAULT_LANGUAGE
 
+@app.before_request
+def handle_redirects():
+    path = request.path.rstrip('/')  or '/'
+    db = get_db()
+    row = db.execute(
+        "SELECT to_path FROM redirects WHERE from_path=? AND is_active=1", (path,)
+    ).fetchone()
+    db.close()
+    if row:
+        return redirect(row['to_path'], 301)
+
 
 @app.context_processor
 def inject_globals():
@@ -2108,7 +2119,17 @@ def sitemap():
 @app.route('/robots.txt')
 def robots():
     base = request.host_url.rstrip('/')
-    txt = f"User-agent: *\nAllow: /\nDisallow: /admin/\nSitemap: {base}/sitemap.xml\n"
+    txt = (
+        f"User-agent: *\n"
+        f"Allow: /\n"
+        f"Disallow: /admin/\n"
+        f"Disallow: /cart\n"
+        f"Disallow: /checkout\n"
+        f"Disallow: /my-orders\n"
+        f"Disallow: /search\n"
+        f"Disallow: /order-confirm\n"
+        f"Sitemap: {base}/sitemap.xml\n"
+    )
     return Response(txt, mimetype='text/plain')
 
 
@@ -4976,6 +4997,36 @@ def admin_sub_notify(sid):
         db2.commit()
         db2.close()
     return jsonify({'ok': True, 'sent': sent})
+
+
+# ── Admin: Redirect Manager ──────────────────────────────────────
+@app.route("/admin/redirects", methods=["GET", "POST"])
+@admin_required
+def admin_redirects():
+    db = get_db()
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "add":
+            from_path = '/' + request.form.get("from_path", "").lstrip('/')
+            to_path   = request.form.get("to_path", "").strip()
+            if from_path and to_path:
+                db.execute(
+                    "INSERT OR REPLACE INTO redirects (from_path, to_path, is_active) VALUES (?,?,1)",
+                    (from_path, to_path)
+                )
+                db.commit()
+        elif action == "delete":
+            db.execute("DELETE FROM redirects WHERE id=?", (request.form.get("id"),))
+            db.commit()
+        elif action == "toggle":
+            db.execute(
+                "UPDATE redirects SET is_active = 1 - is_active WHERE id=?",
+                (request.form.get("id"),)
+            )
+            db.commit()
+    rows = db.execute("SELECT * FROM redirects ORDER BY created_at DESC").fetchall()
+    db.close()
+    return render_template("admin/redirects.html", rows=rows, active_admin="redirects")
 
 
 if __name__ == "__main__":
