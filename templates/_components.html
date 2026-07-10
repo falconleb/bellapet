@@ -12,18 +12,27 @@
      css_class — (اختياري) افتراضي thumb-img
    ────────────────────────────────────────────────────────────── #}
 {% macro product_img(filename, alt, index=0, css_class='thumb-img') %}
-<img src="{{ '/static/img/products/' + filename if filename else '/static/img/placeholder.webp' }}"
+{% if filename %}
+{% set stem = filename.rsplit('.', 1)[0] %}
+{% set ext  = '.' + filename.rsplit('.', 1)[1] if '.' in filename else '.jpg' %}
+<img src="/static/img/products/{{ filename }}"
+     srcset="/static/img/products/{{ stem }}_400{{ ext }} 400w,
+             /static/img/products/{{ stem }}_800{{ ext }} 800w,
+             /static/img/products/{{ filename }} 1200w"
+     sizes="(max-width:480px) 400px, (max-width:900px) 800px, 1200px"
      alt="{{ alt | e }}"
      class="{{ css_class }}"
      width="400" height="400"
      onerror="this.onerror=null;this.src='/static/img/placeholder.webp'"
-     {% if index == 0 %}
-     fetchpriority="high"
-     decoding="async"
-     {% else %}
-     loading="lazy"
-     decoding="async"
-     {% endif %}>
+     {% if index == 0 %}fetchpriority="high" decoding="async"
+     {% else %}loading="lazy" decoding="async"{% endif %}>
+{% else %}
+<img src="/static/img/placeholder.webp"
+     alt="{{ alt | e }}"
+     class="{{ css_class }}"
+     width="400" height="400"
+     loading="lazy" decoding="async">
+{% endif %}
 {% endmacro %}
 
 {# ──────────────────────────────────────────────────────────────

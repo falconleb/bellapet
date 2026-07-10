@@ -821,6 +821,15 @@ html[dir="rtl"] .product-card .thumb .badge-gold { left: 6px; right: 6px; }
 .product-desc h3 { font-size: 0.92rem; margin-bottom: 8px; }
 .product-desc p { font-size: 0.84rem; color: var(--text-muted); line-height: 1.65; }
 
+/* ── Specs table ── */
+.product-specs { margin-bottom: 18px; }
+.product-specs h3 { font-size: 0.92rem; margin-bottom: 8px; }
+.specs-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.specs-table th, .specs-table td { padding: 8px 12px; border: 1px solid var(--border); text-align: start; }
+.specs-table th { background: var(--surface); color: var(--text-muted); font-weight: 600; width: 38%; }
+.specs-table td { color: var(--text); }
+.specs-table tr:nth-child(even) td { background: var(--surface2, var(--surface)); }
+
 /* ── WhatsApp question CTA ── */
 .btn-wa-question {
   display: flex;
@@ -2315,6 +2324,19 @@ img { decoding: async; }
 .error-title  { font-size: 1.2rem; font-weight: 600; color: var(--text); margin: 4px 0; }
 .error-body   { color: var(--text-faint); font-size: 0.9rem; max-width: 320px; line-height: 1.6; }
 .error-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+
+/* ══════════════════════════════════════════
+   Discontinued Product Page
+   ══════════════════════════════════════════ */
+.disc-page { max-width: 900px; margin: 0 auto; padding: 32px 20px 60px; }
+.disc-hero { text-align: center; padding: 40px 20px; background: var(--surface); border-radius: 20px; border: 1px solid var(--border); margin-bottom: 36px; }
+.disc-icon { font-size: 3rem; line-height: 1; margin-bottom: 12px; opacity: .5; }
+.disc-title { font-size: 1.4rem; font-weight: 700; color: var(--text); margin: 0 0 10px; }
+.disc-msg { color: var(--text-muted); font-size: .92rem; margin: 0 0 24px; line-height: 1.6; }
+.disc-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.disc-btn-primary { padding: 11px 24px; background: var(--gold); color: #000; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: .9rem; }
+.disc-btn-wa { padding: 11px 24px; background: #25D366; color: #fff; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: .9rem; }
+.disc-alts-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0 0 16px; }
 
 /* ══════════════════════════════════════════
    Content Pages — عن المتجر / تواصل / إرجاع

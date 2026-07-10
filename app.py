@@ -270,6 +270,22 @@ def _compress_image(src_path, max_width=1200, quality=82):
     except Exception:
         return None
 
+def _generate_srcset_sizes(base_path, widths=(400, 800)):
+    """Generate smaller-width variants for srcset alongside the full image."""
+    if not _PILLOW:
+        return
+    try:
+        img = Image.open(base_path).convert('RGB')
+        stem, ext = os.path.splitext(base_path)
+        for w in widths:
+            if img.width <= w:
+                continue
+            ratio = w / img.width
+            thumb = img.resize((w, int(img.height * ratio)), Image.LANCZOS)
+            thumb.save(f'{stem}_{w}{ext}', 'JPEG', quality=78, optimize=True)
+    except Exception:
+        pass
+
 def _save_images(files, product_id, cur):
     os.makedirs(config.UPLOAD_FOLDER, exist_ok=True)
     for f in files:
@@ -282,6 +298,8 @@ def _save_images(files, product_id, cur):
         compressed = _compress_image(fpath)
         if compressed:
             fname = compressed
+            fpath = os.path.join(config.UPLOAD_FOLDER, fname)
+        _generate_srcset_sizes(fpath)
         cur.execute('INSERT INTO product_images (product_id, filename) VALUES (?,?)',
                     (product_id, fname))
 
@@ -343,6 +361,16 @@ def nl2br_filter(text):
 
 @app.errorhandler(404)
 def page_not_found(e):
+    try:
+        db = get_db()
+        db.execute(
+            "INSERT INTO not_found_log (path, referrer, ua) VALUES (?, ?, ?)",
+            (request.path, request.referrer or '', request.user_agent.string[:200])
+        )
+        db.commit()
+        db.close()
+    except Exception:
+        pass
     return render_template('404.html'), 404
 
 @app.errorhandler(500)
@@ -1179,13 +1207,52 @@ def admin_product_edit(pid):
                 db.execute('INSERT OR IGNORE INTO collection_products (collection_id, product_id) VALUES (?,?)', (cid, pid))
             db.commit(); db.close()
             return redirect(url_for('admin_products'))
+    specs = db.execute(
+        'SELECT * FROM product_specs WHERE product_id=? ORDER BY sort_order, id', (pid,)
+    ).fetchall()
     db.close()
     return render_template('admin/product_form.html', product=product, images=images,
                            variants=variants, price_tiers=price_tiers, categories=categories,
                            subcategories=subcategories,
                            all_collections=all_collections,
                            product_col_ids=product_col_ids,
+                           specs=specs,
                            errors=errors, form=form, active_admin='products')
+
+@app.route('/admin/specs/save/<int:pid>', methods=['POST'])
+@admin_required
+def admin_specs_save(pid):
+    db = get_db()
+    data = request.get_json(force=True)
+    new_ids = []
+    for s in data.get('specs', []):
+        if not s.get('label_ar') and not s.get('label_en'):
+            new_ids.append(s.get('id', 0))
+            continue
+        if s.get('id', 0) > 0:
+            db.execute(
+                'UPDATE product_specs SET label_ar=?,label_en=?,value_ar=?,value_en=?,sort_order=? WHERE id=? AND product_id=?',
+                (s['label_ar'], s.get('label_en',''), s.get('value_ar',''), s.get('value_en',''), s.get('sort_order',0), s['id'], pid)
+            )
+            new_ids.append(s['id'])
+        else:
+            cur = db.execute(
+                'INSERT INTO product_specs (product_id,label_ar,label_en,value_ar,value_en,sort_order) VALUES (?,?,?,?,?,?)',
+                (pid, s['label_ar'], s.get('label_en',''), s.get('value_ar',''), s.get('value_en',''), s.get('sort_order',0))
+            )
+            new_ids.append(cur.lastrowid)
+    db.commit()
+    db.close()
+    return jsonify({'ok': True, 'ids': new_ids})
+
+@app.route('/admin/specs/delete/<int:sid>', methods=['POST'])
+@admin_required
+def admin_specs_delete(sid):
+    db = get_db()
+    db.execute('DELETE FROM product_specs WHERE id=?', (sid,))
+    db.commit()
+    db.close()
+    return jsonify({'ok': True})
 
 @app.route('/admin/products/<int:pid>/delete', methods=['POST'])
 @admin_required
@@ -2187,12 +2254,24 @@ def product(slug):
            FROM products p
            JOIN categories c ON p.category_id = c.id
            LEFT JOIN subcategories s ON p.subcategory_id = s.id
-           WHERE p.slug = ? AND p.is_active = 1""",
+           WHERE p.slug = ?""",
         (slug,),
     ).fetchone()
     if not p:
         db.close()
         return render_template('404.html'), 404
+    if not p['is_active']:
+        alternatives = db.execute(
+            """SELECT p.*,
+                      (SELECT filename FROM product_images
+                       WHERE product_id=p.id ORDER BY sort_order LIMIT 1) AS primary_img
+               FROM products p
+               WHERE p.category_id = ? AND p.is_active = 1
+               ORDER BY p.is_featured DESC, p.created_at DESC LIMIT 6""",
+            (p['category_id'],)
+        ).fetchall()
+        db.close()
+        return render_template('product_discontinued.html', p=p, alternatives=alternatives), 410
 
     images = db.execute(
         "SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order",
@@ -2224,6 +2303,10 @@ def product(slug):
         'SELECT ROUND(AVG(rating),1) as avg, COUNT(*) as cnt FROM product_reviews WHERE product_id=?',
         (p['id'],)
     ).fetchone()
+    specs = db.execute(
+        'SELECT * FROM product_specs WHERE product_id=? ORDER BY sort_order, id',
+        (p['id'],)
+    ).fetchall()
     sub_cfg    = _sub_settings(db)
     zones      = _get_zones(db)
     zones_fees = _zones_fees(db)   # {name_ar: fee} enabled only
@@ -2237,6 +2320,7 @@ def product(slug):
         price_tiers=price_tiers,
         seo_data=seo,
         cust_rating=cust_rating,
+        specs=specs,
         sub_cfg=sub_cfg,
         shipping_zones=zones,
         zones_fees=zones_fees,
@@ -5082,6 +5166,21 @@ def admin_redirects():
     rows = db.execute("SELECT * FROM redirects ORDER BY created_at DESC").fetchall()
     db.close()
     return render_template("admin/redirects.html", rows=rows, active_admin="redirects")
+
+
+# ── Admin: 404 Log ───────────────────────────────────────────────
+@app.route("/admin/404-log", methods=["GET", "POST"])
+@admin_required
+def admin_404_log():
+    db = get_db()
+    if request.method == "POST" and request.form.get("action") == "clear":
+        db.execute("DELETE FROM not_found_log")
+        db.commit()
+    rows = db.execute(
+        "SELECT * FROM not_found_log ORDER BY hit_at DESC LIMIT 200"
+    ).fetchall()
+    db.close()
+    return render_template("admin/404_log.html", rows=rows, active_admin="404log")
 
 
 if __name__ == "__main__":

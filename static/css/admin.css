@@ -827,3 +827,8 @@ html[dir="rtl"] .adm-field select {
 .badge-gold  { background:rgba(212,167,44,0.15);  color:#d4a72c; }
 .badge-blue  { background:rgba(96,165,250,0.15);  color:#60a5fa; }
 .badge-red   { background:rgba(248,113,113,0.15); color:#f87171; }
+
+
+/* ── Spec rows (product form) ── */
+.spec-row { display:flex; gap:8px; align-items:center; margin-bottom:6px; flex-wrap:wrap; }
+.spec-row .adm-input { padding:6px 10px; font-size:0.82rem; }

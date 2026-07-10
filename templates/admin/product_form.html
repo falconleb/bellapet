@@ -504,6 +504,35 @@
 </div>
 {% endif %}
 
+{# ── المواصفات ── #}
+{% if product %}
+<div class="adm-form-section" id="specs-section" style="margin-top:24px">
+  <h3>📋 جدول المواصفات</h3>
+  <p class="text-muted" style="font-size:0.82rem;margin-bottom:12px">تُعرض على صفحة المنتج — مثال: الوزن، المقاس، المادة...</p>
+  <div id="specs-list">
+    {% for s in specs %}
+    <div class="spec-row" data-id="{{ s['id'] }}">
+      <input type="text" class="adm-input spec-label-ar" value="{{ s['label_ar'] }}" placeholder="الاسم بالعربي" dir="rtl" style="width:140px">
+      <input type="text" class="adm-input spec-label-en" value="{{ s['label_en'] }}" placeholder="Label EN" style="width:140px">
+      <input type="text" class="adm-input spec-val-ar"   value="{{ s['value_ar'] }}" placeholder="القيمة بالعربي" dir="rtl" style="flex:1">
+      <input type="text" class="adm-input spec-val-en"   value="{{ s['value_en'] }}" placeholder="Value EN" style="flex:1">
+      <button type="button" class="btn-adm-sm danger" onclick="deleteSpec(this, {{ s['id'] }})">✕</button>
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="btn-adm-sm" style="margin-top:8px" onclick="addSpecRow()">+ إضافة صف</button>
+  <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
+    <button type="button" class="btn-adm-primary" onclick="saveSpecs()" style="font-size:.85rem;padding:8px 20px">💾 حفظ المواصفات</button>
+    <span id="specs-msg" style="font-size:.8rem;color:#4ade80;display:none">✓ تم الحفظ</span>
+  </div>
+</div>
+{% else %}
+<div class="adm-form-section" style="margin-top:24px">
+  <h3>📋 المواصفات</h3>
+  <p class="text-muted" style="font-size:0.82rem">احفظ المنتج أولاً ثم أضف المواصفات.</p>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}
@@ -889,6 +918,51 @@ function pickStar(val) {
   document.querySelectorAll('.star-pick').forEach((s, i) => {
     s.classList.toggle('active', i < val);
   });
+}
+
+// ── المواصفات ──
+function addSpecRow() {
+  const row = document.createElement('div');
+  row.className = 'spec-row';
+  row.dataset.id = '0';
+  row.innerHTML = `
+    <input type="text" class="adm-input spec-label-ar" placeholder="الاسم بالعربي" dir="rtl" style="width:140px">
+    <input type="text" class="adm-input spec-label-en" placeholder="Label EN" style="width:140px">
+    <input type="text" class="adm-input spec-val-ar"   placeholder="القيمة بالعربي" dir="rtl" style="flex:1">
+    <input type="text" class="adm-input spec-val-en"   placeholder="Value EN" style="flex:1">
+    <button type="button" class="btn-adm-sm danger" onclick="deleteSpec(this,0)">✕</button>
+  `;
+  document.getElementById('specs-list').appendChild(row);
+}
+function deleteSpec(btn, id) {
+  const row = btn.closest('.spec-row');
+  if (id > 0) {
+    fetch(`/admin/specs/delete/${id}`, {method:'POST', headers:{'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content}});
+  }
+  row.remove();
+}
+async function saveSpecs() {
+  const rows = [...document.querySelectorAll('#specs-list .spec-row')];
+  const specs = rows.map((r,i) => ({
+    id:       +r.dataset.id,
+    label_ar: r.querySelector('.spec-label-ar').value.trim(),
+    label_en: r.querySelector('.spec-label-en').value.trim(),
+    value_ar: r.querySelector('.spec-val-ar').value.trim(),
+    value_en: r.querySelector('.spec-val-en').value.trim(),
+    sort_order: i
+  })).filter(s => s.label_ar || s.label_en);
+  const res = await fetch(`/admin/specs/save/{{ product.id if product }}`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken': document.querySelector('meta[name=csrf-token]').content},
+    body: JSON.stringify({specs})
+  });
+  const d = await res.json();
+  if (d.ok) {
+    // update IDs for newly created rows
+    d.ids.forEach((newId, i) => { if (rows[i]) rows[i].dataset.id = newId; });
+    const msg = document.getElementById('specs-msg');
+    msg.style.display='inline'; setTimeout(()=>msg.style.display='none',2500);
+  }
 }
 </script>
 {% endblock %}

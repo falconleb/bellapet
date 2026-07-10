@@ -426,6 +426,24 @@ CREATE TABLE IF NOT EXISTS seo_meta (
     UNIQUE(page_type, page_id),
     UNIQUE(page_type, page_slug)
 );
+
+CREATE TABLE IF NOT EXISTS not_found_log (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    path       TEXT NOT NULL,
+    referrer   TEXT,
+    ua         TEXT,
+    hit_at     TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS product_specs (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    label_ar   TEXT NOT NULL,
+    label_en   TEXT NOT NULL DEFAULT '',
+    value_ar   TEXT NOT NULL,
+    value_en   TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
 """
 
 # الفئات الخمسة المتفق عليها: slug, name_en, name_ar, icon, sort_order, card_size

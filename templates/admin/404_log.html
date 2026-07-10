@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% block title %}سجل 404{% endblock %}
+
+{% block content %}
+<div class="adm-page-head">
+  <h1>🔍 روابط 404</h1>
+  <p class="adm-hint">آخر 200 رابط طُلب ولم يُوجد</p>
+</div>
+
+<div class="adm-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <strong>{{ rows|length }} رابط</strong>
+    <form method="POST" onsubmit="return confirm('مسح كل السجلات؟')">
+      <input type="hidden" name="action" value="clear">
+      <button type="submit" class="adm-btn adm-btn-danger" style="font-size:.8rem;padding:7px 16px">🗑 مسح الكل</button>
+    </form>
+  </div>
+
+  {% if rows %}
+  <div style="overflow-x:auto">
+    <table class="adm-table" style="font-size:.82rem">
+      <thead>
+        <tr>
+          <th>الرابط</th>
+          <th>المصدر (Referrer)</th>
+          <th>الوقت</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td><code style="color:var(--gold)">{{ r['path'] }}</code></td>
+          <td style="color:var(--text-muted);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            {{ r['referrer'] or '—' }}
+          </td>
+          <td style="color:var(--text-faint);white-space:nowrap">{{ r['hit_at'] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:var(--text-muted);text-align:center;padding:32px 0">لا يوجد سجلات بعد</p>
+  {% endif %}
+</div>
+{% endblock %}

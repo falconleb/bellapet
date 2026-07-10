@@ -30,6 +30,7 @@
       <a href="{{ url_for('admin_collections') }}" class="{{ 'active' if active_admin == 'collections' }}">🗂 المجموعات</a>
       <a href="{{ url_for('admin_blog') }}"        class="{{ 'active' if active_admin == 'blog' }}">✏️ المدونة</a>
       <a href="{{ url_for('admin_redirects') }}"  class="{{ 'active' if active_admin == 'redirects' }}">🔀 التحويلات (301)</a>
+      <a href="{{ url_for('admin_404_log') }}"    class="{{ 'active' if active_admin == '404log' }}">🔍 سجل 404</a>
 
       <a href="{{ url_for('admin_promotions') }}"   class="{{ 'active' if active_admin == 'promotions' }}">🎯 العروض العامة</a>
       <a href="{{ url_for('admin_loyalty') }}"      class="{{ 'active' if active_admin == 'loyalty' }}">🎁 الولاء</a>

@@ -620,6 +620,23 @@
 </div>
 {% endif %}
 
+{# ── Specs table ── #}
+{% if specs %}
+<div class="product-specs">
+  <h3>{{ 'المواصفات' if lang == 'ar' else 'Specifications' }}</h3>
+  <table class="specs-table">
+    <tbody>
+      {% for s in specs %}
+      <tr>
+        <th>{{ s['label_ar'] if lang == 'ar' else s['label_en'] }}</th>
+        <td>{{ s['value_ar'] if lang == 'ar' else s['value_en'] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
 {# ── WhatsApp question CTA ── #}
 <a class="btn-wa-question"
    href="https://wa.me/{{ whatsapp_number }}?text={{ ('عندي سؤال عن: ' + pick(p['name_en'], p['name_ar']))|urlencode }}"

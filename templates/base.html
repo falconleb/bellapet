@@ -42,9 +42,12 @@
   <link rel="alternate" hreflang="x-default" href="{{ _base_url }}{{ _path }}">
 
   {# noindex لصفحات بلا قيمة SEO #}
-  {% if request.path in ['/cart', '/checkout', '/order-confirm', '/my-orders', '/search'] %}
+  {% if request.path in ['/cart', '/checkout', '/order-confirm', '/my-orders'] %}
   <meta name="robots" content="noindex, nofollow">
   {% endif %}
+
+  {# إضافات خاصة بكل صفحة في الـ <head> #}
+  {% block head_extra %}{% endblock %}
 
   {# Schema.org ── يُحقن من كل صفحة #}
   {% block schema %}{% endblock %}

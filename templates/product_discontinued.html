@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% from "_components.html" import product_img %}
+
+{% block title %}{{ (p['name_ar'] if lang == 'ar' else p['name_en'])|e }} — {{ 'غير متوفر' if lang == 'ar' else 'Unavailable' }} | {{ site_name_ar if lang == 'ar' else site_name_en }}{% endblock %}
+{% block head_extra %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block content %}
+<div class="disc-page">
+
+  <div class="disc-hero">
+    <div class="disc-icon">📦</div>
+    <h1 class="disc-title">
+      {{ p['name_ar'] if lang == 'ar' else p['name_en'] }}
+    </h1>
+    <p class="disc-msg">
+      {{ 'هذا المنتج غير متوفر حالياً في متجرنا.' if lang == 'ar'
+         else 'This product is currently unavailable in our store.' }}
+    </p>
+    <div class="disc-actions">
+      <a href="{{ url_for('category', slug=p['cat_slug']) }}" class="disc-btn-primary">
+        {{ 'تصفّح ' + (p['cat_name_ar'] or '') if lang == 'ar'
+           else 'Browse ' + (p['cat_name_en'] or '') }}
+      </a>
+      <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="disc-btn-wa">
+        💬 {{ 'اسأل عن بديل' if lang == 'ar' else 'Ask for alternative' }}
+      </a>
+    </div>
+  </div>
+
+  {% if alternatives %}
+  <div class="disc-alts">
+    <h2 class="disc-alts-title">
+      {{ 'منتجات مشابهة قد تعجبك' if lang == 'ar' else 'You might also like' }}
+    </h2>
+    <div class="product-grid">
+      {% for r in alternatives %}
+      <a href="{{ url_for('product', slug=r['slug']) }}" class="product-card-grid">
+        <div class="thumb">
+          {% if r['discount_price'] %}
+          <span class="badge-gold">{{ icons.icon_seal("b-icon") }} {{ 'عرض' if lang == 'ar' else 'Sale' }}</span>
+          {% endif %}
+          {{ product_img(r['primary_img'], (r['name_ar'] if lang == 'ar' else r['name_en']), loop.index0) }}
+          {% if not r['primary_img'] %}
+          <span class="thumb-placeholder">🐾</span>
+          {% endif %}
+        </div>
+        <div class="info">
+          <span class="p-brand">{{ r['brand'] or '' }}</span>
+          <span class="p-name">{{ r['name_ar'] if lang == 'ar' else r['name_en'] }}</span>
+          <span class="p-price">
+            {{ currency }}{{ '%.2f'|format(r['discount_price'] if r['discount_price'] else r['price']) }}
+            {% if r['discount_price'] %}
+            <span class="old">{{ currency }}{{ '%.2f'|format(r['price']) }}</span>
+            {% endif %}
+          </span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
