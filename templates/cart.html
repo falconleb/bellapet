@@ -156,6 +156,8 @@
       </div>
     </div>
 
+    <div id="wa-validation-msg" style="display:none;background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:10px 14px;font-size:0.82rem;margin-bottom:10px;line-height:1.5"></div>
+
     <div class="calc-actions">
       <a class="btn-wa-cart" id="wa-order-btn"
          href="https://wa.me/{{ whatsapp_number }}?text={{ ('أهلاً، بدي أطلب:\n')|urlencode }}"
@@ -403,20 +405,60 @@ function recalc() {
 
 function buildWaLink(e) {
   e.preventDefault();
-  const sel  = document.getElementById('cc-area');
+
+  /* ── قراءة القيم من الحقول مباشرة (أو localStorage كـ fallback) ── */
+  var cust = null;
+  try { cust = JSON.parse(localStorage.getItem('cart_customer') || 'null'); } catch(ex) {}
+
+  const nameEl  = document.getElementById('cc-name');
+  const phoneEl = document.getElementById('cc-phone');
+  const areaEl  = document.getElementById('cc-area');
+  const nbhdEl  = document.getElementById('cc-neighborhood');
+
+  const custName  = (nameEl  && nameEl.value.trim())  || (cust && cust.name)         || '';
+  const custPhone = (phoneEl && phoneEl.value.trim())  || (cust && cust.phone)        || '';
+  const areaName  = (areaEl  && areaEl.value.trim())   || (cust && cust.area)         || '';
+  const custNbhd  = (nbhdEl  && nbhdEl.value.trim())   || (cust && cust.neighborhood) || '';
+  const custNotes = (cust && cust.notes) ? cust.notes : '';
+
+  /* ── التحقق من الحقول الأربعة الأساسية ── */
+  const missing = [];
+  if (!custName)  missing.push(LANG === 'ar' ? 'الاسم'   : 'Full name');
+  if (!custPhone) missing.push(LANG === 'ar' ? 'رقم الهاتف' : 'Phone number');
+  if (!areaName)  missing.push(LANG === 'ar' ? 'القضاء'  : 'District');
+  if (!custNbhd)  missing.push(LANG === 'ar' ? 'العنوان (المنطقة / البلدة)' : 'Address (area/town)');
+
+  const errEl = document.getElementById('wa-validation-msg');
+  if (missing.length) {
+    /* افتح الفورم إذا كان مخفياً */
+    var form = document.getElementById('cart-cust-form');
+    if (form && form.style.display === 'none') {
+      form.style.display = '';
+      var chev = document.getElementById('cart-cust-chevron');
+      if (chev) chev.classList.add('open');
+    }
+    /* ألوّن الحقول الناقصة */
+    if (nameEl)  nameEl.style.borderColor  = custName  ? '' : '#f87171';
+    if (phoneEl) phoneEl.style.borderColor = custPhone ? '' : '#f87171';
+    if (areaEl)  areaEl.style.borderColor  = areaName  ? '' : '#f87171';
+    if (nbhdEl)  nbhdEl.style.borderColor  = custNbhd  ? '' : '#f87171';
+    if (errEl) {
+      errEl.textContent = (LANG === 'ar'
+        ? '⚠️ يرجى تعبئة: ' : '⚠️ Please fill in: ') + missing.join('، ');
+      errEl.style.display = '';
+    }
+    return;
+  }
+
+  /* امسح الأخطاء */
+  if (errEl) errEl.style.display = 'none';
+  [nameEl, phoneEl, areaEl, nbhdEl].forEach(el => { if (el) el.style.borderColor = ''; });
+
+  const sel  = areaEl;
   const opt  = sel ? sel.selectedOptions[0] : null;
   const rawFee    = opt && opt.dataset.fee ? parseFloat(opt.dataset.fee) : null;
   const actualFee = (rawFee !== null && FREE_SHIPPING_UNLOCKED) ? 0 : rawFee;
-  const areaName  = sel ? sel.value : '';
   const grandTotal = SUBTOTAL + (actualFee ?? 0);
-
-  /* customer info */
-  var cust = null;
-  try { cust = JSON.parse(localStorage.getItem('cart_customer') || 'null'); } catch(ex) {}
-  const custName  = cust && cust.name  ? cust.name  : '';
-  const custPhone = cust && cust.phone ? cust.phone : '';
-  const custNbhd  = cust && cust.neighborhood ? cust.neighborhood : '';
-  const custNotes = cust && cust.notes ? cust.notes : '';
 
   /* ── 1. منتجات السلة + عروض المنتج (B2G1F) ── */
   const lines = ITEMS.map(it => {
