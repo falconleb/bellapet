@@ -542,7 +542,39 @@ function buildWaLink(e) {
     if (!areaName) msg += '(Delivery area not selected yet)\n';
   }
 
+  /* افتح واتساب أولاً (مباشرة من حدث المستخدم حتى لا يُحظر الـ popup) */
   window.open(`https://wa.me/${WA_NUM}?text=${encodeURIComponent(msg)}`, '_blank');
+
+  /* ثم احفظ الطلب بالـ DB في الخلفية */
+  var note = custNbhd + (custNotes ? ' | ' + custNotes : '');
+  var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+  var fd   = new FormData();
+  fd.append('name',  custName);
+  fd.append('phone', custPhone);
+  fd.append('area',  areaName);
+  fd.append('note',  note);
+  fd.append('_csrf_token', csrf);
+  fetch('/cart/quick-order', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(function(data) {
+      if (data.ok) {
+        /* أضف الطلب لقائمة المؤكدة حتى يظهر بـ "طلباتي" */
+        try {
+          var conf = JSON.parse(sessionStorage.getItem('confirmed_orders') || '[]');
+          conf.push(data.order_id);
+          sessionStorage.setItem('confirmed_orders', JSON.stringify(conf));
+        } catch(ex) {}
+        /* افرغ السلة محلياً */
+        sessionStorage.removeItem('cart');
+        /* غيّر الزر */
+        var btn = document.getElementById('wa-order-btn');
+        if (btn) {
+          btn.style.opacity = '.6';
+          btn.style.pointerEvents = 'none';
+        }
+      }
+    })
+    .catch(function() {});
 }
 
 function updateItem(productId, newQty) {

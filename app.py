@@ -975,6 +975,110 @@ def checkout():
     )
 
 
+@app.route("/cart/quick-order", methods=["POST"])
+def cart_quick_order():
+    """يحفظ الطلب من السلة مباشرة (مستخدَم مع زر الواتساب) ويرجع JSON."""
+    if _rate_limited(f'checkout:{_client_ip()}', max_calls=5, window=60):
+        return jsonify({'ok': False, 'error': 'rate_limit'}), 429
+
+    cart_data = session.get("cart", {})
+    if not cart_data:
+        return jsonify({'ok': False, 'error': 'empty_cart'}), 400
+
+    name  = request.form.get("name", "").strip()
+    phone = request.form.get("phone", "").strip()
+    area  = request.form.get("area", "").strip()
+    note  = request.form.get("note", "").strip()
+
+    if not name or not phone or not area:
+        return jsonify({'ok': False, 'error': 'missing_fields'}), 400
+
+    db = get_db()
+
+    zone_row = db.execute("SELECT enabled, fee FROM shipping_zones WHERE name_ar=?", (area,)).fetchone()
+    if not zone_row or not zone_row['enabled']:
+        db.close()
+        return jsonify({'ok': False, 'error': 'area_unavailable'}), 400
+
+    # بناء قائمة المنتجات وحساب الإجمالي
+    items = []
+    total = 0.0
+    for pid_str, qty in cart_data.items():
+        p = db.execute("SELECT * FROM products WHERE id=? AND is_active=1", (int(pid_str),)).fetchone()
+        if p:
+            price = p["discount_price"] if p["discount_price"] else p["price"]
+            subtotal, free_qty, _ = _apply_promo(price, qty, p["promo_type"])
+            if free_qty == 0:
+                subtotal = price * qty
+            total += subtotal
+            items.append({"product": p, "qty": qty, "price": price, "subtotal": subtotal})
+
+    if not items:
+        db.close()
+        return jsonify({'ok': False, 'error': 'no_items'}), 400
+
+    # الولاء
+    perk, cond_ok, _ = _get_perk(db, phone, total)
+    final_total = total
+    if perk and cond_ok:
+        pt, pv = perk['perk_type'], perk['perk_value'] or ''
+        if pt == 'blocked':
+            db.close()
+            return jsonify({'ok': False, 'error': 'blocked'}), 403
+        elif pt == 'discount_pct' and pv:
+            final_total = round(total - total * float(pv) / 100, 2)
+        elif pt in ('discount_fixed', 'voucher') and pv:
+            final_total = round(total - min(float(pv), total), 2)
+
+    # هدية
+    selected_gift = session.get('selected_gift')
+    gift_note = None
+    if selected_gift:
+        promo = db.execute("SELECT * FROM cart_promotions WHERE id=? AND is_active=1",
+                           (selected_gift['promo_id'],)).fetchone()
+        if promo and total >= (promo['threshold_amount'] or 0):
+            gift_note = f"{selected_gift['name_ar']} / {selected_gift['name_en']}"
+
+    is_free_ship = perk and perk['perk_type'] == 'free_shipping' and cond_ok
+    delivery_fee = 0.0 if is_free_ship else float(zone_row['fee'])
+    grand_total  = round(final_total + delivery_fee, 2)
+
+    cur = db.cursor()
+    rev_token = secrets.token_urlsafe(20)
+    cur.execute(
+        "INSERT INTO orders (customer_name, phone, area, address_note, total, delivery_fee, gift_note, review_token) VALUES (?,?,?,?,?,?,?,?)",
+        (name, phone, area, note or None, grand_total, delivery_fee, gift_note, rev_token),
+    )
+    order_id = cur.lastrowid
+    for item in items:
+        cur.execute(
+            "INSERT INTO order_items (order_id, product_id, qty, price_at_order) VALUES (?,?,?,?)",
+            (order_id, item["product"]["id"], item["qty"], item["price"]),
+        )
+    db.commit()
+
+    webhook_url = _get_integration('n8n_order_webhook')
+    if webhook_url:
+        payload = _order_payload(order_id, db)
+        _fire_webhook(webhook_url, payload)
+
+    px = _get_pixels()
+    _send_capi_event('Purchase', px.get('meta_pixel_id'), px.get('meta_capi_token'), {
+        'order_id': order_id, 'value': grand_total, 'currency': 'USD', 'phone': phone,
+        'ip': request.remote_addr or '', 'ua': request.headers.get('User-Agent', ''),
+        'url': request.host_url + 'cart',
+    })
+    db.close()
+
+    session.pop("cart", None)
+    session.pop("selected_gift", None)
+    confirmed = session.get('confirmed_orders', [])
+    confirmed.append(order_id)
+    session['confirmed_orders'] = confirmed[-10:]
+
+    return jsonify({'ok': True, 'order_id': order_id})
+
+
 @app.route("/order/<int:order_id>")
 def order_confirm(order_id):
     if order_id not in session.get('confirmed_orders', []):
