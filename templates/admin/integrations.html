@@ -213,6 +213,34 @@
     </div>
   </div>
 
+  {# ── Google Business Profile ── #}
+  <div class="int-card">
+    <div class="int-card-head">
+      <span class="int-logo">🗺️</span>
+      <div>
+        <h3>Google Business Profile</h3>
+        <p>طلب تقييم تلقائي عند توصيل الطلب — يُرسَل عبر n8n للزبون</p>
+      </div>
+      <span class="int-badge {{ 'active' if pixels.get('gbp_review_url') else 'inactive' }}">
+        {{ 'مفعّل' if pixels.get('gbp_review_url') else 'معطّل' }}
+      </span>
+    </div>
+    <div class="int-fields">
+      <div class="int-field">
+        <label>Place ID</label>
+        <input type="text" name="gbp_place_id" value="{{ pixels.get('gbp_place_id','') }}"
+               placeholder="ChIJxxxxxxxxxxxxxxxx">
+        <span class="int-hint">من <a href="https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder" target="_blank" style="color:var(--gold)">Place ID Finder</a> — ابحث عن اسم محلك</span>
+      </div>
+      <div class="int-field">
+        <label>Review URL</label>
+        <input type="text" name="gbp_review_url" value="{{ pixels.get('gbp_review_url','') }}"
+               placeholder="https://g.page/r/XXXX/review">
+        <span class="int-hint">الرابط المختصر لصفحة التقييم — من Google Business Profile → طلب التقييمات</span>
+      </div>
+    </div>
+  </div>
+
   {# ── Google Maps ── #}
   <div class="int-card">
     <div class="int-card-head">

@@ -60,6 +60,8 @@ _PIXEL_KEYS = [
     'google_maps_key',
     'gemini_api_key',
     'anthropic_api_key',
+    'gbp_place_id',
+    'gbp_review_url',
 ]
 
 def _get_pixels():
@@ -124,6 +126,83 @@ def _fire_webhook(url, payload):
         except Exception as e:
             _auto_log(event, 'error', str(e)[:200])
     threading.Thread(target=_send, daemon=True).start()
+
+
+def _send_capi_event(event_name, pixel_id, token, data: dict):
+    """يبعث server-side event لـ Meta Conversions API (CAPI) في thread منفصل."""
+    if not pixel_id or not token:
+        return
+    import hashlib, time as _time
+    def _hash(v):
+        return hashlib.sha256(v.strip().lower().encode()).hexdigest() if v else None
+
+    user_data = {}
+    if data.get('phone'):
+        h = _hash(data['phone'])
+        if h:
+            user_data['ph'] = [h]
+    if data.get('email'):
+        h = _hash(data['email'])
+        if h:
+            user_data['em'] = [h]
+    user_data['client_ip_address'] = data.get('ip', '')
+    user_data['client_user_agent'] = data.get('ua', '')
+
+    event_data = {
+        'event_name': event_name,
+        'event_time': int(_time.time()),
+        'action_source': 'website',
+        'event_source_url': data.get('url', 'https://bellapetstore.com/checkout'),
+        'user_data': user_data,
+    }
+    if data.get('order_id'):
+        event_data['event_id'] = f"order_{data['order_id']}"
+    if data.get('value') is not None:
+        event_data['custom_data'] = {
+            'value': data['value'],
+            'currency': data.get('currency', 'USD'),
+            'order_id': str(data.get('order_id', '')),
+        }
+
+    payload = {
+        'data': [event_data],
+        'test_event_code': data.get('test_code'),
+    }
+    if not data.get('test_code'):
+        payload.pop('test_event_code', None)
+
+    url = f"https://graph.facebook.com/v19.0/{pixel_id}/events?access_token={token}"
+
+    def _send():
+        try:
+            body = json.dumps(payload).encode()
+            req = _urllib_req.Request(url, data=body,
+                                      headers={'Content-Type': 'application/json'},
+                                      method='POST')
+            _urllib_req.urlopen(req, timeout=8)
+            _auto_log('capi_event', 'ok', f'{event_name} → pixel {pixel_id}')
+        except Exception as e:
+            _auto_log('capi_event', 'error', str(e)[:200])
+    threading.Thread(target=_send, daemon=True).start()
+
+
+def _send_gbp_review_request(order_id, phone, review_url):
+    """يسجّل طلب تقييم GBP — يُرسَل عبر n8n أو يُسجَّل في الـ log."""
+    if not review_url:
+        return
+    db = get_db()
+    wh = _get_integration('n8n_status_webhook') or _get_integration('n8n_order_webhook')
+    db.close()
+    payload = {
+        'event': 'gbp_review_request',
+        'order_id': order_id,
+        'phone': phone,
+        'review_url': review_url,
+    }
+    if wh:
+        _fire_webhook(wh, payload)
+    _auto_log('gbp_review_request', 'ok', f'order {order_id} → {phone}')
+
 
 # ── Web Push (VAPID) ───────────────────────────────────────────
 
@@ -854,6 +933,17 @@ def checkout():
             if webhook_url:
                 payload = _order_payload(order_id, db)
                 _fire_webhook(webhook_url, payload)
+            # Meta CAPI Purchase event
+            px = _get_pixels()
+            _send_capi_event('Purchase', px.get('meta_pixel_id'), px.get('meta_capi_token'), {
+                'order_id': order_id,
+                'value': grand_total,
+                'currency': 'USD',
+                'phone': phone,
+                'ip': request.remote_addr or '',
+                'ua': request.headers.get('User-Agent', ''),
+                'url': request.url,
+            })
             db.close()
             session.pop("cart", None)
             session.pop("selected_gift", None)
@@ -1600,6 +1690,11 @@ def admin_order_status(oid):
             if payload:
                 payload['event'] = 'status_changed'
                 _fire_webhook(webhook_url, payload)
+        if s == 'delivered':
+            order_row = db.execute('SELECT phone FROM orders WHERE id=?', (oid,)).fetchone()
+            review_url = _get_integration('gbp_review_url')
+            if order_row and review_url:
+                _send_gbp_review_request(oid, order_row['phone'], review_url)
         db.close()
     return redirect(url_for('admin_order_detail', oid=oid))
 
