@@ -165,9 +165,17 @@
         {{ icons.icon_chat("btn-icon") }}
         {{ 'اطلب عبر واتساب' if lang == 'ar' else 'Order via WhatsApp' }}
       </a>
-      <a class="btn-checkout" href="{{ url_for('checkout') }}">
+      <a class="btn-checkout" href="#" onclick="goCheckout(event)">
         {{ 'إتمام الطلب' if lang == 'ar' else 'Checkout' }}
       </a>
+    </div>
+
+    <div class="cart-cod-badge">
+      {{ icons.icon_cash("cod-icon") }}
+      <div>
+        <strong>{{ 'الدفع نقداً عند الاستلام' if lang == 'ar' else 'Cash on delivery' }}</strong>
+        <p>{{ 'لا حاجة لبطاقة — تدفع لما يوصلك طلبك' if lang == 'ar' else 'No card needed — pay when your order arrives' }}</p>
+      </div>
     </div>
 
     <form method="post" action="{{ url_for('cart_clear') }}" style="margin-top:10px;text-align:center">
@@ -284,6 +292,21 @@
 }
 .calc-actions .btn-wa-cart  { flex: 1; min-width: 160px; text-align: center; }
 .calc-actions .btn-checkout { flex: 1; min-width: 120px; text-align: center; }
+
+.cart-cod-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--surface-2, rgba(255,255,255,.04));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.82rem;
+}
+.cart-cod-badge .cod-icon { width: 28px; height: 28px; flex-shrink: 0; opacity: .85; }
+.cart-cod-badge strong { display: block; font-size: 0.85rem; margin-bottom: 2px; }
+.cart-cod-badge p { margin: 0; color: var(--text-muted, var(--muted)); font-size: 0.78rem; }
 
 /* ── Cart Customer Card ── */
 .cart-customer-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:0; margin-top:20px; max-width:520px; overflow:hidden; }
@@ -596,5 +619,71 @@ function saveCartCustomer() {
 }
 
 document.addEventListener('DOMContentLoaded', initCartCustomer);
+
+function goCheckout(e) {
+  e.preventDefault();
+  var cust = null;
+  try { cust = JSON.parse(localStorage.getItem('cart_customer') || 'null'); } catch(ex) {}
+
+  const nameEl  = document.getElementById('cc-name');
+  const phoneEl = document.getElementById('cc-phone');
+  const areaEl  = document.getElementById('cc-area');
+  const nbhdEl  = document.getElementById('cc-neighborhood');
+  const notesEl = document.getElementById('cc-notes');
+
+  const custName  = (nameEl  && nameEl.value.trim())  || (cust && cust.name)         || '';
+  const custPhone = (phoneEl && phoneEl.value.trim())  || (cust && cust.phone)        || '';
+  const areaName  = (areaEl  && areaEl.value.trim())   || (cust && cust.area)         || '';
+  const custNbhd  = (nbhdEl  && nbhdEl.value.trim())   || (cust && cust.neighborhood) || '';
+  const custNotes = (notesEl && notesEl.value.trim())  || (cust && cust.notes)        || '';
+
+  const missing = [];
+  if (!custName)  missing.push(LANG === 'ar' ? 'الاسم'              : 'Full name');
+  if (!custPhone) missing.push(LANG === 'ar' ? 'رقم الهاتف'         : 'Phone number');
+  if (!areaName)  missing.push(LANG === 'ar' ? 'القضاء'             : 'District');
+  if (!custNbhd)  missing.push(LANG === 'ar' ? 'العنوان (المنطقة)' : 'Address (area/town)');
+
+  const errEl = document.getElementById('wa-validation-msg');
+  if (missing.length) {
+    var form = document.getElementById('cart-cust-form');
+    if (form && form.style.display === 'none') {
+      form.style.display = '';
+      var chev = document.getElementById('cart-cust-chevron');
+      if (chev) chev.classList.add('open');
+    }
+    if (nameEl)  nameEl.style.borderColor  = custName  ? '' : '#f87171';
+    if (phoneEl) phoneEl.style.borderColor = custPhone ? '' : '#f87171';
+    if (areaEl)  areaEl.style.borderColor  = areaName  ? '' : '#f87171';
+    if (nbhdEl)  nbhdEl.style.borderColor  = custNbhd  ? '' : '#f87171';
+    if (errEl) {
+      errEl.textContent = (LANG === 'ar' ? '⚠️ يرجى تعبئة: ' : '⚠️ Please fill in: ') + missing.join('، ');
+      errEl.style.display = '';
+    }
+    return;
+  }
+
+  if (errEl) errEl.style.display = 'none';
+  [nameEl, phoneEl, areaEl, nbhdEl].forEach(el => { if (el) el.style.borderColor = ''; });
+
+  /* note = neighborhood + optional notes */
+  var note = custNbhd;
+  if (custNotes) note += (note ? ' | ' : '') + custNotes;
+
+  /* CSRF token from meta */
+  var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+
+  /* إنشاء فورم وإرساله مباشرة */
+  var f = document.createElement('form');
+  f.method = 'POST';
+  f.action = '{{ url_for("checkout") }}';
+  [['name', custName], ['phone', custPhone], ['area', areaName],
+   ['note', note], ['_csrf_token', csrf]].forEach(function(pair) {
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = pair[0]; inp.value = pair[1];
+    f.appendChild(inp);
+  });
+  document.body.appendChild(f);
+  f.submit();
+}
 </script>
 {% endblock %}
