@@ -1,0 +1,250 @@
+{% extends "admin/base.html" %}
+{% block title %}التكاملات{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>🔌 التكاملات والـ Pixels</h1>
+</div>
+
+{% if msg == 'saved' %}
+<div class="adm-alert success" style="margin-bottom:16px">✓ تم الحفظ بنجاح</div>
+{% endif %}
+
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {# ── Meta ── #}
+  <div class="int-card">
+    <div class="int-card-head">
+      <span class="int-logo">🟦</span>
+      <div>
+        <h3>Meta Pixel</h3>
+        <p>تتبع الزوار والمبيعات لإعلانات فيسبوك وإنستغرام</p>
+      </div>
+      <span class="int-badge {{ 'active' if pixels.get('meta_pixel_id') else 'inactive' }}">
+        {{ 'مفعّل' if pixels.get('meta_pixel_id') else 'معطّل' }}
+      </span>
+    </div>
+    <div class="int-fields">
+      <div class="int-field">
+        <label>Pixel ID</label>
+        <input type="text" name="meta_pixel_id" value="{{ pixels.get('meta_pixel_id','') }}"
+               placeholder="123456789012345">
+      </div>
+    </div>
+  </div>
+
+  {# ── Meta CAPI ── #}
+  <div class="int-card">
+    <div class="int-card-head">
+      <span class="int-logo">🔗</span>
+      <div>
+        <h3>Meta Conversions API (CAPI)</h3>
+        <p>تتبع server-side — أدق من الـ Pixel وحده، يتجاوز Ad Blockers</p>
+      </div>
+      <span class="int-badge {{ 'active' if pixels.get('meta_capi_token') else 'inactive' }}">
+        {{ 'مفعّل' if pixels.get('meta_capi_token') else 'معطّل' }}
+      </span>
+    </div>
+    <div class="int-fields">
+      <div class="int-field">
+        <label>Access Token</label>
+        <input type="password" name="meta_capi_token" value="{{ pixels.get('meta_capi_token','') }}"
+               placeholder="EAAxxxxxxxxxxxxxxxx" autocomplete="off">
+        <span class="int-hint">من Meta Business → Events Manager → Settings → Conversions API</span>
+      </div>
+    </div>
+  </div>
+
+  {# ── GA4 ── #}
+  <div class="int-card">
+    <div class="int-card-head">
+      <span class="int-logo">📊</span>
+      <div>
+        <h3>Google Analytics 4</h3>
+        <p>تحليل سلوك الزوار، مصادر الزيارات، والمبيعات</p>
+      </div>
+      <span class="int-badge {{ 'active' if pixels.get('ga4_id') else 'inactive' }}">
+        {{ 'مفعّل' if pixels.get('ga4_id') else 'معطّل' }}
+      </span>
+    </div>
+    <div class="int-fields">
+      <div class="int-field">
+        <label>Measurement ID</label>
+        <input type="text" name="ga4_id" value="{{ pixels.get('ga4_id','') }}"
+               placeholder="G-XXXXXXXXXX">
+        <span class="int-hint">من Google Analytics → Admin → Data Streams → Web Stream</span>
+      </div>
+    </div>
+  </div>
+
+  {# ── GTM ── #}
+  <div class="int-card">
+    <div class="int-card-head">
+      <span class="int-logo">🏷️</span>
+      <div>
+        <h3>Google Tag Manager</h3>
+        <p>إدارة جميع الـ Tags من مكان واحد بدون تعديل الكود</p>
+      </div>
+      <span class="int-badge {{ 'active' if pixels.get('gtm_id') else 'inactive' }}">
+        {{ 'مفعّل' if pixels.get('gtm_id') else 'معطّل' }}
+      </span>
+    </div>
+    <div class="int-fields">
+      <div class="int-field">
+        <label>Container ID</label>
+        <input type="text" name="gtm_id" value="{{ pixels.get('gtm_id','') }}"
+               placeholder="GTM-XXXXXXX">
+        <span class="int-hint">من Google Tag Manager → Container Settings</span>
+      </div>
+    </div>
+  </div>
+
+  {# ── Microsoft Clarity ── #}
+  <div class="int-card">
+    <div class="int-card-head">
+      <span class="int-logo">🎯</span>
+      <div>
+        <h3>Microsoft Clarity</h3>
+        <p>تسجيل جلسات الزوار + Heatmaps — مجاني 100%</p>
+      </div>
+      <span class="int-badge {{ 'active' if pixels.get('clarity_id') else 'inactive' }}">
+        {{ 'مفعّل' if pixels.get('clarity_id') else 'معطّل' }}
+      </span>
+    </div>
+    <div class="int-fields">
+      <div class="int-field">
+        <label>Project ID</label>
+        <input type="text" name="clarity_id" value="{{ pixels.get('clarity_id','') }}"
+               placeholder="xxxxxxxxxx">
+        <span class="int-hint">من clarity.microsoft.com → Settings → Overview</span>
+      </div>
+    </div>
+  </div>
+
+  {# ── Snap ── #}
+  <div class="int-card">
+    <div class="int-card-head">
+      <span class="int-logo">👻</span>
+      <div>
+        <h3>Snap Pixel</h3>
+        <p>تتبع إعلانات سناب شات</p>
+      </div>
+      <span class="int-badge {{ 'active' if pixels.get('snap_pixel_id') else 'inactive' }}">
+        {{ 'مفعّل' if pixels.get('snap_pixel_id') else 'معطّل' }}
+      </span>
+    </div>
+    <div class="int-fields">
+      <div class="int-field">
+        <label>Pixel ID</label>
+        <input type="text" name="snap_pixel_id" value="{{ pixels.get('snap_pixel_id','') }}"
+               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+        <span class="int-hint">من Snapchat Ads Manager → Events Manager → Pixel</span>
+      </div>
+    </div>
+  </div>
+
+  {# ── TikTok ── #}
+  <div class="int-card">
+    <div class="int-card-head">
+      <span class="int-logo">🎵</span>
+      <div>
+        <h3>TikTok Pixel</h3>
+        <p>تتبع إعلانات تيك توك</p>
+      </div>
+      <span class="int-badge {{ 'active' if pixels.get('tiktok_pixel_id') else 'inactive' }}">
+        {{ 'مفعّل' if pixels.get('tiktok_pixel_id') else 'معطّل' }}
+      </span>
+    </div>
+    <div class="int-fields">
+      <div class="int-field">
+        <label>Pixel ID</label>
+        <input type="text" name="tiktok_pixel_id" value="{{ pixels.get('tiktok_pixel_id','') }}"
+               placeholder="XXXXXXXXXXXXXXXXXX">
+        <span class="int-hint">من TikTok Ads Manager → Assets → Events → Web Events</span>
+      </div>
+    </div>
+  </div>
+
+  {# ── Google Maps ── #}
+  <div class="int-card">
+    <div class="int-card-head">
+      <span class="int-logo">📍</span>
+      <div>
+        <h3>Google Maps / Places API</h3>
+        <p>Autocomplete للعناوين بصفحة الطلب — يسهّل على الزبون كتابة عنوانه</p>
+      </div>
+      <span class="int-badge {{ 'active' if pixels.get('google_maps_key') else 'inactive' }}">
+        {{ 'مفعّل' if pixels.get('google_maps_key') else 'معطّل' }}
+      </span>
+    </div>
+    <div class="int-fields">
+      <div class="int-field">
+        <label>API Key</label>
+        <input type="password" name="google_maps_key" value="{{ pixels.get('google_maps_key','') }}"
+               placeholder="AIzaXXXXXXXXXXXXXXXXXXXXXXX" autocomplete="off">
+        <span class="int-hint">من Google Cloud Console → APIs → Maps JavaScript API + Places API</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:24px">
+    <button type="submit" class="btn-adm-primary" style="padding:12px 36px;font-size:1rem">
+      💾 حفظ التكاملات
+    </button>
+  </div>
+</form>
+
+<style>
+.int-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 14px;
+}
+.int-card-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.int-logo { font-size: 1.8rem; flex-shrink: 0; }
+.int-card-head h3 { margin: 0; font-size: 0.95rem; font-weight: 700; }
+.int-card-head p  { margin: 3px 0 0; font-size: 0.78rem; color: var(--text-muted); }
+.int-badge {
+  margin-inline-start: auto;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.int-badge.active   { background: rgba(74,222,128,.15); color: #4ade80; border: 1px solid #4ade8044; }
+.int-badge.inactive { background: var(--surface-2); color: var(--text-faint); border: 1px solid var(--border); }
+.int-fields { display: flex; flex-direction: column; gap: 10px; }
+.int-field  { display: flex; flex-direction: column; gap: 4px; }
+.int-field label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
+.int-field input {
+  background: var(--surface-2, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: var(--text);
+  width: 100%;
+  max-width: 480px;
+  font-family: monospace;
+}
+.int-field input:focus { outline: none; border-color: var(--gold); }
+.int-hint { font-size: 0.72rem; color: var(--text-faint); }
+.adm-alert.success {
+  background: rgba(74,222,128,.1);
+  border: 1px solid #4ade8044;
+  color: #4ade80;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+</style>
+{% endblock %}

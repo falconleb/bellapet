@@ -53,9 +53,10 @@
       <a href="{{ url_for('admin_seo') }}"         class="{{ 'active' if active_admin == 'seo' }}">⚡ SEO</a>
 
       <span class="adm-nav-group">إعدادات</span>
-      <a href="{{ url_for('admin_api_keys') }}"  class="{{ 'active' if active_admin == 'api_keys' }}">🔌 API Keys</a>
-      <a href="{{ url_for('admin_monitor') }}"   class="{{ 'active' if active_admin == 'monitor' }}">🤖 مراقبة</a>
-      <a href="{{ url_for('admin_settings') }}"  class="{{ 'active' if active_admin == 'settings' }}">⚙️ الإعدادات</a>
+      <a href="{{ url_for('admin_api_keys') }}"      class="{{ 'active' if active_admin == 'api_keys' }}">🔌 API Keys</a>
+      <a href="{{ url_for('admin_integrations') }}"  class="{{ 'active' if active_admin == 'integrations' }}">📡 التكاملات</a>
+      <a href="{{ url_for('admin_monitor') }}"       class="{{ 'active' if active_admin == 'monitor' }}">🤖 مراقبة</a>
+      <a href="{{ url_for('admin_settings') }}"      class="{{ 'active' if active_admin == 'settings' }}">⚙️ الإعدادات</a>
     </nav>
     <div class="adm-sidebar-footer">
       <a href="{{ url_for('index') }}" target="_blank" class="adm-view-site">عرض الموقع ↗</a>

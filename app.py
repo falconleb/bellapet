@@ -42,6 +42,34 @@ def _get_integration(key):
     db.close()
     return row['value'] if row else None
 
+def _save_integration(key, value):
+    db = get_db()
+    if value:
+        db.execute("INSERT OR REPLACE INTO integration_settings (key,value) VALUES (?,?)", (key, value.strip()))
+    else:
+        db.execute("DELETE FROM integration_settings WHERE key=?", (key,))
+    db.commit()
+    db.close()
+
+_PIXEL_KEYS = [
+    'meta_pixel_id', 'meta_capi_token',
+    'ga4_id', 'gtm_id',
+    'clarity_id',
+    'snap_pixel_id',
+    'tiktok_pixel_id',
+    'google_maps_key',
+]
+
+def _get_pixels():
+    """جلب كل قيم الـ pixels دفعة واحدة."""
+    db = get_db()
+    rows = db.execute(
+        f"SELECT key, value FROM integration_settings WHERE key IN ({','.join('?'*len(_PIXEL_KEYS))})",
+        _PIXEL_KEYS
+    ).fetchall()
+    db.close()
+    return {r['key']: r['value'] for r in rows}
+
 
 def _get_zones(db):
     """أقضية الشحن مرتبة."""
@@ -467,6 +495,7 @@ def inject_globals():
         "gemini_api_ready": bool(config.GEMINI_API_KEY),
         "pending_notify_count": _pending_notify(),
         "global_zones": _global_zones(),
+        "pixels": _get_pixels(),
     }
 
 
@@ -1966,6 +1995,20 @@ def admin_shipping():
                            days_min=days_min,
                            days_max=days_max,
                            msg=msg)
+
+
+@app.route('/admin/integrations', methods=['GET', 'POST'])
+@admin_required
+def admin_integrations():
+    msg = None
+    if request.method == 'POST':
+        for key in _PIXEL_KEYS:
+            _save_integration(key, request.form.get(key, ''))
+        msg = 'saved'
+    pixels = _get_pixels()
+    return render_template('admin/integrations.html',
+                           pixels=pixels, msg=msg,
+                           active_admin='integrations')
 
 
 @app.route('/admin/settings', methods=['GET', 'POST'])
