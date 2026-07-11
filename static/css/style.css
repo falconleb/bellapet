@@ -1478,7 +1478,7 @@ html[dir="rtl"] .product-card .thumb .badge-gold { left: 6px; right: 6px; }
   border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 14px 16px;
 }
-.confirm-track-hint .track-icon { width: 28px; height: 28px; flex-shrink: 0; color: var(--gold); }
+.confirm-track-hint .track-emoji { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
 .confirm-track-hint strong { display: block; font-size: 0.88rem; margin-bottom: 3px; }
 .confirm-track-hint p { margin: 0; font-size: 0.78rem; color: var(--text-muted); }
 
