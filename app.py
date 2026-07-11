@@ -58,6 +58,8 @@ _PIXEL_KEYS = [
     'snap_pixel_id',
     'tiktok_pixel_id',
     'google_maps_key',
+    'gemini_api_key',
+    'anthropic_api_key',
 ]
 
 def _get_pixels():
