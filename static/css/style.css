@@ -1472,24 +1472,22 @@ html[dir="rtl"] .product-card .thumb .badge-gold { left: 6px; right: 6px; }
 .confirm-item.total strong:last-child { color: var(--gold); }
 .ci-qty-tag { color: var(--text-faint); font-size: 0.75rem; margin-inline-start: 4px; }
 
-.btn-wa-confirm {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
+.confirm-track-hint {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--surface-2, rgba(255,255,255,.04));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+}
+.confirm-track-hint .track-icon { width: 28px; height: 28px; flex-shrink: 0; color: var(--gold); }
+.confirm-track-hint strong { display: block; font-size: 0.88rem; margin-bottom: 3px; }
+.confirm-track-hint p { margin: 0; font-size: 0.78rem; color: var(--text-muted); }
+
+.btn-track-order {
+  display: flex; align-items: center; justify-content: center;
   background: var(--gold); color: #18181d;
   border-radius: var(--radius-sm); padding: 14px;
   font-size: 0.95rem; font-weight: 700; text-decoration: none;
 }
-.btn-wa-confirm .btn-icon { width: 18px; height: 18px; }
-
-.btn-wa-problem {
-  display: flex; align-items: center; justify-content: center;
-  border: 1.5px solid rgba(248,113,113,.35);
-  color: #f87171; background: rgba(248,113,113,.07);
-  border-radius: var(--radius-sm); padding: 11px 14px;
-  font-size: 0.84rem; font-weight: 600; text-decoration: none;
-  transition: background .15s;
-}
-.btn-wa-problem:hover { background: rgba(248,113,113,.14); }
-.order-wa-problem { margin: 0 16px 16px; }
 
 .btn-back-home {
   display: flex; align-items: center; justify-content: center;
