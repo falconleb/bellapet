@@ -540,9 +540,13 @@
 
 {# ── Trust strip ── #}
 <div class="product-trust">
-  <div class="pt-item">{{ icons.icon_truck("pt-icon") }}<span>{{ 'توصيل ١-٣ أيام' if lang == 'ar' else '1–3 day delivery' }}</span></div>
+  <button class="pt-item pt-clickable" onclick="openInfoModal('shipping-modal')" type="button">
+    {{ icons.icon_truck("pt-icon") }}<span>{{ 'توصيل ١-٣ أيام' if lang == 'ar' else '1–3 day delivery' }}</span>
+  </button>
   <div class="pt-item">{{ icons.icon_cash("pt-icon") }}<span>{{ 'دفع عند الاستلام' if lang == 'ar' else 'Cash on delivery' }}</span></div>
-  <div class="pt-item">{{ icons.icon_seal("pt-icon") }}<span>{{ 'ضمان استبدال' if lang == 'ar' else 'Exchange guarantee' }}</span></div>
+  <button class="pt-item pt-clickable" onclick="openInfoModal('returns-modal')" type="button">
+    {{ icons.icon_seal("pt-icon") }}<span>{{ 'ضمان استبدال' if lang == 'ar' else 'Exchange guarantee' }}</span>
+  </button>
 </div>
 
 
@@ -670,6 +674,108 @@
   </div>
 </section>
 {% endif %}
+
+{# ══ Shipping Modal ══ #}
+<div id="shipping-modal" class="info-modal-backdrop" onclick="closeInfoModal(this)" hidden>
+  <div class="info-modal-box" role="dialog" aria-label="{{ 'الشحن والتوصيل' if lang == 'ar' else 'Shipping & Delivery' }}">
+    <button class="info-modal-close" onclick="closeInfoModal(document.getElementById('shipping-modal'))" aria-label="إغلاق">✕</button>
+    <h2 class="info-modal-title">🚚 {{ 'الشحن والتوصيل' if lang == 'ar' else 'Shipping & Delivery' }}</h2>
+    <div class="info-modal-bento">
+      <div class="imb-card imb-wide imb-highlight">
+        <span class="imb-big-icon">📍</span>
+        <div>
+          <h3>{{ 'نوصّل لكل لبنان' if lang == 'ar' else 'We deliver all over Lebanon' }}</h3>
+          <p>{{ 'بيروت وجبل لبنان والمناطق اللبنانية — من الشمال للجنوب.' if lang == 'ar' else 'Beirut, Mount Lebanon, and all Lebanese regions — North to South.' }}</p>
+        </div>
+      </div>
+      <div class="imb-card">
+        <span class="imb-icon">⏱</span>
+        <h4>{{ 'وقت التسليم' if lang == 'ar' else 'Delivery Time' }}</h4>
+        <p>{{ '١ إلى ٤ أيام عمل بعد تأكيد الطلب.' if lang == 'ar' else '1 to 4 business days after order confirmation.' }}</p>
+      </div>
+      <div class="imb-card">
+        <span class="imb-icon">💳</span>
+        <h4>{{ 'الدفع' if lang == 'ar' else 'Payment' }}</h4>
+        <p>{{ 'دفع عند الاستلام — كاش فقط.' if lang == 'ar' else 'Cash on delivery — no prepayment needed.' }}</p>
+      </div>
+      <div class="imb-card">
+        <span class="imb-icon">📞</span>
+        <h4>{{ 'تأكيد الطلب' if lang == 'ar' else 'Order Confirmation' }}</h4>
+        <p>{{ 'بنتواصل معك على واتساب لتأكيد الطلب قبل التوصيل.' if lang == 'ar' else 'We confirm your order on WhatsApp before dispatching.' }}</p>
+      </div>
+      <div class="imb-card">
+        <span class="imb-icon">🎁</span>
+        <h4>{{ 'شحن مجاني' if lang == 'ar' else 'Free Shipping' }}</h4>
+        <p>{{ 'متاح على بعض العروض الخاصة — تابع صفحتنا.' if lang == 'ar' else 'Available on select promotions — follow our page.' }}</p>
+      </div>
+      {% if shipping_zones %}
+      <div class="imb-card imb-wide imb-zones">
+        <h4>💵 {{ 'رسوم التوصيل حسب المنطقة' if lang == 'ar' else 'Delivery Fees by Region' }}</h4>
+        <div class="imb-zones-grid">
+          {% for z in shipping_zones %}{% if z['enabled'] %}
+          <div class="imb-zone-row">
+            <span>{{ z['name_ar'] if lang == 'ar' else (z['name_en'] or z['name_ar']) }}</span>
+            <span class="imb-zone-fee">${{ '%.0f'|format(z['fee']) }}</span>
+          </div>
+          {% endif %}{% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ══ Returns Modal ══ #}
+<div id="returns-modal" class="info-modal-backdrop" onclick="closeInfoModal(this)" hidden>
+  <div class="info-modal-box" role="dialog" aria-label="{{ 'سياسة الاستبدال' if lang == 'ar' else 'Returns Policy' }}">
+    <button class="info-modal-close" onclick="closeInfoModal(document.getElementById('returns-modal'))" aria-label="إغلاق">✕</button>
+    <h2 class="info-modal-title">🔄 {{ 'سياسة الاستبدال' if lang == 'ar' else 'Returns Policy' }}</h2>
+    <div class="info-modal-bento">
+      <div class="imb-card imb-wide imb-highlight">
+        <span class="imb-big-icon">🐾</span>
+        <div>
+          <h3>{{ 'رضاك يهمنا' if lang == 'ar' else 'Your satisfaction matters' }}</h3>
+          <p>{{ 'بنقف معك لو في أي مشكلة بالمنتج — تواصل معنا وبنحلها سريع.' if lang == 'ar' else "We stand behind every product — reach out and we'll sort it fast." }}</p>
+        </div>
+      </div>
+      <div class="imb-card">
+        <span class="imb-icon">⏱</span>
+        <h4>{{ '٢٤ ساعة' if lang == 'ar' else '24 Hours' }}</h4>
+        <p>{{ 'بلّغنا خلال ٢٤ ساعة من استلام الطلب.' if lang == 'ar' else 'Report any issue within 24 hours of receiving your order.' }}</p>
+      </div>
+      <div class="imb-card">
+        <span class="imb-icon">📦</span>
+        <h4>{{ 'حالة المنتج' if lang == 'ar' else 'Product Condition' }}</h4>
+        <p>{{ 'يجب أن يكون المنتج سليماً وغير مستخدم بغلافه الأصلي.' if lang == 'ar' else 'Must be unused and in its original packaging.' }}</p>
+      </div>
+      <div class="imb-card">
+        <span class="imb-icon">📸</span>
+        <h4>{{ 'أرسل صورة' if lang == 'ar' else 'Send a Photo' }}</h4>
+        <p>{{ 'صوّر المنتج وأرسله على واتساب وبنتواصل معك فوراً.' if lang == 'ar' else 'Photo the product and WhatsApp us — we respond immediately.' }}</p>
+      </div>
+      <div class="imb-card">
+        <span class="imb-icon">💰</span>
+        <h4>{{ 'الاسترداد' if lang == 'ar' else 'Refund' }}</h4>
+        <p>{{ 'كاش أو رصيد لطلبك القادم — أنت تختار.' if lang == 'ar' else 'Cash refund or store credit — your choice.' }}</p>
+      </div>
+      <div class="imb-card">
+        <span class="imb-icon">🚫</span>
+        <h4>{{ 'استثناءات' if lang == 'ar' else 'Exceptions' }}</h4>
+        <p>{{ 'الأغذية والعلاجات لا تُسترجع لأسباب صحية.' if lang == 'ar' else 'Food and medication are non-returnable for health reasons.' }}</p>
+      </div>
+      <div class="imb-card imb-wide imb-free-reject">
+        <span class="imb-big-icon">✅</span>
+        <div>
+          <h4>{{ 'رفض الطلب فوراً — بدون أي كلفة' if lang == 'ar' else 'Reject on arrival — no charge' }}</h4>
+          <p>{{ 'تقدر ترفض الطلب عند الاستلام إذا المنتج مختلف عمّا طلبته أو وصل متأخراً. لا رسوم ولا أي تكلفة عليك.' if lang == 'ar' else 'Reject on the spot if the item differs from your order or arrived late. No charge at all.' }}</p>
+        </div>
+      </div>
+    </div>
+    <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="imb-wa-btn">
+      💬 {{ 'تواصل معنا على واتساب' if lang == 'ar' else 'Contact us on WhatsApp' }}
+    </a>
+  </div>
+</div>
 
 {% endblock %}
 
@@ -1056,6 +1162,24 @@ function clearIntervalBtns() {
   document.querySelectorAll('.sub-interval-btn').forEach(function(b) { b.classList.remove('sub-interval-active'); });
   _subIntervalDays = 0;
 }
+
+function openInfoModal(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeInfoModal(el) {
+  var backdrop = el.classList.contains('info-modal-backdrop') ? el : el.closest('.info-modal-backdrop');
+  if (backdrop) { backdrop.hidden = true; document.body.style.overflow = ''; }
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.info-modal-backdrop:not([hidden])').forEach(function(m) {
+      m.hidden = true; document.body.style.overflow = '';
+    });
+  }
+});
 
 function openSubModal() {
   // Reset qty
