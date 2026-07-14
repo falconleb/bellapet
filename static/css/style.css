@@ -3329,9 +3329,10 @@ select option { color: #111 !important; background: #fff !important; }
 /* ══ Brand Tiles ══ */
 .brand-tiles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(130px, 160px));
   gap: 10px;
   margin: 16px 0 24px;
+  justify-content: start;
 }
 .brand-tile {
   display: flex;
