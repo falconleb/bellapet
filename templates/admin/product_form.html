@@ -15,7 +15,7 @@
 <form method="post" enctype="multipart/form-data" class="adm-form" novalidate id="main-product-form">
 
   {# ── 1. الأساسيات ── #}
-  <div class="adm-form-section">
+  <div class="adm-form-section sec-c1">
     <h3>الأساسيات</h3>
     <div class="adm-grid-2">
       <div class="adm-field {{ 'has-error' if errors.get('name_ar') }}">
@@ -125,7 +125,7 @@
   </div>
 
   {# ── 2. المحتوى ── #}
-  <div class="adm-form-section">
+  <div class="adm-form-section sec-c2">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
       <h3 style="margin:0">المحتوى</h3>
       {% if product %}
@@ -166,7 +166,7 @@
   </div>
 
   {# ── 3. الخصائص ── #}
-  <div class="adm-form-section">
+  <div class="adm-form-section sec-c3">
     <h3>الخصائص</h3>
     <div class="adm-field" style="margin-bottom:14px">
       <label>وسوم الصحة <span class="hint">مفصولة بفاصلة: weight, joint, urinary, allergy, dental, hairball, indoor</span></label>
@@ -215,7 +215,7 @@
   </div>
 
   {# ── 4. التسويق ── #}
-  <div class="adm-form-section">
+  <div class="adm-form-section sec-c4">
     <h3>التسويق</h3>
 
     <div class="adm-section-divider">خانة العرض</div>
@@ -332,7 +332,7 @@
   </div>
 
   {# ── 5. متقدم ── #}
-  <div class="adm-form-section">
+  <div class="adm-form-section sec-c5">
     <h3>متقدم</h3>
     <div class="adm-grid-2">
       <div class="adm-field">
@@ -419,7 +419,7 @@
 
 {# ── المتغيرات ── #}
 {% if product %}
-<div class="adm-form-section" id="variants-section" style="margin-top:24px">
+<div class="adm-form-section sec-c6" id="variants-section" style="margin-top:24px">
   <h3>المتغيرات — وزن / لون / رائحة / حجم</h3>
   <p class="text-muted" style="font-size:0.8rem;margin-bottom:14px">
     كل متغير له سعر ومخزون وصورة مستقلة. الصورة تتبدل تلقائياً عند اختيار المتغير على الموقع.
@@ -509,7 +509,7 @@
 
 {# ── المواصفات ── #}
 {% if product %}
-<div class="adm-form-section" id="specs-section" style="margin-top:24px">
+<div class="adm-form-section sec-c7" id="specs-section" style="margin-top:24px">
   <h3>📋 جدول المواصفات</h3>
   <p class="text-muted" style="font-size:0.82rem;margin-bottom:12px">تُعرض على صفحة المنتج — مثال: الوزن، المقاس، المادة...</p>
   <div id="specs-list">
@@ -547,6 +547,22 @@
 
 {% block scripts %}
 <style>
+/* ── section color accents ── */
+.sec-c1 { border-inline-start: 3px solid #34d399; }
+.sec-c1 h3 { color: #34d399; }
+.sec-c2 { border-inline-start: 3px solid #60a5fa; }
+.sec-c2 h3 { color: #60a5fa; }
+.sec-c3 { border-inline-start: 3px solid #fbbf24; }
+.sec-c3 h3 { color: #fbbf24; }
+.sec-c4 { border-inline-start: 3px solid #a78bfa; }
+.sec-c4 h3 { color: #a78bfa; }
+.sec-c5 { border-inline-start: 3px solid #94a3b8; }
+.sec-c5 h3 { color: #94a3b8; }
+.sec-c6 { border-inline-start: 3px solid #2dd4bf; }
+.sec-c6 h3 { color: #2dd4bf; }
+.sec-c7 { border-inline-start: 3px solid #fb7185; }
+.sec-c7 h3 { color: #fb7185; }
+
 /* ── section divider ── */
 .adm-section-divider {
   font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
