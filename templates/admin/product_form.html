@@ -759,6 +759,8 @@ function generateDesc() {
       if (data.ok) {
         document.getElementById('benefit_ar').value     = data.benefit_ar     || '';
         document.getElementById('benefit_en').value     = data.benefit_en     || '';
+        document.querySelector('textarea[name="short_desc_ar"]').value = data.short_desc_ar || '';
+        document.querySelector('textarea[name="short_desc_en"]').value = data.short_desc_en || '';
         document.getElementById('description_ar').value = data.description_ar || '';
         document.getElementById('description_en').value = data.description_en || '';
         msg.style.color = '#4ade80';
