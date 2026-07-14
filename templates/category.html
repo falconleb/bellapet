@@ -188,8 +188,9 @@
       <span class="brand-tile-stars">{{ '★' * b['stars'] }}{{ '☆' * (5 - b['stars']) }}</span>
       {% endif %}
       <div class="brand-tile-badges">
-        {% if b['is_vet'] %}
-        <span class="brand-badge-vet">{{ '🏥 بيطري' if lang == 'ar' else '🏥 Vet' }}</span>
+        {% set badge = pick(b['badge_en'], b['badge_ar']) if b['badge_ar'] or b['badge_en'] else '' %}
+        {% if badge %}
+        <span class="brand-badge-special">{{ badge }}</span>
         {% endif %}
         {% if b['made_in_ar'] or b['made_in_en'] %}
         <span class="brand-badge-origin">🌍 {{ pick(b['made_in_en'], b['made_in_ar']) }}</span>

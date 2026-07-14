@@ -460,7 +460,9 @@ CREATE TABLE IF NOT EXISTS brands (
     stars          INTEGER DEFAULT 0,
     made_in_ar     TEXT,
     made_in_en     TEXT,
-    is_vet         INTEGER DEFAULT 0
+    is_vet         INTEGER DEFAULT 0,
+    badge_ar       TEXT,
+    badge_en       TEXT
 );
 """
 

@@ -2191,7 +2191,7 @@ def admin_brand_new():
                 img.save(os.path.join(dest_dir, logo_filename), 'WEBP', quality=85)
             db = get_db()
             db.execute(
-                'INSERT INTO brands (slug, name_ar, name_en, logo_filename, description_ar, description_en, sort_order, stars, made_in_ar, made_in_en, is_vet) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+                'INSERT INTO brands (slug, name_ar, name_en, logo_filename, description_ar, description_en, sort_order, stars, made_in_ar, made_in_en, is_vet, badge_ar, badge_en) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
                 (slug, name_ar, name_en, logo_filename,
                  form.get('description_ar', '').strip() or None,
                  form.get('description_en', '').strip() or None,
@@ -2199,7 +2199,9 @@ def admin_brand_new():
                  int(form.get('stars', 0) or 0),
                  form.get('made_in_ar', '').strip() or None,
                  form.get('made_in_en', '').strip() or None,
-                 1 if form.get('is_vet') else 0)
+                 1 if form.get('is_vet') else 0,
+                 form.get('badge_ar', '').strip() or None,
+                 form.get('badge_en', '').strip() or None)
             )
             db.commit(); db.close()
             return redirect(url_for('admin_brands'))
@@ -2236,7 +2238,7 @@ def admin_brand_edit(bid):
                 img.thumbnail((300, 150), PILImage.LANCZOS)
                 img.save(os.path.join(dest_dir, logo_filename), 'WEBP', quality=85)
             db.execute(
-                'UPDATE brands SET slug=?, name_ar=?, name_en=?, logo_filename=?, description_ar=?, description_en=?, sort_order=?, stars=?, made_in_ar=?, made_in_en=?, is_vet=? WHERE id=?',
+                'UPDATE brands SET slug=?, name_ar=?, name_en=?, logo_filename=?, description_ar=?, description_en=?, sort_order=?, stars=?, made_in_ar=?, made_in_en=?, is_vet=?, badge_ar=?, badge_en=? WHERE id=?',
                 (slug, name_ar, name_en, logo_filename,
                  form.get('description_ar', '').strip() or None,
                  form.get('description_en', '').strip() or None,
@@ -2245,6 +2247,8 @@ def admin_brand_edit(bid):
                  form.get('made_in_ar', '').strip() or None,
                  form.get('made_in_en', '').strip() or None,
                  1 if form.get('is_vet') else 0,
+                 form.get('badge_ar', '').strip() or None,
+                 form.get('badge_en', '').strip() or None,
                  bid)
             )
             db.commit(); db.close()

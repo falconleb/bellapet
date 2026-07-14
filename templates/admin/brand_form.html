@@ -63,11 +63,16 @@
         </select>
       </div>
       <div class="adm-field">
-        <label>
-          <input type="checkbox" name="is_vet" value="1"
-            {{ 'checked' if form.get('is_vet') or (brand and brand['is_vet']) }}>
-          موصى به بيطرياً / طبي
-        </label>
+        <label>شارة خاصة (عربي) <span class="hint">مثال: يوريناري، عضوي، طبيعي</span></label>
+        <input type="text" name="badge_ar" dir="rtl"
+               value="{{ form.get('badge_ar', brand['badge_ar'] if brand and brand['badge_ar'] else '') }}"
+               placeholder="يوريناري">
+      </div>
+      <div class="adm-field">
+        <label>شارة خاصة (إنجليزي)</label>
+        <input type="text" name="badge_en"
+               value="{{ form.get('badge_en', brand['badge_en'] if brand and brand['badge_en'] else '') }}"
+               placeholder="Urinary">
       </div>
       <div class="adm-field">
         <label>بلد الصنع (عربي)</label>
