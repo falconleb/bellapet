@@ -456,7 +456,11 @@ CREATE TABLE IF NOT EXISTS brands (
     logo_filename  TEXT,
     description_ar TEXT,
     description_en TEXT,
-    sort_order     INTEGER DEFAULT 0
+    sort_order     INTEGER DEFAULT 0,
+    stars          INTEGER DEFAULT 0,
+    made_in_ar     TEXT,
+    made_in_en     TEXT,
+    is_vet         INTEGER DEFAULT 0
 );
 """
 

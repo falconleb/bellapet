@@ -3336,10 +3336,8 @@ select option { color: #111 !important; background: #fff !important; }
 .brand-tile {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  width: 150px;
-  padding: 0 0 12px;
+  align-items: stretch;
+  width: 170px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -3357,15 +3355,15 @@ select option { color: #111 !important; background: #fff !important; }
   width: 100%;
   background: #fff;
   border-radius: 12px 12px 0 0;
-  padding: 14px 16px;
+  padding: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 80px;
+  min-height: 100px;
 }
 .brand-tile-logo {
-  height: 48px;
-  max-width: 120px;
+  height: 68px;
+  max-width: 140px;
   object-fit: contain;
 }
 .brand-tile-name-only {
@@ -3374,14 +3372,49 @@ select option { color: #111 !important; background: #fff !important; }
   color: var(--gold);
   padding: 14px 12px 0;
 }
+.brand-tile-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 8px 12px;
+}
 .brand-tile-label {
-  font-size: .8rem;
-  font-weight: 600;
+  font-size: .82rem;
+  font-weight: 700;
   color: var(--text);
-  padding: 0 8px;
+  line-height: 1.2;
+}
+.brand-tile-stars {
+  font-size: .8rem;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+.brand-tile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.brand-badge-vet {
+  font-size: .65rem;
+  background: rgba(34,197,94,.15);
+  color: #16a34a;
+  border: 1px solid rgba(34,197,94,.3);
+  border-radius: 20px;
+  padding: 2px 7px;
+  font-weight: 600;
+}
+.brand-badge-origin {
+  font-size: .65rem;
+  background: rgba(96,165,250,.1);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 7px;
 }
 .brand-tile-count {
-  font-size: .72rem;
+  font-size: .7rem;
   color: var(--muted);
 }
 

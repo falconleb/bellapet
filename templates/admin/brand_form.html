@@ -50,6 +50,41 @@
   </div>
 
   <div class="adm-form-section">
+    <h3>تفاصيل الماركة</h3>
+    <div class="adm-grid-2">
+      <div class="adm-field">
+        <label>التقييم (نجوم)</label>
+        <select name="stars">
+          {% for i in range(6) %}
+          <option value="{{ i }}" {{ 'selected' if (form.get('stars', brand.stars if brand else 0)|int) == i }}>
+            {{ '—' if i == 0 else ('★' * i + '☆' * (5-i)) }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="adm-field">
+        <label>
+          <input type="checkbox" name="is_vet" value="1"
+            {{ 'checked' if form.get('is_vet') or (brand and brand['is_vet']) }}>
+          موصى به بيطرياً / طبي
+        </label>
+      </div>
+      <div class="adm-field">
+        <label>بلد الصنع (عربي)</label>
+        <input type="text" name="made_in_ar" dir="rtl"
+               value="{{ form.get('made_in_ar', brand['made_in_ar'] if brand and brand['made_in_ar'] else '') }}"
+               placeholder="مثال: فرنسا، ألمانيا، الولايات المتحدة">
+      </div>
+      <div class="adm-field">
+        <label>بلد الصنع (إنجليزي)</label>
+        <input type="text" name="made_in_en"
+               value="{{ form.get('made_in_en', brand['made_in_en'] if brand and brand['made_in_en'] else '') }}"
+               placeholder="e.g. France, Germany, USA">
+      </div>
+    </div>
+  </div>
+
+  <div class="adm-form-section">
     <h3>الوصف (اختياري)</h3>
     <div class="adm-grid-2">
       <div class="adm-field">

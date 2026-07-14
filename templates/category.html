@@ -177,13 +177,26 @@
     {% if b['logo_filename'] %}
     <div class="brand-tile-img-wrap">
       <img src="{{ url_for('static', filename='img/brands/' + b['logo_filename']) }}"
-           alt="{{ b['name_ar'] }}" class="brand-tile-logo">
+           alt="{{ b['name_ar'] }}" class="brand-tile-logo" loading="lazy">
     </div>
     {% else %}
     <span class="brand-tile-name-only">{{ pick(b['name_en'], b['name_ar']) }}</span>
     {% endif %}
-    <span class="brand-tile-label">{{ pick(b['name_en'], b['name_ar']) }}</span>
-    <span class="brand-tile-count">{{ b['product_count'] }} {{ 'منتج' if lang == 'ar' else 'products' }}</span>
+    <div class="brand-tile-body">
+      <span class="brand-tile-label">{{ pick(b['name_en'], b['name_ar']) }}</span>
+      {% if b['stars'] %}
+      <span class="brand-tile-stars">{{ '★' * b['stars'] }}{{ '☆' * (5 - b['stars']) }}</span>
+      {% endif %}
+      <div class="brand-tile-badges">
+        {% if b['is_vet'] %}
+        <span class="brand-badge-vet">{{ '🏥 بيطري' if lang == 'ar' else '🏥 Vet' }}</span>
+        {% endif %}
+        {% if b['made_in_ar'] or b['made_in_en'] %}
+        <span class="brand-badge-origin">🌍 {{ pick(b['made_in_en'], b['made_in_ar']) }}</span>
+        {% endif %}
+      </div>
+      <span class="brand-tile-count">{{ b['product_count'] }} {{ 'منتج' if lang == 'ar' else 'products' }}</span>
+    </div>
   </a>
   {% endfor %}
 </div>
