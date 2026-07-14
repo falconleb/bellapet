@@ -706,11 +706,40 @@ html[dir="rtl"] .product-card .thumb .badge-gold { left: 6px; right: 6px; }
 }
 .qty-btn:active { background: var(--surface-2); }
 .qty-val {
-  min-width: 36px;
+  min-width: 44px;
+  width: 44px;
   text-align: center;
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--text-strong);
+  background: none;
+  border: none;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.qty-val::-webkit-inner-spin-button,
+.qty-val::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.qty-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.qty-chip {
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+  font-family: inherit;
+}
+.qty-chip:hover {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: var(--gold);
 }
 .btn-add-cart {
   flex: 1;

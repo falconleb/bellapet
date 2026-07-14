@@ -363,8 +363,15 @@
   <div class="qty-row">
     <div class="qty-ctrl">
       <button class="qty-btn" onclick="changeQty(-1)">−</button>
-      <span class="qty-val" id="qty-val">1</span>
+      <input class="qty-val" id="qty-val" type="number" value="1" min="1" max="9999"
+             oninput="setQtyFromInput()" onblur="fixQtyInput()">
       <button class="qty-btn" onclick="changeQty(1)">+</button>
+    </div>
+    <div class="qty-chips">
+      <button class="qty-chip" onclick="setQty(5)" type="button">×5</button>
+      <button class="qty-chip" onclick="setQty(10)" type="button">×10</button>
+      <button class="qty-chip" onclick="setQty(20)" type="button">×20</button>
+      <button class="qty-chip" onclick="setQty(60)" type="button">×60</button>
     </div>
     {% if p['stock_qty'] > 0 %}
     <div style="display:flex;gap:10px;align-items:stretch;">
@@ -835,10 +842,20 @@ function updateTierHighlight(q) {
 }
 {% endif %}
 
-function changeQty(d) {
-  qty = Math.max(1, qty + d);
-  qtyEl.textContent = qty;
-
+function setQty(n) {
+  qty = Math.max(1, n);
+  qtyEl.value = qty;
+  _refreshQtyUI();
+}
+function setQtyFromInput() {
+  var v = parseInt(qtyEl.value) || 1;
+  qty = Math.max(1, v);
+  _refreshQtyUI();
+}
+function fixQtyInput() {
+  qtyEl.value = qty;
+}
+function _refreshQtyUI() {
   {% if price_tiers %}
   currentUnitPrice = bestTierPrice(qty);
   updateTierHighlight(qty);
@@ -847,7 +864,6 @@ function changeQty(d) {
   const totalEl = document.getElementById('price-total');
   const unitEl  = document.getElementById('price-unit');
   const savEl   = document.getElementById('price-savings');
-
   const promo   = applyPromo(currentUnitPrice, qty);
 
   if (totalEl) totalEl.textContent = cur + promo.total.toFixed(2);
@@ -880,6 +896,11 @@ function changeQty(d) {
   }
 
   updateWaLink();
+}
+function changeQty(d) {
+  qty = Math.max(1, qty + d);
+  qtyEl.value = qty;
+  _refreshQtyUI();
 }
 
 function updateWaLink() {
