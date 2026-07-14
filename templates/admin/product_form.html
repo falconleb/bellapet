@@ -12,7 +12,7 @@
   </div>
 </div>
 
-<form method="post" enctype="multipart/form-data" class="adm-form" novalidate>
+<form method="post" enctype="multipart/form-data" class="adm-form" novalidate id="main-product-form">
 
   {# ── المعلومات الأساسية ── #}
   <div class="adm-form-section">
@@ -439,13 +439,6 @@
   </div>
   {% endif %}
 
-  <div class="adm-form-actions">
-    <button type="submit" class="btn-adm-primary">
-      {{ 'حفظ التعديلات' if product else 'إنشاء المنتج' }}
-    </button>
-    <a href="{{ url_for('admin_products') }}" class="btn-adm-ghost">إلغاء</a>
-  </div>
-
 </form>
 
 {# ── المتغيرات ── #}
@@ -566,6 +559,13 @@
   <p class="text-muted" style="font-size:0.82rem">احفظ المنتج أولاً ثم أضف المواصفات.</p>
 </div>
 {% endif %}
+
+<div class="adm-form-actions" style="margin-top:24px">
+  <button type="submit" form="main-product-form" class="btn-adm-primary">
+    {{ 'حفظ التعديلات' if product else 'إنشاء المنتج' }}
+  </button>
+  <a href="{{ url_for('admin_products') }}" class="btn-adm-ghost">إلغاء</a>
+</div>
 
 {% endblock %}
 
