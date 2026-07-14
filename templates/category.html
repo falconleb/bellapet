@@ -175,8 +175,10 @@
   <a href="{{ url_for('category', slug=category['slug'], sub=active_sub, brand=b['slug']) }}"
      class="brand-tile">
     {% if b['logo_filename'] %}
-    <img src="{{ url_for('static', filename='img/brands/' + b['logo_filename']) }}"
-         alt="{{ b['name_ar'] }}" class="brand-tile-logo">
+    <div class="brand-tile-img-wrap">
+      <img src="{{ url_for('static', filename='img/brands/' + b['logo_filename']) }}"
+           alt="{{ b['name_ar'] }}" class="brand-tile-logo">
+    </div>
     {% else %}
     <span class="brand-tile-name-only">{{ pick(b['name_en'], b['name_ar']) }}</span>
     {% endif %}

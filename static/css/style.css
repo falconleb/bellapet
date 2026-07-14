@@ -3329,17 +3329,16 @@ select option { color: #111 !important; background: #fff !important; }
 /* ══ Brand Tiles ══ */
 .brand-tiles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
   margin: 16px 0 24px;
 }
 .brand-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 18px 12px 14px;
+  gap: 10px;
+  padding: 0 0 12px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -3347,28 +3346,38 @@ select option { color: #111 !important; background: #fff !important; }
   color: var(--text);
   transition: border-color .15s, transform .12s;
   text-align: center;
+  overflow: hidden;
 }
 .brand-tile:hover {
   border-color: var(--gold);
   transform: translateY(-2px);
 }
-.brand-tile-logo {
-  height: 52px;
+.brand-tile-img-wrap {
   width: 100%;
-  object-fit: contain;
-  filter: brightness(0) invert(1);
-  opacity: .85;
+  background: #fff;
+  border-radius: 12px 12px 0 0;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
 }
-.brand-tile:hover .brand-tile-logo { opacity: 1; }
+.brand-tile-logo {
+  height: 48px;
+  max-width: 120px;
+  object-fit: contain;
+}
 .brand-tile-name-only {
   font-size: 1rem;
   font-weight: 700;
   color: var(--gold);
+  padding: 14px 12px 0;
 }
 .brand-tile-label {
-  font-size: .78rem;
+  font-size: .8rem;
   font-weight: 600;
   color: var(--text);
+  padding: 0 8px;
 }
 .brand-tile-count {
   font-size: .72rem;
@@ -3397,7 +3406,7 @@ select option { color: #111 !important; background: #fff !important; }
 .brand-filter-logo {
   height: 32px;
   object-fit: contain;
-  filter: brightness(0) invert(1);
+
   opacity: .85;
 }
 .brand-filter-name {
