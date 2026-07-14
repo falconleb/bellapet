@@ -3328,17 +3328,17 @@ select option { color: #111 !important; background: #fff !important; }
 
 /* ══ Brand Tiles ══ */
 .brand-tiles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 160px));
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   margin: 16px 0 24px;
-  justify-content: start;
 }
 .brand-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  width: 150px;
   padding: 0 0 12px;
   background: var(--surface2);
   border: 1px solid var(--border);
