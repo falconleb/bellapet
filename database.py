@@ -447,6 +447,17 @@ CREATE TABLE IF NOT EXISTS product_specs (
     value_en   TEXT NOT NULL DEFAULT '',
     sort_order INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS brands (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug           TEXT UNIQUE NOT NULL,
+    name_ar        TEXT NOT NULL,
+    name_en        TEXT NOT NULL,
+    logo_filename  TEXT,
+    description_ar TEXT,
+    description_en TEXT,
+    sort_order     INTEGER DEFAULT 0
+);
 """
 
 # الفئات الخمسة المتفق عليها: slug, name_en, name_ar, icon, sort_order, card_size
@@ -575,6 +586,7 @@ def init_db():
         ('slug_ar',         'TEXT UNIQUE'),
         ('short_desc_ar',   'TEXT'),
         ('short_desc_en',   'TEXT'),
+        ('brand_id',        'INTEGER REFERENCES brands(id) ON DELETE SET NULL'),
     ]:
         try:
             cur.execute(f'ALTER TABLE products ADD COLUMN {col} {definition}')

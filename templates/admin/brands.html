@@ -1,0 +1,56 @@
+{% extends "admin/base.html" %}
+{% block title %}الماركات{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>الماركات <span class="adm-count">{{ brands|length }}</span></h1>
+  <a href="{{ url_for('admin_brand_new') }}" class="btn-adm-primary">+ ماركة جديدة</a>
+</div>
+
+<p class="text-muted" style="font-size:0.82rem;margin-bottom:16px">
+  الماركات تظهر كبطاقات داخل قسم "أكل" — الزبون يختار الماركة ثم يشوف منتجاتها.
+</p>
+
+{% if brands %}
+<table class="adm-table">
+  <thead>
+    <tr><th>اللوغو</th><th>الاسم</th><th>المنتجات</th><th>الترتيب</th><th>إجراءات</th></tr>
+  </thead>
+  <tbody>
+    {% for b in brands %}
+    <tr>
+      <td>
+        {% if b.logo_filename %}
+        <img src="{{ url_for('static', filename='img/brands/' + b.logo_filename) }}"
+             alt="{{ b.name_ar }}" style="height:36px;object-fit:contain;border-radius:6px">
+        {% else %}
+        <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+      <td>
+        <div class="p-name-cell">
+          <span>{{ b.name_ar }}</span>
+          <span class="text-muted small">{{ b.name_en }} · /{{ b.slug }}</span>
+        </div>
+      </td>
+      <td><span class="adm-count">{{ b.product_count }}</span></td>
+      <td class="text-muted">{{ b.sort_order }}</td>
+      <td class="actions-cell">
+        <a href="{{ url_for('admin_brand_edit', bid=b.id) }}" class="btn-adm-sm">تعديل</a>
+        <form method="post" action="{{ url_for('admin_brand_delete', bid=b.id) }}"
+              onsubmit="return confirm('حذف ماركة {{ b.name_ar }}؟')">
+          <button type="submit" class="btn-adm-sm danger">حذف</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="adm-empty-state">
+  <p>لا يوجد ماركات بعد.</p>
+  <a href="{{ url_for('admin_brand_new') }}" class="btn-adm-primary">أنشئ أول ماركة</a>
+</div>
+{% endif %}
+
+{% endblock %}

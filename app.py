@@ -1372,6 +1372,8 @@ def admin_product_new():
             name_ar  = request.form.get('name_ar', '').strip()
             prod_slug = slug
             _save_images(request.files.getlist('images'), new_pid, cur)
+            brand_id = int(form.get('brand_id') or 0) or None
+            cur.execute('UPDATE products SET brand_id=? WHERE id=?', (brand_id, new_pid))
             db.commit(); db.close()
             # Push: أعلم المشتركين بالمنتج الجديد
             _push_broadcast(
@@ -1382,11 +1384,13 @@ def admin_product_new():
             )
             return redirect(url_for('admin_products'))
     all_collections = db.execute('SELECT * FROM collections ORDER BY sort_order').fetchall()
+    brands = db.execute('SELECT * FROM brands ORDER BY sort_order, name_ar').fetchall()
     db.close()
     return render_template('admin/product_form.html', product=None, images=[],
                            variants=[], price_tiers=[],
                            all_collections=all_collections, product_col_ids=[],
                            categories=categories, subcategories=subcategories,
+                           brands=brands,
                            errors=errors, form=form, active_admin='products')
 
 @app.route('/admin/products/<int:pid>/edit', methods=['GET', 'POST'])
@@ -1425,7 +1429,8 @@ def admin_product_edit(pid):
                    promo_label_ar=?,promo_label_en=?,promo_type=?,
                    store_rating=?,rating_note_ar=?,rating_note_en=?,
                    suitable_for_ar=?,suitable_for_en=?,
-                   rating_cons_ar=?,rating_cons_en=?
+                   rating_cons_ar=?,rating_cons_en=?,
+                   brand_id=?
                    WHERE id=?""",
                 _product_vals(form, slug, slug_ar_raw) + (
                     1 if form.get('is_bundle') else 0,
@@ -1441,6 +1446,7 @@ def admin_product_edit(pid):
                     form.get('suitable_for_en','').strip() or None,
                     form.get('rating_cons_ar','').strip() or None,
                     form.get('rating_cons_en','').strip() or None,
+                    int(form.get('brand_id') or 0) or None,
                     pid,
                 ))
             _save_images(request.files.getlist('images'), pid, cur)
@@ -1454,13 +1460,14 @@ def admin_product_edit(pid):
     specs = db.execute(
         'SELECT * FROM product_specs WHERE product_id=? ORDER BY sort_order, id', (pid,)
     ).fetchall()
+    brands = db.execute('SELECT * FROM brands ORDER BY sort_order, name_ar').fetchall()
     db.close()
     return render_template('admin/product_form.html', product=product, images=images,
                            variants=variants, price_tiers=price_tiers, categories=categories,
                            subcategories=subcategories,
                            all_collections=all_collections,
                            product_col_ids=product_col_ids,
-                           specs=specs,
+                           specs=specs, brands=brands,
                            errors=errors, form=form, active_admin='products')
 
 @app.route('/admin/specs/save/<int:pid>', methods=['POST'])
@@ -2145,6 +2152,102 @@ def admin_collection_delete(cid):
     return redirect(url_for('admin_collections'))
 
 
+@app.route('/admin/brands')
+@admin_required
+def admin_brands():
+    db = get_db()
+    brands = db.execute(
+        '''SELECT b.*, COUNT(p.id) AS product_count
+           FROM brands b LEFT JOIN products p ON p.brand_id = b.id
+           GROUP BY b.id ORDER BY b.sort_order, b.name_ar'''
+    ).fetchall()
+    db.close()
+    return render_template('admin/brands.html', brands=brands, active_admin='brands')
+
+
+@app.route('/admin/brands/new', methods=['GET', 'POST'])
+@admin_required
+def admin_brand_new():
+    errors, form = {}, {}
+    if request.method == 'POST':
+        form = request.form.to_dict()
+        name_ar = form.get('name_ar', '').strip()
+        name_en = form.get('name_en', '').strip()
+        slug    = form.get('slug', '').strip()
+        if not name_ar: errors['name_ar'] = True
+        if not name_en: errors['name_en'] = True
+        if not slug:    slug = name_en.lower().replace(' ', '-')
+        if not errors:
+            logo_filename = None
+            f = request.files.get('logo')
+            if f and f.filename:
+                import os, uuid
+                ext = os.path.splitext(f.filename)[1].lower()
+                logo_filename = f'{uuid.uuid4().hex}{ext}'
+                os.makedirs(os.path.join(app.static_folder, 'img', 'brands'), exist_ok=True)
+                f.save(os.path.join(app.static_folder, 'img', 'brands', logo_filename))
+            db = get_db()
+            db.execute(
+                'INSERT INTO brands (slug, name_ar, name_en, logo_filename, description_ar, description_en, sort_order) VALUES (?,?,?,?,?,?,?)',
+                (slug, name_ar, name_en, logo_filename,
+                 form.get('description_ar', '').strip() or None,
+                 form.get('description_en', '').strip() or None,
+                 int(form.get('sort_order', 0) or 0))
+            )
+            db.commit(); db.close()
+            return redirect(url_for('admin_brands'))
+    return render_template('admin/brand_form.html', brand=None, errors=errors, form=form, active_admin='brands')
+
+
+@app.route('/admin/brands/<int:bid>/edit', methods=['GET', 'POST'])
+@admin_required
+def admin_brand_edit(bid):
+    db = get_db()
+    brand = db.execute('SELECT * FROM brands WHERE id=?', (bid,)).fetchone()
+    if not brand:
+        db.close()
+        return redirect(url_for('admin_brands'))
+    errors, form = {}, dict(brand)
+    if request.method == 'POST':
+        form = request.form.to_dict()
+        name_ar = form.get('name_ar', '').strip()
+        name_en = form.get('name_en', '').strip()
+        slug    = form.get('slug', '').strip()
+        if not name_ar: errors['name_ar'] = True
+        if not name_en: errors['name_en'] = True
+        if not slug:    slug = name_en.lower().replace(' ', '-')
+        if not errors:
+            logo_filename = brand['logo_filename']
+            f = request.files.get('logo')
+            if f and f.filename:
+                import os, uuid
+                ext = os.path.splitext(f.filename)[1].lower()
+                logo_filename = f'{uuid.uuid4().hex}{ext}'
+                os.makedirs(os.path.join(app.static_folder, 'img', 'brands'), exist_ok=True)
+                f.save(os.path.join(app.static_folder, 'img', 'brands', logo_filename))
+            db.execute(
+                'UPDATE brands SET slug=?, name_ar=?, name_en=?, logo_filename=?, description_ar=?, description_en=?, sort_order=? WHERE id=?',
+                (slug, name_ar, name_en, logo_filename,
+                 form.get('description_ar', '').strip() or None,
+                 form.get('description_en', '').strip() or None,
+                 int(form.get('sort_order', 0) or 0), bid)
+            )
+            db.commit(); db.close()
+            return redirect(url_for('admin_brands'))
+    db.close()
+    return render_template('admin/brand_form.html', brand=brand, errors=errors, form=form, active_admin='brands')
+
+
+@app.route('/admin/brands/<int:bid>/delete', methods=['POST'])
+@admin_required
+def admin_brand_delete(bid):
+    db = get_db()
+    db.execute('UPDATE products SET brand_id=NULL WHERE brand_id=?', (bid,))
+    db.execute('DELETE FROM brands WHERE id=?', (bid,))
+    db.commit(); db.close()
+    return redirect(url_for('admin_brands'))
+
+
 @app.route('/admin/shipping', methods=['GET', 'POST'])
 @admin_required
 def admin_shipping():
@@ -2649,8 +2752,13 @@ def category(slug):
         (cat["id"],),
     ).fetchall()
 
-    active_sub = request.args.get("sub")
-    sections   = []
+    active_sub   = request.args.get("sub")
+    active_brand = request.args.get("brand")
+    price_min    = request.args.get("min", type=float)
+    price_max    = request.args.get("max", type=float)
+    sections     = []
+    brand_tiles  = []
+    active_brand_row = None
 
     if active_sub:
         sub_row = db.execute(
@@ -2658,17 +2766,50 @@ def category(slug):
             (cat["id"], active_sub),
         ).fetchone()
         if sub_row:
-            products = db.execute(
-                """SELECT p.*,
-                          (SELECT filename FROM product_images
-                           WHERE product_id=p.id ORDER BY sort_order LIMIT 1) AS primary_img
-                   FROM products p
+            # تحقق إذا في ماركات مربوطة بمنتجات هذا القسم الفرعي
+            brand_tiles = db.execute(
+                """SELECT b.*, COUNT(p.id) AS product_count
+                   FROM brands b
+                   JOIN products p ON p.brand_id = b.id
                    WHERE p.category_id = ? AND p.subcategory_id = ? AND p.is_active = 1
-                   ORDER BY p.is_featured DESC, p.created_at DESC""",
-                (cat["id"], sub_row["id"]),
+                   GROUP BY b.id ORDER BY b.sort_order, b.name_ar""",
+                (cat["id"], sub_row["id"])
             ).fetchall()
+
+            if active_brand and brand_tiles:
+                active_brand_row = db.execute(
+                    'SELECT * FROM brands WHERE slug=?', (active_brand,)
+                ).fetchone()
+
+            # بناء query المنتجات مع فلاتر اختيارية
+            q  = """SELECT p.*,
+                           (SELECT filename FROM product_images
+                            WHERE product_id=p.id ORDER BY sort_order LIMIT 1) AS primary_img
+                    FROM products p
+                    WHERE p.category_id=? AND p.subcategory_id=? AND p.is_active=1"""
+            params = [cat["id"], sub_row["id"]]
+            if active_brand_row:
+                q += " AND p.brand_id=?"
+                params.append(active_brand_row["id"])
+            if price_min is not None:
+                q += " AND COALESCE(p.discount_price, p.price) >= ?"
+                params.append(price_min)
+            if price_max is not None:
+                q += " AND COALESCE(p.discount_price, p.price) <= ?"
+                params.append(price_max)
+            q += " ORDER BY p.is_featured DESC, p.created_at DESC"
+            products = db.execute(q, params).fetchall()
+
+            # سعر min/max لكل المنتجات في هذا القسم (لشريط الأسعار)
+            price_range = db.execute(
+                """SELECT MIN(COALESCE(discount_price, price)) AS mn,
+                          MAX(COALESCE(discount_price, price)) AS mx
+                   FROM products WHERE category_id=? AND subcategory_id=? AND is_active=1""",
+                (cat["id"], sub_row["id"])
+            ).fetchone()
         else:
             active_sub = None
+            price_range = None
             products = db.execute(
                 """SELECT p.*,
                           (SELECT filename FROM product_images
@@ -2679,6 +2820,7 @@ def category(slug):
                 (cat["id"],),
             ).fetchall()
     else:
+        price_range = None
         products = db.execute(
             """SELECT p.*,
                       (SELECT filename FROM product_images
@@ -2733,6 +2875,12 @@ def category(slug):
         products=products,
         sections=sections,
         active_sub=active_sub,
+        brand_tiles=brand_tiles,
+        active_brand=active_brand,
+        active_brand_row=active_brand_row,
+        price_range=price_range,
+        price_min=price_min,
+        price_max=price_max,
         seo_data=seo,
         category_image=category_image,
         active_tab="categories",

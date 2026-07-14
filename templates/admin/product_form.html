@@ -40,6 +40,17 @@
         <input type="text" id="slug_ar" name="slug_ar" dir="rtl" value="{{ form.get('slug_ar', product.slug_ar if product else '') }}"
                placeholder="مثال: رويال-كانين-قطط">
       </div>
+      <div class="adm-field">
+        <label>الماركة <span class="hint">اختياري — يُفعّل ظهور المنتج في صفحة الماركة</span></label>
+        <select name="brand_id">
+          <option value="">— بدون ماركة —</option>
+          {% for b in brands %}
+          <option value="{{ b.id }}" {{ 'selected' if form.get('brand_id')|string == b.id|string or (product and product['brand_id'] == b.id) }}>
+            {{ b.name_ar }} / {{ b.name_en }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
       <div class="adm-field {{ 'has-error' if errors.get('category_id') }}">
         <label>التصنيف *</label>
         <select name="category_id" id="cat-select" onchange="filterSubs()">

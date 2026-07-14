@@ -1,0 +1,93 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'تعديل ماركة' if brand else 'ماركة جديدة' }}{% endblock %}
+{% block content %}
+
+<div class="adm-page-head">
+  <h1>{{ 'تعديل: ' + brand.name_ar if brand else 'ماركة جديدة' }}</h1>
+  <a href="{{ url_for('admin_brands') }}" class="btn-adm-secondary">← رجوع</a>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="adm-form" novalidate>
+
+  <div class="adm-form-section">
+    <h3>المعلومات الأساسية</h3>
+    <div class="adm-grid-2">
+      <div class="adm-field {{ 'has-error' if errors.get('name_ar') }}">
+        <label>الاسم بالعربي *</label>
+        <input type="text" name="name_ar" dir="rtl" value="{{ form.get('name_ar', '') }}" placeholder="مثال: رويال كانين">
+        {% if errors.get('name_ar') %}<span class="field-error">مطلوب</span>{% endif %}
+      </div>
+      <div class="adm-field {{ 'has-error' if errors.get('name_en') }}">
+        <label>الاسم بالإنجليزي *</label>
+        <input type="text" name="name_en" id="name_en" value="{{ form.get('name_en', '') }}" placeholder="Royal Canin">
+        {% if errors.get('name_en') %}<span class="field-error">مطلوب</span>{% endif %}
+      </div>
+      <div class="adm-field">
+        <label>الرابط (Slug) <span class="hint">يُولَّد تلقائياً</span></label>
+        <input type="text" name="slug" id="slug" value="{{ form.get('slug', brand.slug if brand else '') }}"
+               placeholder="royal-canin">
+      </div>
+      <div class="adm-field">
+        <label>الترتيب <span class="hint">الأصغر يظهر أول</span></label>
+        <input type="number" name="sort_order" min="0" value="{{ form.get('sort_order', brand.sort_order if brand else 0) }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="adm-form-section">
+    <h3>اللوغو</h3>
+    {% if brand and brand.logo_filename %}
+    <div style="margin-bottom:12px">
+      <img src="{{ url_for('static', filename='img/brands/' + brand.logo_filename) }}"
+           alt="{{ brand.name_ar }}" style="height:60px;object-fit:contain;border-radius:8px;background:var(--surface2);padding:8px">
+      <p class="text-muted small" style="margin-top:4px">← حمّل صورة جديدة للاستبدال</p>
+    </div>
+    {% endif %}
+    <div class="adm-field">
+      <label>صورة اللوغو <span class="hint">PNG/WebP بخلفية شفافة — مقاس مقترح 300×150</span></label>
+      <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp">
+    </div>
+  </div>
+
+  <div class="adm-form-section">
+    <h3>الوصف (اختياري)</h3>
+    <div class="adm-grid-2">
+      <div class="adm-field">
+        <label>وصف بالعربي</label>
+        <textarea name="description_ar" dir="rtl" rows="3"
+                  placeholder="نبذة قصيرة عن الماركة تظهر أعلى صفحة منتجاتها">{{ form.get('description_ar', brand.description_ar if brand else '') }}</textarea>
+      </div>
+      <div class="adm-field">
+        <label>وصف بالإنجليزي</label>
+        <textarea name="description_en" rows="3"
+                  placeholder="A short brand bio shown at the top of the brand page">{{ form.get('description_en', brand.description_en if brand else '') }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="adm-form-actions">
+    <button type="submit" class="btn-adm-primary">{{ 'حفظ التعديلات' if brand else 'إنشاء الماركة' }}</button>
+    <a href="{{ url_for('admin_brands') }}" class="btn-adm-ghost">إلغاء</a>
+  </div>
+
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const nameEn = document.getElementById('name_en');
+  const slug   = document.getElementById('slug');
+  {% if not brand %}
+  nameEn.addEventListener('input', () => {
+    if (!slug._touched) {
+      slug.value = nameEn.value.toLowerCase().trim()
+        .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    }
+  });
+  slug.addEventListener('input', () => { slug._touched = !!slug.value; });
+  {% endif %}
+})();
+</script>
+{% endblock %}

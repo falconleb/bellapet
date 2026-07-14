@@ -168,12 +168,65 @@
 </div>
 {% endif %}
 
+{# ══ Brand tiles — يظهر لما يكون في ماركات ولا توجد ماركة مختارة ══ #}
+{% if brand_tiles and active_sub and not active_brand %}
+<div class="brand-tiles-grid">
+  {% for b in brand_tiles %}
+  <a href="{{ url_for('category', slug=category['slug'], sub=active_sub, brand=b['slug']) }}"
+     class="brand-tile">
+    {% if b['logo_filename'] %}
+    <img src="{{ url_for('static', filename='img/brands/' + b['logo_filename']) }}"
+         alt="{{ b['name_ar'] }}" class="brand-tile-logo">
+    {% else %}
+    <span class="brand-tile-name-only">{{ pick(b['name_en'], b['name_ar']) }}</span>
+    {% endif %}
+    <span class="brand-tile-label">{{ pick(b['name_en'], b['name_ar']) }}</span>
+    <span class="brand-tile-count">{{ b['product_count'] }} {{ 'منتج' if lang == 'ar' else 'products' }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ══ فلتر السعر والماركة النشطة ══ #}
+{% if active_brand and active_sub %}
+<div class="brand-filter-bar">
+  <div class="brand-active-info">
+    {% if active_brand_row and active_brand_row['logo_filename'] %}
+    <img src="{{ url_for('static', filename='img/brands/' + active_brand_row['logo_filename']) }}"
+         alt="{{ active_brand_row['name_ar'] }}" class="brand-filter-logo">
+    {% endif %}
+    <span class="brand-filter-name">{{ pick(active_brand_row['name_en'], active_brand_row['name_ar']) if active_brand_row }}</span>
+    <a href="{{ url_for('category', slug=category['slug'], sub=active_sub) }}" class="brand-filter-clear">
+      ✕ {{ 'تغيير الماركة' if lang == 'ar' else 'Change brand' }}
+    </a>
+  </div>
+  {% if price_range and price_range['mn'] is not none and price_range['mx'] is not none and price_range['mn'] != price_range['mx'] %}
+  <div class="price-filter">
+    <span class="price-filter-label">{{ 'السعر:' if lang == 'ar' else 'Price:' }}</span>
+    <span class="price-filter-val" id="pf-min-lbl">{{ currency }}{{ '%.0f'|format(price_min or price_range['mn']) }}</span>
+    <div class="price-range-wrap">
+      <input type="range" id="pf-min" class="price-range"
+             min="{{ price_range['mn']|int }}" max="{{ price_range['mx']|int }}"
+             value="{{ price_min|int if price_min else price_range['mn']|int }}"
+             step="1" oninput="pfUpdate()">
+      <input type="range" id="pf-max" class="price-range"
+             min="{{ price_range['mn']|int }}" max="{{ price_range['mx']|int }}"
+             value="{{ price_max|int if price_max else price_range['mx']|int }}"
+             step="1" oninput="pfUpdate()">
+    </div>
+    <span class="price-filter-val" id="pf-max-lbl">{{ currency }}{{ '%.0f'|format(price_max or price_range['mx']) }}</span>
+    <button class="pf-apply-btn" onclick="pfApply()">{{ 'تطبيق' if lang == 'ar' else 'Apply' }}</button>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
 {% set cat_desc = category['description_ar'] if lang == 'ar' else category['description_en'] %}
 {% if cat_desc and not active_sub %}
 <p class="cat-seo-desc">{{ cat_desc }}</p>
 {% endif %}
 
-{% if products %}
+{% if products and (active_brand or not brand_tiles) %}
 <div class="product-grid">
   {% for p in products %}
   <a href="{{ url_for('product', slug=p['slug']) }}" class="product-card-grid">
@@ -214,7 +267,7 @@
   {% endfor %}
 </div>
 
-{% else %}
+{% elif not brand_tiles or active_brand %}
 <div class="empty-state">
   {{ icons.icon_by_name(category['icon'], "empty-icon") }}
   <h2>{{ 'قريباً منتجات جديدة' if lang == 'ar' else 'New products coming soon' }}</h2>
@@ -235,4 +288,27 @@
 
 {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+{% if active_brand and active_sub %}
+<script>
+(function() {
+  var base = '{{ url_for("category", slug=category["slug"], sub=active_sub, brand=active_brand) }}';
+  window.pfUpdate = function() {
+    var mn = +document.getElementById('pf-min').value;
+    var mx = +document.getElementById('pf-max').value;
+    if (mn > mx) { var t=mn; mn=mx; mx=t; }
+    document.getElementById('pf-min-lbl').textContent = '{{ currency }}' + mn;
+    document.getElementById('pf-max-lbl').textContent = '{{ currency }}' + mx;
+  };
+  window.pfApply = function() {
+    var mn = +document.getElementById('pf-min').value;
+    var mx = +document.getElementById('pf-max').value;
+    if (mn > mx) { var t=mn; mn=mx; mx=t; }
+    window.location = base + '&min=' + mn + '&max=' + mx;
+  };
+})();
+</script>
+{% endif %}
 {% endblock %}
