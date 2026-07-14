@@ -367,12 +367,16 @@
              oninput="setQtyFromInput()" onblur="fixQtyInput()">
       <button class="qty-btn" onclick="changeQty(1)">+</button>
     </div>
+    {% if p['qty_presets'] %}
     <div class="qty-chips">
-      <button class="qty-chip" onclick="setQty(5)" type="button">×5</button>
-      <button class="qty-chip" onclick="setQty(10)" type="button">×10</button>
-      <button class="qty-chip" onclick="setQty(20)" type="button">×20</button>
-      <button class="qty-chip" onclick="setQty(60)" type="button">×60</button>
+      {% for n in p['qty_presets'].split(',') %}
+      {% set val = n.strip() %}
+      {% if val and val.isdigit() %}
+      <button class="qty-chip" onclick="setQty({{ val }})" type="button">×{{ val }}</button>
+      {% endif %}
+      {% endfor %}
     </div>
+    {% endif %}
     {% if p['stock_qty'] > 0 %}
     <div style="display:flex;gap:10px;align-items:stretch;">
       <button class="btn-add-cart" onclick="addToCart()" style="flex:1;">

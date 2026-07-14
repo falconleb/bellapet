@@ -1373,7 +1373,8 @@ def admin_product_new():
             prod_slug = slug
             _save_images(request.files.getlist('images'), new_pid, cur)
             brand_id = int(form.get('brand_id') or 0) or None
-            cur.execute('UPDATE products SET brand_id=? WHERE id=?', (brand_id, new_pid))
+            qty_presets = form.get('qty_presets', '').strip() or None
+            cur.execute('UPDATE products SET brand_id=?, qty_presets=? WHERE id=?', (brand_id, qty_presets, new_pid))
             db.commit(); db.close()
             # Push: أعلم المشتركين بالمنتج الجديد
             _push_broadcast(
@@ -1430,7 +1431,7 @@ def admin_product_edit(pid):
                    store_rating=?,rating_note_ar=?,rating_note_en=?,
                    suitable_for_ar=?,suitable_for_en=?,
                    rating_cons_ar=?,rating_cons_en=?,
-                   brand_id=?
+                   brand_id=?,qty_presets=?
                    WHERE id=?""",
                 _product_vals(form, slug, slug_ar_raw) + (
                     1 if form.get('is_bundle') else 0,
@@ -1447,6 +1448,7 @@ def admin_product_edit(pid):
                     form.get('rating_cons_ar','').strip() or None,
                     form.get('rating_cons_en','').strip() or None,
                     int(form.get('brand_id') or 0) or None,
+                    form.get('qty_presets','').strip() or None,
                     pid,
                 ))
             _save_images(request.files.getlist('images'), pid, cur)

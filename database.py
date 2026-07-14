@@ -593,6 +593,7 @@ def init_db():
         ('short_desc_ar',   'TEXT'),
         ('short_desc_en',   'TEXT'),
         ('brand_id',        'INTEGER REFERENCES brands(id) ON DELETE SET NULL'),
+        ('qty_presets',     'TEXT'),
     ]:
         try:
             cur.execute(f'ALTER TABLE products ADD COLUMN {col} {definition}')

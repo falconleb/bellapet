@@ -51,6 +51,11 @@
           {% endfor %}
         </select>
       </div>
+      <div class="adm-field">
+        <label>كميات سريعة <span class="hint">أرقام مفصولة بفاصلة — مثال: 5,10,25,50 — اتركها فارغة لإخفائها</span></label>
+        <input type="text" name="qty_presets" placeholder="5,10,20,60"
+               value="{{ form.get('qty_presets', product['qty_presets'] if product and product['qty_presets'] else '') }}">
+      </div>
       <div class="adm-field {{ 'has-error' if errors.get('category_id') }}">
         <label>التصنيف *</label>
         <select name="category_id" id="cat-select" onchange="filterSubs()">
