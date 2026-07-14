@@ -541,11 +541,15 @@
 {# ── Trust strip ── #}
 <div class="product-trust">
   <button class="pt-item pt-clickable" onclick="openInfoModal('shipping-modal')" type="button">
-    {{ icons.icon_truck("pt-icon") }}<span>{{ 'توصيل ١-٣ أيام' if lang == 'ar' else '1–3 day delivery' }}</span>
+    {{ icons.icon_truck("pt-icon") }}
+    <span>{{ 'توصيل ١-٤ أيام عمل' if lang == 'ar' else '1–4 business days' }}</span>
+    <span class="pt-info-badge">ⓘ</span>
   </button>
   <div class="pt-item">{{ icons.icon_cash("pt-icon") }}<span>{{ 'دفع عند الاستلام' if lang == 'ar' else 'Cash on delivery' }}</span></div>
   <button class="pt-item pt-clickable" onclick="openInfoModal('returns-modal')" type="button">
-    {{ icons.icon_seal("pt-icon") }}<span>{{ 'ضمان استبدال' if lang == 'ar' else 'Exchange guarantee' }}</span>
+    {{ icons.icon_seal("pt-icon") }}
+    <span>{{ 'ضمان استبدال' if lang == 'ar' else 'Exchange guarantee' }}</span>
+    <span class="pt-info-badge">ⓘ</span>
   </button>
 </div>
 
