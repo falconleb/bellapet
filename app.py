@@ -2182,10 +2182,13 @@ def admin_brand_new():
             f = request.files.get('logo')
             if f and f.filename:
                 import os, uuid
-                ext = os.path.splitext(f.filename)[1].lower()
-                logo_filename = f'{uuid.uuid4().hex}{ext}'
-                os.makedirs(os.path.join(app.static_folder, 'img', 'brands'), exist_ok=True)
-                f.save(os.path.join(app.static_folder, 'img', 'brands', logo_filename))
+                from PIL import Image as PILImage
+                logo_filename = f'{uuid.uuid4().hex}.webp'
+                dest_dir = os.path.join(app.static_folder, 'img', 'brands')
+                os.makedirs(dest_dir, exist_ok=True)
+                img = PILImage.open(f.stream).convert('RGBA')
+                img.thumbnail((300, 150), PILImage.LANCZOS)
+                img.save(os.path.join(dest_dir, logo_filename), 'WEBP', quality=85)
             db = get_db()
             db.execute(
                 'INSERT INTO brands (slug, name_ar, name_en, logo_filename, description_ar, description_en, sort_order) VALUES (?,?,?,?,?,?,?)',
@@ -2221,10 +2224,13 @@ def admin_brand_edit(bid):
             f = request.files.get('logo')
             if f and f.filename:
                 import os, uuid
-                ext = os.path.splitext(f.filename)[1].lower()
-                logo_filename = f'{uuid.uuid4().hex}{ext}'
-                os.makedirs(os.path.join(app.static_folder, 'img', 'brands'), exist_ok=True)
-                f.save(os.path.join(app.static_folder, 'img', 'brands', logo_filename))
+                from PIL import Image as PILImage
+                logo_filename = f'{uuid.uuid4().hex}.webp'
+                dest_dir = os.path.join(app.static_folder, 'img', 'brands')
+                os.makedirs(dest_dir, exist_ok=True)
+                img = PILImage.open(f.stream).convert('RGBA')
+                img.thumbnail((300, 150), PILImage.LANCZOS)
+                img.save(os.path.join(dest_dir, logo_filename), 'WEBP', quality=85)
             db.execute(
                 'UPDATE brands SET slug=?, name_ar=?, name_en=?, logo_filename=?, description_ar=?, description_en=?, sort_order=? WHERE id=?',
                 (slug, name_ar, name_en, logo_filename,
