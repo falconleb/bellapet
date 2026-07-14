@@ -14,9 +14,9 @@
 
 <form method="post" enctype="multipart/form-data" class="adm-form" novalidate id="main-product-form">
 
-  {# ── المعلومات الأساسية ── #}
+  {# ── 1. الأساسيات ── #}
   <div class="adm-form-section">
-    <h3>المعلومات الأساسية</h3>
+    <h3>الأساسيات</h3>
     <div class="adm-grid-2">
       <div class="adm-field {{ 'has-error' if errors.get('name_ar') }}">
         <label>الاسم بالعربي *</label>
@@ -25,36 +25,6 @@
       <div class="adm-field {{ 'has-error' if errors.get('name_en') }}">
         <label>الاسم بالإنجليزي *</label>
         <input type="text" name="name_en" value="{{ form.get('name_en', '') }}">
-      </div>
-      <div class="adm-field">
-        <label>البراند / الماركة</label>
-        <input type="text" name="brand" value="{{ form.get('brand', '') }}">
-      </div>
-      <div class="adm-field">
-        <label>الرابط الإنجليزي (Slug) <span class="hint">يُولَّد تلقائياً</span></label>
-        <input type="text" id="slug" name="slug" value="{{ form.get('slug', '') }}"
-               placeholder="مثال: royal-canin-kitten">
-      </div>
-      <div class="adm-field">
-        <label>الرابط العربي <span class="hint">يُولَّد تلقائياً من الاسم</span></label>
-        <input type="text" id="slug_ar" name="slug_ar" dir="rtl" value="{{ form.get('slug_ar', product.slug_ar if product else '') }}"
-               placeholder="مثال: رويال-كانين-قطط">
-      </div>
-      <div class="adm-field">
-        <label>الماركة <span class="hint">اختياري — يُفعّل ظهور المنتج في صفحة الماركة</span></label>
-        <select name="brand_id">
-          <option value="">— بدون ماركة —</option>
-          {% for b in brands %}
-          <option value="{{ b.id }}" {{ 'selected' if form.get('brand_id')|string == b.id|string or (product and product['brand_id'] == b.id) }}>
-            {{ b.name_ar }} / {{ b.name_en }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="adm-field">
-        <label>كميات سريعة <span class="hint">أرقام مفصولة بفاصلة — مثال: 5,10,25,50 — اتركها فارغة لإخفائها</span></label>
-        <input type="text" name="qty_presets" placeholder="5,10,20,60"
-               value="{{ form.get('qty_presets', product['qty_presets'] if product and product['qty_presets'] else '') }}">
       </div>
       <div class="adm-field {{ 'has-error' if errors.get('category_id') }}">
         <label>التصنيف *</label>
@@ -76,13 +46,88 @@
           {% endfor %}
         </select>
       </div>
+      <div class="adm-field">
+        <label>الماركة <span class="hint">اختياري — يُفعّل ظهور المنتج في صفحة الماركة</span></label>
+        <select name="brand_id">
+          <option value="">— بدون ماركة —</option>
+          {% for b in brands %}
+          <option value="{{ b.id }}" {{ 'selected' if form.get('brand_id')|string == b.id|string or (product and product['brand_id'] == b.id) }}>
+            {{ b.name_ar }} / {{ b.name_en }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="adm-field">
+        <label>كميات سريعة <span class="hint">أرقام مفصولة بفاصلة — مثال: 5,10,25,50 — اتركها فارغة لإخفائها</span></label>
+        <input type="text" name="qty_presets" placeholder="5,10,20,60"
+               value="{{ form.get('qty_presets', product['qty_presets'] if product and product['qty_presets'] else '') }}">
+      </div>
     </div>
+
+    <div class="adm-section-divider">السعر والمخزون</div>
+    <div class="adm-grid-3">
+      <div class="adm-field {{ 'has-error' if errors.get('price') }}">
+        <label>السعر ($) *</label>
+        <input type="number" name="price" step="0.01" min="0"
+               value="{{ form.get('price', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>سعر التخفيض ($) <span class="hint">اتركه فارغاً إن لم يكن هناك تخفيض</span></label>
+        <input type="number" name="discount_price" step="0.01" min="0"
+               value="{{ form.get('discount_price', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>الكمية في المخزون</label>
+        <input type="number" name="stock_qty" min="0"
+               value="{{ form.get('stock_qty', 0) }}">
+      </div>
+    </div>
+    <div class="adm-checkboxes">
+      <label class="adm-checkbox">
+        <input type="checkbox" name="is_active" {{ 'checked' if form.get('is_active', True) }}>
+        نشط (ظاهر على الموقع)
+      </label>
+      <label class="adm-checkbox">
+        <input type="checkbox" name="is_featured" {{ 'checked' if form.get('is_featured') }}>
+        منتج مميز (يظهر في قسم "مختار بعناية")
+      </label>
+    </div>
+
+    <div class="adm-section-divider">الصور</div>
+    {% if images %}
+    <p class="text-muted" style="font-size:0.78rem;margin-bottom:10px">
+      ⭐ الصورة ذات الإطار الذهبي هي الرئيسية — اضغط "تعيين رئيسية" لتغييرها
+    </p>
+    <div class="img-preview-grid">
+      {% for img in images %}
+      <div class="img-preview {{ 'is-primary' if loop.first }}">
+        {% if loop.first %}<span class="primary-badge">⭐ رئيسية</span>{% endif %}
+        <img src="{{ url_for('static', filename='img/products/' + img.filename) }}" alt="">
+        <div class="img-preview-actions">
+          {% if not loop.first %}
+          <button type="button" class="img-action-btn primary-btn" title="تعيين كصورة رئيسية"
+                  onclick="imgAction('{{ url_for('admin_image_set_primary', pid=product.id, iid=img.id) }}')">⭐</button>
+          {% endif %}
+          <button type="button" class="img-action-btn delete-btn" title="حذف الصورة"
+                  onclick="imgAction('{{ url_for('admin_image_delete', pid=product.id, iid=img.id) }}')">✕</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="adm-field" style="margin-top:12px">
+      <label>رفع صور جديدة <span class="hint">JPG / PNG / WebP — يُضغط تلقائياً ← حجم أقل وسرعة أكبر</span></label>
+      <input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple>
+    </div>
+    {% if not images %}
+    <p class="text-muted small" style="margin-top:8px">لم يتم رفع أي صور بعد.</p>
+    {% endif %}
   </div>
 
-  {# ── الوصف ── #}
+  {# ── 2. المحتوى ── #}
   <div class="adm-form-section">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-      <h3 style="margin:0">الفائدة والوصف</h3>
+      <h3 style="margin:0">المحتوى</h3>
       {% if product %}
       <div style="display:flex;align-items:center;gap:10px">
         <button type="button" class="btn-adm-secondary" onclick="generateDesc()" id="desc-gen-btn">
@@ -120,63 +165,14 @@
     </div>
   </div>
 
-  {# ── السعر والمخزون ── #}
+  {# ── 3. الخصائص ── #}
   <div class="adm-form-section">
-    <h3>السعر والمخزون</h3>
-    <div class="adm-grid-3">
-      <div class="adm-field {{ 'has-error' if errors.get('price') }}">
-        <label>السعر ($) *</label>
-        <input type="number" name="price" step="0.01" min="0"
-               value="{{ form.get('price', '') }}">
-      </div>
-      <div class="adm-field">
-        <label>سعر التخفيض ($) <span class="hint">اتركه فارغاً إن لم يكن هناك تخفيض</span></label>
-        <input type="number" name="discount_price" step="0.01" min="0"
-               value="{{ form.get('discount_price', '') }}">
-      </div>
-      <div class="adm-field">
-        <label>الكمية في المخزون</label>
-        <input type="number" name="stock_qty" min="0"
-               value="{{ form.get('stock_qty', 0) }}">
-      </div>
+    <h3>الخصائص</h3>
+    <div class="adm-field" style="margin-bottom:14px">
+      <label>وسوم الصحة <span class="hint">مفصولة بفاصلة: weight, joint, urinary, allergy, dental, hairball, indoor</span></label>
+      <input type="text" name="health_tags" value="{{ form.get('health_tags', '') }}"
+             placeholder="مثال: weight,joint">
     </div>
-    <div class="adm-checkboxes">
-      <label class="adm-checkbox">
-        <input type="checkbox" name="is_featured" {{ 'checked' if form.get('is_featured') }}>
-        منتج مميز (يظهر في قسم "مختار بعناية")
-      </label>
-      <label class="adm-checkbox">
-        <input type="checkbox" name="is_active" {{ 'checked' if form.get('is_active', True) }}>
-        نشط (ظاهر على الموقع)
-      </label>
-    </div>
-  </div>
-
-  {# ── حاسبة الاستهلاك ── #}
-  <div class="adm-form-section">
-    <h3>حاسبة الاستهلاك</h3>
-    <label class="adm-checkbox" style="margin-bottom:14px">
-      <input type="checkbox" name="is_consumable" id="cons-check"
-             {{ 'checked' if form.get('is_consumable') }} onchange="toggleCons()">
-      هذا منتج استهلاكي (طعام / رمل) — يفعّل حاسبة المدة
-    </label>
-    <div id="cons-fields" class="adm-grid-2" style="{{ '' if form.get('is_consumable') else 'display:none' }}">
-      <div class="adm-field">
-        <label>الاستهلاك (غرام / كغ وزن / يوم)</label>
-        <input type="number" name="consumption_grams_per_kg_day" step="0.1" min="0"
-               value="{{ form.get('consumption_grams_per_kg_day', '') }}">
-      </div>
-      <div class="adm-field">
-        <label>وزن العبوة (غرام)</label>
-        <input type="number" name="package_weight_grams" step="1" min="0"
-               value="{{ form.get('package_weight_grams', '') }}">
-      </div>
-    </div>
-  </div>
-
-  {# ── الملاءمة ── #}
-  <div class="adm-form-section">
-    <h3>الملاءمة</h3>
     <div class="adm-grid-3">
       <div class="adm-field">
         <label>الحد الأدنى للعمر (شهر)</label>
@@ -198,71 +194,31 @@
         </select>
       </div>
     </div>
-    <div class="adm-field">
-      <label>وسوم الصحة <span class="hint">مفصولة بفاصلة: weight, joint, urinary, allergy, dental, hairball, indoor</span></label>
-      <input type="text" name="health_tags" value="{{ form.get('health_tags', '') }}"
-             placeholder="مثال: weight,joint">
-    </div>
-  </div>
-
-  {# ── الصور ── #}
-  <div class="adm-form-section">
-    <h3>صور المنتج</h3>
-    {% if images %}
-    <p class="text-muted" style="font-size:0.78rem;margin-bottom:10px">
-      ⭐ الصورة ذات الإطار الذهبي هي الرئيسية — اضغط "تعيين رئيسية" لتغييرها
-    </p>
-    <div class="img-preview-grid">
-      {% for img in images %}
-      <div class="img-preview {{ 'is-primary' if loop.first }}">
-        {% if loop.first %}<span class="primary-badge">⭐ رئيسية</span>{% endif %}
-        <img src="{{ url_for('static', filename='img/products/' + img.filename) }}" alt="">
-        <div class="img-preview-actions">
-          {% if not loop.first %}
-          <button type="button" class="img-action-btn primary-btn" title="تعيين كصورة رئيسية"
-                  onclick="imgAction('{{ url_for('admin_image_set_primary', pid=product.id, iid=img.id) }}')">⭐</button>
-          {% endif %}
-          <button type="button" class="img-action-btn delete-btn" title="حذف الصورة"
-                  onclick="imgAction('{{ url_for('admin_image_delete', pid=product.id, iid=img.id) }}')">✕</button>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-    <div class="adm-field" style="margin-top:12px">
-      <label>رفع صور جديدة <span class="hint">JPG / PNG / WebP — يُضغط تلقائياً ← حجم أقل وسرعة أكبر</span></label>
-      <input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple>
-    </div>
-    {% if not images %}
-    <p class="text-muted small" style="margin-top:8px">لم يتم رفع أي صور بعد.</p>
-    {% endif %}
-  </div>
-
-  {# ── Bundle ── #}
-  <div class="adm-form-section">
-    <h3>منتج مجمّع (Bundle)</h3>
-    <label class="adm-checkbox" style="margin-bottom:12px">
-      <input type="checkbox" name="is_bundle" id="bundle-check"
-             {{ 'checked' if form.get('is_bundle') }} onchange="toggleBundle()">
-      هذا المنتج عبارة عن مجموعة / حزمة من المنتجات
+    <div class="adm-section-divider">حاسبة الاستهلاك</div>
+    <label class="adm-checkbox" style="margin-bottom:14px">
+      <input type="checkbox" name="is_consumable" id="cons-check"
+             {{ 'checked' if form.get('is_consumable') }} onchange="toggleCons()">
+      هذا منتج استهلاكي (طعام / رمل) — يفعّل حاسبة المدة
     </label>
-    <div id="bundle-fields" style="{{ '' if form.get('is_bundle') else 'display:none' }}">
-      <div class="adm-grid-2">
-        <div class="adm-field">
-          <label>محتوى الحزمة بالعربي <span class="hint">مثال: كيس طعام 3كغ + وعاء مياه + لعبة</span></label>
-          <textarea name="bundle_note_ar" dir="rtl" rows="2">{{ form.get('bundle_note_ar') or '' }}</textarea>
-        </div>
-        <div class="adm-field">
-          <label>محتوى الحزمة بالإنجليزي</label>
-          <textarea name="bundle_note_en" rows="2">{{ form.get('bundle_note_en') or '' }}</textarea>
-        </div>
+    <div id="cons-fields" class="adm-grid-2" style="{{ '' if form.get('is_consumable') else 'display:none' }}">
+      <div class="adm-field">
+        <label>الاستهلاك (غرام / كغ وزن / يوم)</label>
+        <input type="number" name="consumption_grams_per_kg_day" step="0.1" min="0"
+               value="{{ form.get('consumption_grams_per_kg_day', '') }}">
+      </div>
+      <div class="adm-field">
+        <label>وزن العبوة (غرام)</label>
+        <input type="number" name="package_weight_grams" step="1" min="0"
+               value="{{ form.get('package_weight_grams', '') }}">
       </div>
     </div>
   </div>
 
-  {# ── خانة العرض ── #}
+  {# ── 4. التسويق ── #}
   <div class="adm-form-section">
-    <h3>خانة العرض</h3>
+    <h3>التسويق</h3>
+
+    <div class="adm-section-divider">خانة العرض</div>
     <p class="text-muted" style="font-size:0.78rem;margin-bottom:12px">
       العروض التسعيرية تؤثر على السعر الديناميكي والسلة تلقائياً.
     </p>
@@ -285,15 +241,30 @@
                value="{{ form.get('promo_label_en') or '' }}" placeholder="Buy 2 Get 1 Free">
       </div>
     </div>
-  </div>
 
-  {# ── تقييم بيلا بت ── #}
-  <div class="adm-form-section">
-    <h3>⭐ تقييم بيلا بت</h3>
+    <div class="adm-section-divider">منتج مجمّع (Bundle)</div>
+    <label class="adm-checkbox" style="margin-bottom:12px">
+      <input type="checkbox" name="is_bundle" id="bundle-check"
+             {{ 'checked' if form.get('is_bundle') }} onchange="toggleBundle()">
+      هذا المنتج عبارة عن مجموعة / حزمة من المنتجات
+    </label>
+    <div id="bundle-fields" style="{{ '' if form.get('is_bundle') else 'display:none' }}">
+      <div class="adm-grid-2">
+        <div class="adm-field">
+          <label>محتوى الحزمة بالعربي <span class="hint">مثال: كيس طعام 3كغ + وعاء مياه + لعبة</span></label>
+          <textarea name="bundle_note_ar" dir="rtl" rows="2">{{ form.get('bundle_note_ar') or '' }}</textarea>
+        </div>
+        <div class="adm-field">
+          <label>محتوى الحزمة بالإنجليزي</label>
+          <textarea name="bundle_note_en" rows="2">{{ form.get('bundle_note_en') or '' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="adm-section-divider">⭐ تقييم بيلا بت</div>
     <p class="text-muted" style="font-size:0.78rem;margin-bottom:14px">
       تقييمكم الخاص للمنتج — يظهر بصفحة المنتج لبناء ثقة الزبون
     </p>
-
     <div class="adm-field" style="margin-bottom:14px">
       <label>التقييم</label>
       <div class="star-picker" id="star-picker">
@@ -306,7 +277,6 @@
       <input type="hidden" name="store_rating" id="store_rating_input"
              value="{{ form.get('store_rating') or '' }}">
     </div>
-
     <div class="adm-grid-2">
       <div class="adm-field">
         <label>ملاحظة إيجابية بالعربي <span class="hint">جملة قصيرة</span></label>
@@ -343,12 +313,9 @@
                   placeholder="Strong smell at first&#10;Bag is not resealable">{{ form.get('rating_cons_en') or '' }}</textarea>
       </div>
     </div>
-  </div>
 
-  {# ── المجموعات ── #}
-  {% if product and all_collections %}
-  <div class="adm-form-section">
-    <h3>المجموعات</h3>
+    {% if product and all_collections %}
+    <div class="adm-section-divider">المجموعات</div>
     <p class="text-muted" style="font-size:0.78rem;margin-bottom:12px">اختر المجموعات التي ينتمي إليها هذا المنتج</p>
     <div class="collections-checkboxes">
       {% for col in all_collections %}
@@ -361,18 +328,34 @@
       </label>
       {% endfor %}
     </div>
+    {% endif %}
   </div>
-  {% endif %}
 
-  {# ── أسعار الكمية (Price Tiers) ── #}
-  {% if product %}
+  {# ── 5. متقدم ── #}
   <div class="adm-form-section">
-    <h3>أسعار حسب الكمية</h3>
+    <h3>متقدم</h3>
+    <div class="adm-grid-2">
+      <div class="adm-field">
+        <label>الرابط الإنجليزي (Slug) <span class="hint">يُولَّد تلقائياً</span></label>
+        <input type="text" id="slug" name="slug" value="{{ form.get('slug', '') }}"
+               placeholder="مثال: royal-canin-kitten">
+      </div>
+      <div class="adm-field">
+        <label>الرابط العربي <span class="hint">يُولَّد تلقائياً من الاسم</span></label>
+        <input type="text" id="slug_ar" name="slug_ar" dir="rtl" value="{{ form.get('slug_ar', product.slug_ar if product else '') }}"
+               placeholder="مثال: رويال-كانين-قطط">
+      </div>
+      <div class="adm-field">
+        <label>البراند / الماركة (نص حر) <span class="hint">الأفضل استخدام قائمة الماركات أعلاه</span></label>
+        <input type="text" name="brand" value="{{ form.get('brand', '') }}">
+      </div>
+    </div>
+
+    {% if product %}
+    <div class="adm-section-divider">أسعار حسب الكمية</div>
     <p class="text-muted" style="font-size:0.78rem;margin-bottom:14px">
       مثال: 1 قطعة = $12، من 2 قطع = $10 للقطعة، من 5 قطع = $9 للقطعة
     </p>
-
-    {# الصف الأول دائماً: السعر الأساسي (1 قطعة) — تلقائي من السعر الأصلي #}
     <div class="tier-base-row">
       <span class="tier-badge">× 1</span>
       <span style="font-size:0.85rem">السعر الأساسي:</span>
@@ -381,7 +364,6 @@
       </span>
       <span class="text-muted" style="font-size:0.75rem">(من حقل السعر أعلاه)</span>
     </div>
-
     <div id="tiers-form">
       <div id="tiers-list">
         {% for t in price_tiers %}
@@ -408,7 +390,6 @@
         </div>
         {% endfor %}
       </div>
-
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button type="button" onclick="addTier()" class="btn-adm-secondary">+ إضافة شريحة سعر</button>
         <button type="button" class="btn-adm-primary" id="tiers-save-btn"
@@ -417,13 +398,8 @@
         <span id="tiers-msg" style="font-size:0.8rem;color:#4ade80;display:none">✓ تم الحفظ</span>
       </div>
     </div>
-  </div>
-  {% endif %}
 
-  {# ── SEO سريع ── #}
-  {% if product %}
-  <div class="adm-form-section">
-    <h3>SEO ⚡</h3>
+    <div class="adm-section-divider">SEO ⚡</div>
     <div id="seo-status-bar" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
       <button type="button" class="btn-adm-secondary" onclick="generateSEO()" id="seo-gen-btn">
         ⚡ ولّد SEO تلقائياً
@@ -436,8 +412,8 @@
       <div style="color:var(--gold);font-weight:600;margin-bottom:4px" id="seo-title-en"></div>
       <div style="color:var(--muted)" id="seo-desc-en"></div>
     </div>
+    {% endif %}
   </div>
-  {% endif %}
 
 </form>
 
@@ -571,6 +547,14 @@
 
 {% block scripts %}
 <style>
+/* ── section divider ── */
+.adm-section-divider {
+  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px; margin: 20px 0 14px;
+}
+
 /* ── مجموعات ── */
 .collections-checkboxes { display:flex; flex-wrap:wrap; gap:8px; }
 .col-check-label {
@@ -994,7 +978,6 @@ async function saveSpecs() {
   });
   const d = await res.json();
   if (d.ok) {
-    // update IDs for newly created rows
     d.ids.forEach((newId, i) => { if (rows[i]) rows[i].dataset.id = newId; });
     const msg = document.getElementById('specs-msg');
     msg.style.display='inline'; setTimeout(()=>msg.style.display='none',2500);
