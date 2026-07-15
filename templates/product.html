@@ -113,6 +113,10 @@
   <span>{{ pick(p['name_en'], p['name_ar']) }}</span>
 </nav>
 
+{# ── Main Grid ── #}
+<div class="product-main-grid">
+<div class="pgrid-col pgrid-col--gallery">
+
 {# ── Gallery ── #}
 <div class="product-gallery">
   <div class="gallery-main" id="gallery-main">
@@ -144,6 +148,9 @@
   </div>
   {% endif %}
 </div>
+</div>{# /pgrid-col--gallery #}
+
+<div class="pgrid-col pgrid-col--info">
 
 {# ── Title block ── #}
 <div class="product-title-block">
@@ -428,7 +435,9 @@
     🔄 {{ 'اشتراك دوري — وفّر وما تنسى' if lang == 'ar' else 'Subscribe & Save — Never run out' }}
   </button>
 
-</div>
+</div>{# /qty-add-block #}
+</div>{# /pgrid-col--info #}
+</div>{# /product-main-grid #}
 
 {# ── Subscription Modal ── #}
 <div class="sub-modal-overlay" id="sub-modal" onclick="closeSubModal(event)">

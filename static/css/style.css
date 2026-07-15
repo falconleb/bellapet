@@ -503,6 +503,39 @@ html[dir="rtl"] .product-card .thumb .badge-gold { left: 6px; right: 6px; }
 .f-link:hover { color: var(--gold); }
 
 /* ===== صفحة المنتج ===== */
+
+/* ── Grid: صورة + تفاصيل جنب بعض على الديسكتوب ── */
+.product-main-grid {
+  display: block;
+}
+@media (min-width: 900px) {
+  .product-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+    margin-bottom: 40px;
+  }
+  .pgrid-col--gallery {
+    position: sticky;
+    top: 16px;
+  }
+  .pgrid-col--info {
+    padding-top: 8px;
+  }
+  .gallery-main {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.10);
+    overflow: hidden;
+  }
+  .gallery-main img {
+    object-fit: contain !important;
+    padding: 16px;
+    background: #fff;
+  }
+}
+
 .product-gallery {
   margin-bottom: 20px;
 }
