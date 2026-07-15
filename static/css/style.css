@@ -774,6 +774,15 @@ html[dir="rtl"] .product-card .thumb .badge-gold { left: 6px; right: 6px; }
   background: var(--gold-soft);
   color: var(--gold);
 }
+.cart-wish-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.cart-wish-row .btn-add-cart {
+  flex: 1;
+  min-width: 0;
+}
 .btn-add-cart {
   flex: 1;
   display: flex;

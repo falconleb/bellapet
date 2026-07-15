@@ -167,28 +167,6 @@
 <div class="product-short-desc">{{ _sdesc }}</div>
 {% endif %}
 
-{# ── Price + Stock ── #}
-{% set _unit = p['discount_price'] if p['discount_price'] else p['price'] %}
-<div class="price-block">
-  <div class="price-main">
-    {% if p['discount_price'] %}
-    <span class="price-old">{{ currency }}{{ '%.2f'|format(p['price']) }}</span>
-    {% endif %}
-    <span class="price-now" id="price-total">{{ currency }}{{ '%.2f'|format(_unit) }}</span>
-    <span class="price-unit" id="price-unit" style="display:none">{{ currency }}{{ '%.2f'|format(_unit) }} / {{ 'قطعة' if lang == 'ar' else 'each' }}</span>
-  </div>
-  <div class="price-savings" id="price-savings" style="display:none"></div>
-  <div class="stock-badge {{ 'in-stock' if p['stock_qty'] > 0 else 'out-stock' }}">
-    {% if p['stock_qty'] > 5 %}
-      {{ '✓ متوفر' if lang == 'ar' else '✓ In stock' }}
-    {% elif p['stock_qty'] > 0 %}
-      {{ 'آخر ' + p['stock_qty']|string + ' قطع' if lang == 'ar' else 'Only ' + p['stock_qty']|string + ' left' }}
-    {% else %}
-      {{ 'نفد من المخزون' if lang == 'ar' else 'Out of stock' }}
-    {% endif %}
-  </div>
-</div>
-
 {# ── Promo + Bundle badges ── #}
 {% if p['promo_label_ar'] or p['is_bundle'] %}
 <div class="product-badges">
@@ -281,6 +259,28 @@
   <span class="cr-label">{{ 'تقييم الزبائن' if lang == 'ar' else 'Customer Rating' }}</span>
 </div>
 {% endif %}
+
+{# ── Price + Stock ── #}
+{% set _unit = p['discount_price'] if p['discount_price'] else p['price'] %}
+<div class="price-block">
+  <div class="price-main">
+    {% if p['discount_price'] %}
+    <span class="price-old">{{ currency }}{{ '%.2f'|format(p['price']) }}</span>
+    {% endif %}
+    <span class="price-now" id="price-total">{{ currency }}{{ '%.2f'|format(_unit) }}</span>
+    <span class="price-unit" id="price-unit" style="display:none">{{ currency }}{{ '%.2f'|format(_unit) }} / {{ 'قطعة' if lang == 'ar' else 'each' }}</span>
+  </div>
+  <div class="price-savings" id="price-savings" style="display:none"></div>
+  <div class="stock-badge {{ 'in-stock' if p['stock_qty'] > 0 else 'out-stock' }}">
+    {% if p['stock_qty'] > 5 %}
+      {{ '✓ متوفر' if lang == 'ar' else '✓ In stock' }}
+    {% elif p['stock_qty'] > 0 %}
+      {{ 'آخر ' + p['stock_qty']|string + ' قطع' if lang == 'ar' else 'Only ' + p['stock_qty']|string + ' left' }}
+    {% else %}
+      {{ 'نفد من المخزون' if lang == 'ar' else 'Out of stock' }}
+    {% endif %}
+  </div>
+</div>
 
 {# ── Price Tiers ── #}
 {% if price_tiers %}
@@ -384,23 +384,24 @@
       {% endfor %}
     </div>
     {% endif %}
-    {% if p['stock_qty'] > 0 %}
-    <div style="display:flex;gap:10px;align-items:stretch;">
-      <button class="btn-add-cart" onclick="addToCart()" style="flex:1;">
-        {{ icons.icon_cart("btn-icon") }}
-        {{ 'أضف للسلة' if lang == 'ar' else 'Add to Cart' }}
-      </button>
-      <button class="btn-wish-product"
-        data-slug="{{ p['slug'] }}"
-        data-name="{{ pick(p['name_en'],p['name_ar'])|e }}"
-        data-price="{{ p['discount_price'] or p['price'] }}"
-        data-img="{{ p['primary_img'] or '' }}"
-        title="{{ 'أضف للمفضلة' if lang == 'ar' else 'Add to wishlist' }}">
-        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        {{ 'مفضلة' if lang == 'ar' else 'Save' }}
-      </button>
-    </div>
-    {% else %}
+  </div>
+  {% if p['stock_qty'] > 0 %}
+  <div class="cart-wish-row">
+    <button class="btn-add-cart" onclick="addToCart()">
+      {{ icons.icon_cart("btn-icon") }}
+      {{ 'أضف للسلة' if lang == 'ar' else 'Add to Cart' }}
+    </button>
+    <button class="btn-wish-product"
+      data-slug="{{ p['slug'] }}"
+      data-name="{{ pick(p['name_en'],p['name_ar'])|e }}"
+      data-price="{{ p['discount_price'] or p['price'] }}"
+      data-img="{{ p['primary_img'] or '' }}"
+      title="{{ 'أضف للمفضلة' if lang == 'ar' else 'Add to wishlist' }}">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      {{ 'مفضلة' if lang == 'ar' else 'Save' }}
+    </button>
+  </div>
+  {% else %}
     <div class="notify-me-box" id="notify-box-{{ p['id'] }}">
       <p class="notify-label">
         <svg class="notify-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
