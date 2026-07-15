@@ -1639,6 +1639,8 @@ def admin_generate_description(pid):
     # اقرأ المفتاح من DB مباشرة عند كل طلب (لا تعتمد على cache)
     gemini_key = _get_integration('gemini_api_key') or config.GEMINI_API_KEY
     anthropic_key = _get_integration('anthropic_api_key') or config.ANTHROPIC_API_KEY
+    import sys as _sys
+    print(f'[DBG-AI] gemini_key_len={len(gemini_key)} anthropic_key_len={len(anthropic_key)}', file=_sys.stderr, flush=True)
     if not gemini_key and not anthropic_key:
         return jsonify({'ok': False, 'error': 'مفتاح API غير محدد — اذهب إلى الإعدادات'})
 
@@ -1699,7 +1701,9 @@ def admin_generate_description(pid):
                 result = _js.loads(text[start:end])
         except Exception as e:
             last_err = _tb.format_exc()
+            print(f'[DBG-AI] exception: {last_err[:300]}', file=_sys.stderr, flush=True)
 
+    print(f'[DBG-AI] result={result is not None} last_err_len={len(last_err)}', file=_sys.stderr, flush=True)
     if not result:
         err_msg = f'فشل التوليد — {last_err[:200]}' if last_err else 'فشل التوليد — تحقق من مفتاح API'
         return jsonify({'ok': False, 'error': err_msg})
