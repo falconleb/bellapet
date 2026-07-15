@@ -2490,8 +2490,12 @@ def admin_seo_generate():
     page_id   = request.form.get('page_id', type=int)
     page_slug = request.form.get('page_slug')
 
-    if not config.ANTHROPIC_API_KEY:
-        return jsonify({'ok': False, 'error': 'ANTHROPIC_API_KEY غير موجود في config.py'})
+    _gk = _get_integration('gemini_api_key') or config.GEMINI_API_KEY
+    _ak = _get_integration('anthropic_api_key') or config.ANTHROPIC_API_KEY
+    if not _gk and not _ak:
+        return jsonify({'ok': False, 'error': 'مفتاح API غير محدد — اذهب إلى الإعدادات'})
+    if _gk: config.GEMINI_API_KEY     = _gk
+    if _ak: config.ANTHROPIC_API_KEY  = _ak
 
     db = get_db()
     result = None
@@ -2576,8 +2580,12 @@ def admin_seo_generate():
 @admin_required
 def admin_seo_generate_all():
     """يولّد SEO لكل المنتجات دفعة واحدة (بطيء — يستغرق وقتاً)."""
-    if not config.ANTHROPIC_API_KEY:
-        return jsonify({'ok': False, 'error': 'ANTHROPIC_API_KEY غير موجود'})
+    _gk = _get_integration('gemini_api_key') or config.GEMINI_API_KEY
+    _ak = _get_integration('anthropic_api_key') or config.ANTHROPIC_API_KEY
+    if not _gk and not _ak:
+        return jsonify({'ok': False, 'error': 'مفتاح API غير محدد — اذهب إلى الإعدادات'})
+    if _gk: config.GEMINI_API_KEY    = _gk
+    if _ak: config.ANTHROPIC_API_KEY = _ak
 
     db = get_db()
     products = db.execute(
