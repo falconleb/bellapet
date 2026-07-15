@@ -1695,9 +1695,15 @@ def admin_generate_description(pid):
                    headers={"Content-Type": "application/json"}, method="POST")
             with _ur.urlopen(req, timeout=30) as r:
                 data = _js.loads(r.read())
-            parts = data["candidates"][0]["content"]["parts"]
+            print(f'[DBG-AI] raw_keys={list(data.keys())} candidates_len={len(data.get("candidates",[]))}', file=_sys.stderr, flush=True)
+            cand = data["candidates"][0]
+            print(f'[DBG-AI] finish={cand.get("finishReason")} parts_count={len(cand.get("content",{}).get("parts",[]))}', file=_sys.stderr, flush=True)
+            for i, p in enumerate(cand.get("content",{}).get("parts",[])):
+                print(f'[DBG-AI] part[{i}] keys={list(p.keys())} text_len={len(p.get("text",""))} text50={repr(p.get("text","")[:50])}', file=_sys.stderr, flush=True)
+            parts = cand["content"]["parts"]
             text = ''.join(p.get("text", "") for p in parts).strip()
             start = text.find('{'); end = text.rfind('}') + 1
+            print(f'[DBG-AI] combined_len={len(text)} start={start} end={end}', file=_sys.stderr, flush=True)
             if start >= 0 and end > start:
                 result = _js.loads(text[start:end])
         except Exception as e:
