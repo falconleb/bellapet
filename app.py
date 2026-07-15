@@ -1696,9 +1696,14 @@ def admin_generate_description(pid):
             with _ur.urlopen(req, timeout=30) as r:
                 data = _js.loads(r.read())
             text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            print(f'[DBG-AI] text_len={len(text)} start={text.find("{")} text_start={repr(text[:80])}', file=_sys.stderr, flush=True)
             start = text.find('{'); end = text.rfind('}') + 1
             if start >= 0 and end > start:
-                result = _js.loads(text[start:end])
+                try:
+                    result = _js.loads(text[start:end])
+                except Exception as je:
+                    print(f'[DBG-AI] json_parse_error={je} snippet={repr(text[start:start+100])}', file=_sys.stderr, flush=True)
+                    raise
         except Exception as e:
             last_err = _tb.format_exc()
             print(f'[DBG-AI] exception: {last_err[:300]}', file=_sys.stderr, flush=True)
