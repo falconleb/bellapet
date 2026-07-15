@@ -1679,6 +1679,32 @@ def admin_generate_description(pid):
     return jsonify({'ok': True, **result})
 
 
+@app.route('/admin/debug-gemini')
+@admin_required
+def admin_debug_gemini():
+    """مؤقت — لتشخيص مشكلة AI"""
+    import urllib.request, json as _json, traceback as _tb
+    key = config.GEMINI_API_KEY
+    model = config.GEMINI_MODEL
+    result = {'key_len': len(key), 'key_start': key[:8] if key else '', 'model': model}
+    if not key:
+        result['error'] = 'GEMINI_API_KEY فارغ'
+        return jsonify(result)
+    try:
+        url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+               f"{model}:generateContent?key={key}")
+        body = _json.dumps({"contents": [{"parts": [{"text": "say hi"}]}],
+                            "generationConfig": {"maxOutputTokens": 50}}).encode()
+        req = urllib.request.Request(url, data=body,
+              headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=20) as r:
+            data = _json.loads(r.read())
+        result['gemini_raw'] = data
+    except Exception as e:
+        result['error'] = _tb.format_exc()
+    return jsonify(result)
+
+
 @app.route('/admin/products/<int:pid>/price-tiers/save', methods=['POST'])
 @admin_required
 def admin_price_tiers_save(pid):
