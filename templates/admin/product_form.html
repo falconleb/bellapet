@@ -691,10 +691,9 @@ function addTier() {
 }
 function removeTier(btn) {
   btn.closest('.tier-row').remove();
-  if (!document.querySelectorAll('.tier-row').length) {
-    document.getElementById('tiers-save-btn').style.display = 'none';
-    saveTiers(); // احفظ تلقائياً عند حذف آخر عرض
-  }
+  const remaining = document.querySelectorAll('#tiers-list .tier-row').length;
+  document.getElementById('tiers-save-btn').style.display = remaining ? '' : 'none';
+  saveTiers();
 }
 
 // يحدد الزر النشط لما الصفحة تحمّل إذا في promo محفوظ
