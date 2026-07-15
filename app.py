@@ -1554,6 +1554,49 @@ def admin_image_delete(pid, iid):
     db.close()
     return redirect(url_for('admin_product_edit', pid=pid))
 
+@app.route('/admin/products/<int:pid>/image/<int:iid>/remove-bg', methods=['POST'])
+@admin_required
+def admin_image_remove_bg(pid, iid):
+    import requests as _req
+    db = get_db()
+    img = db.execute('SELECT * FROM product_images WHERE id=? AND product_id=?', (iid, pid)).fetchone()
+    if not img:
+        db.close()
+        return jsonify({'ok': False, 'error': 'الصورة غير موجودة'})
+    api_key = _get_integration('photoroom_api_key') or ''
+    if not api_key:
+        db.close()
+        return jsonify({'ok': False, 'error': 'مفتاح PhotoRoom غير محدد في الإعدادات'})
+    fpath = os.path.join(config.UPLOAD_FOLDER, img['filename'])
+    if not os.path.exists(fpath):
+        db.close()
+        return jsonify({'ok': False, 'error': 'ملف الصورة غير موجود على السيرفر'})
+    try:
+        with open(fpath, 'rb') as f:
+            resp = _req.post(
+                'https://sdk.photoroom.com/v1/segment',
+                headers={'x-api-key': api_key},
+                files={'image_file': (img['filename'], f, 'image/jpeg')},
+                timeout=30,
+            )
+        if resp.status_code != 200:
+            db.close()
+            return jsonify({'ok': False, 'error': f'PhotoRoom: {resp.status_code} — {resp.text[:120]}'})
+        base = img['filename'].rsplit('.', 1)[0].replace('_nobg', '')
+        new_fname = base + '_nobg.png'
+        new_fpath = os.path.join(config.UPLOAD_FOLDER, new_fname)
+        with open(new_fpath, 'wb') as f:
+            f.write(resp.content)
+        db.execute('UPDATE product_images SET filename=? WHERE id=?', (new_fname, iid))
+        db.commit()
+        if fpath != new_fpath and os.path.exists(fpath):
+            os.remove(fpath)
+        db.close()
+        return jsonify({'ok': True, 'new_url': url_for('static', filename=f'img/products/{new_fname}')})
+    except Exception as e:
+        db.close()
+        return jsonify({'ok': False, 'error': str(e)})
+
 @app.route('/admin/products/<int:pid>/image/<int:iid>/set-primary', methods=['POST'])
 @admin_required
 def admin_image_set_primary(pid, iid):

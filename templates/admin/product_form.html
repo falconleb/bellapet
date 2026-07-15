@@ -108,6 +108,8 @@
           <button type="button" class="img-action-btn primary-btn" title="تعيين كصورة رئيسية"
                   onclick="imgAction('{{ url_for('admin_image_set_primary', pid=product.id, iid=img.id) }}')">⭐</button>
           {% endif %}
+          <button type="button" class="img-action-btn" title="إزالة الخلفية" style="font-size:1rem"
+                  onclick="removeBg(this, '{{ url_for('admin_image_remove_bg', pid=product.id, iid=img.id) }}')">✂️</button>
           <button type="button" class="img-action-btn delete-btn" title="حذف الصورة"
                   onclick="imgAction('{{ url_for('admin_image_delete', pid=product.id, iid=img.id) }}')">✕</button>
         </div>
@@ -614,6 +616,22 @@ function toggleBundle() {
 }
 function imgAction(url) {
   fetch(url, { method: 'POST' }).then(() => location.reload());
+}
+function removeBg(btn, url) {
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  fetch(url, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        btn.closest('.img-preview').querySelector('img').src = d.new_url + '?t=' + Date.now();
+        btn.textContent = '✅';
+      } else {
+        alert('خطأ: ' + d.error);
+        btn.textContent = '✂️';
+        btn.disabled = false;
+      }
+    });
 }
 
 function saveTiers() {
