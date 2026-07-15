@@ -1620,7 +1620,7 @@ def admin_variants_save(pid):
 @admin_required
 def admin_generate_description(pid):
     """يولّد benefit + description بالعربي والإنجليزي باستخدام Claude."""
-    if not config.ANTHROPIC_API_KEY:
+    if not config.ANTHROPIC_API_KEY and not config.GEMINI_API_KEY:
         return jsonify({'ok': False, 'error': 'مفتاح API غير محدد — اذهب إلى الإعدادات'})
     db = get_db()
     p  = db.execute('SELECT p.*, c.name_ar as cat_ar, c.name_en as cat_en FROM products p '
@@ -1657,7 +1657,7 @@ def admin_generate_description(pid):
   "description_en": "..."
 }}"""
 
-    result = seo_mod._call_claude(prompt)
+    result = seo_mod._call_ai(prompt)
     if not result:
         return jsonify({'ok': False, 'error': 'فشل التوليد — تحقق من مفتاح API'})
     return jsonify({'ok': True, **result})
