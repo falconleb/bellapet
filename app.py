@@ -1474,7 +1474,7 @@ def admin_product_edit(pid):
             for cid in new_col_ids:
                 db.execute('INSERT OR IGNORE INTO collection_products (collection_id, product_id) VALUES (?,?)', (cid, pid))
             db.commit(); db.close()
-            return redirect(url_for('admin_products'))
+            return redirect(url_for('admin_product_edit', pid=pid))
     specs = db.execute(
         'SELECT * FROM product_specs WHERE product_id=? ORDER BY sort_order, id', (pid,)
     ).fetchall()
