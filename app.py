@@ -459,6 +459,22 @@ def _csrf_token():
 
 _CSRF_EXEMPT_PREFIXES = ('/api/', '/admin/push/', '/webhook', '/sw.js')
 
+_db_config_loaded = False
+@app.before_request
+def _load_db_config_once():
+    global _db_config_loaded
+    if _db_config_loaded:
+        return
+    _db_config_loaded = True
+    try:
+        for _k, _attr in [('gemini_api_key', 'GEMINI_API_KEY'), ('anthropic_api_key', 'ANTHROPIC_API_KEY'),
+                           ('whatsapp_number', 'WHATSAPP_NUMBER')]:
+            _v = _get_integration(_k)
+            if _v:
+                setattr(config, _attr, _v)
+    except Exception:
+        pass
+
 @app.before_request
 def csrf_check():
     if request.method not in ('POST', 'PUT', 'DELETE', 'PATCH'):
