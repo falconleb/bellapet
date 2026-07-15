@@ -133,7 +133,8 @@ def _call_gemini(prompt: str) -> dict | None:
                headers={"Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req, timeout=20) as r:
             data = json.loads(r.read())
-        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        parts = data["candidates"][0]["content"]["parts"]
+        text = ''.join(p.get("text", "") for p in parts).strip()
         return _parse_json(text)
     except Exception:
         pass
