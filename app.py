@@ -1688,37 +1688,15 @@ def admin_generate_description(pid):
   "description_en": "..."
 }}"""
 
-    # استخدم المفتاح من DB مباشرة
-    import urllib.request as _ur, json as _js, traceback as _tb
-    result = None
-    last_err = ''
+    # حمّل المفاتيح على config ثم استخدم _call_ai (Gemini أولاً ← Claude fallback)
     if gemini_key:
-        try:
-            url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
-                   f"{config.GEMINI_MODEL}:generateContent?key={gemini_key}")
-            body = _js.dumps({
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "maxOutputTokens": 3000,
-                    "temperature": 0.3,
-                    "thinkingConfig": {"thinkingBudget": 0},
-                },
-            }).encode()
-            req = _ur.Request(url, data=body,
-                   headers={"Content-Type": "application/json"}, method="POST")
-            with _ur.urlopen(req, timeout=30) as r:
-                data = _js.loads(r.read())
-            parts = data["candidates"][0]["content"]["parts"]
-            text = ''.join(p.get("text", "") for p in parts).strip()
-            start = text.find('{'); end = text.rfind('}') + 1
-            if start >= 0 and end > start:
-                result = _js.loads(text[start:end])
-        except Exception as e:
-            last_err = _tb.format_exc()
+        config.GEMINI_API_KEY = gemini_key
+    if anthropic_key:
+        config.ANTHROPIC_API_KEY = anthropic_key
 
+    result = seo_mod._call_ai(prompt)
     if not result:
-        err_msg = f'فشل التوليد — {last_err[:200]}' if last_err else 'فشل التوليد — تحقق من مفتاح API'
-        return jsonify({'ok': False, 'error': err_msg})
+        return jsonify({'ok': False, 'error': 'فشل التوليد — تحقق من مفتاح API'})
     return jsonify({'ok': True, **result})
 
 
