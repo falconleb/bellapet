@@ -1635,9 +1635,13 @@ def admin_variants_save(pid):
 @app.route('/admin/products/<int:pid>/generate-description', methods=['POST'])
 @admin_required
 def admin_generate_description(pid):
-    """يولّد benefit + description بالعربي والإنجليزي باستخدام Claude."""
-    if not config.ANTHROPIC_API_KEY and not config.GEMINI_API_KEY:
+    """يولّد benefit + description بالعربي والإنجليزي باستخدام Gemini."""
+    # اقرأ المفتاح من DB مباشرة عند كل طلب (لا تعتمد على cache)
+    gemini_key = _get_integration('gemini_api_key') or config.GEMINI_API_KEY
+    anthropic_key = _get_integration('anthropic_api_key') or config.ANTHROPIC_API_KEY
+    if not gemini_key and not anthropic_key:
         return jsonify({'ok': False, 'error': 'مفتاح API غير محدد — اذهب إلى الإعدادات'})
+
     db = get_db()
     p  = db.execute('SELECT p.*, c.name_ar as cat_ar, c.name_en as cat_en FROM products p '
                     'LEFT JOIN categories c ON c.id=p.category_id WHERE p.id=?', (pid,)).fetchone()
@@ -1673,9 +1677,32 @@ def admin_generate_description(pid):
   "description_en": "..."
 }}"""
 
-    result = seo_mod._call_ai(prompt)
+    # استخدم المفتاح من DB مباشرة
+    import urllib.request as _ur, json as _js, traceback as _tb
+    result = None
+    last_err = ''
+    if gemini_key:
+        try:
+            url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+                   f"{config.GEMINI_MODEL}:generateContent?key={gemini_key}")
+            body = _js.dumps({
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"maxOutputTokens": 2500, "temperature": 0.3},
+            }).encode()
+            req = _ur.Request(url, data=body,
+                   headers={"Content-Type": "application/json"}, method="POST")
+            with _ur.urlopen(req, timeout=30) as r:
+                data = _js.loads(r.read())
+            text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            start = text.find('{'); end = text.rfind('}') + 1
+            if start >= 0 and end > start:
+                result = _js.loads(text[start:end])
+        except Exception as e:
+            last_err = _tb.format_exc()
+
     if not result:
-        return jsonify({'ok': False, 'error': 'فشل التوليد — تحقق من مفتاح API'})
+        err_msg = f'فشل التوليد — {last_err[:200]}' if last_err else 'فشل التوليد — تحقق من مفتاح API'
+        return jsonify({'ok': False, 'error': err_msg})
     return jsonify({'ok': True, **result})
 
 
