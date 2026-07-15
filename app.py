@@ -1478,14 +1478,17 @@ def admin_product_edit(pid):
     specs = db.execute(
         'SELECT * FROM product_specs WHERE product_id=? ORDER BY sort_order, id', (pid,)
     ).fetchall()
-    brands = db.execute('SELECT * FROM brands ORDER BY sort_order, name_ar').fetchall()
+    brands   = db.execute('SELECT * FROM brands ORDER BY sort_order, name_ar').fetchall()
+    seo_meta = db.execute(
+        'SELECT * FROM seo_meta WHERE page_type=? AND page_id=?', ('product', pid)
+    ).fetchone()
     db.close()
     return render_template('admin/product_form.html', product=product, images=images,
                            variants=variants, price_tiers=price_tiers, categories=categories,
                            subcategories=subcategories,
                            all_collections=all_collections,
                            product_col_ids=product_col_ids,
-                           specs=specs, brands=brands,
+                           specs=specs, brands=brands, seo_meta=seo_meta,
                            errors=errors, form=form, active_admin='products')
 
 @app.route('/admin/specs/save/<int:pid>', methods=['POST'])

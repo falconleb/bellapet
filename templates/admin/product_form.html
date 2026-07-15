@@ -406,13 +406,13 @@
       </button>
       <span id="seo-result-msg" style="font-size:0.82rem"></span>
     </div>
-    {# hidden spans يحملوا القيم — يُعبّأوا من generateSEO() #}
-    <span id="seo-title-ar" style="display:none"></span>
-    <span id="seo-desc-ar"  style="display:none"></span>
-    <span id="seo-title-en" style="display:none"></span>
-    <span id="seo-desc-en"  style="display:none"></span>
+    {# hidden spans يحملوا القيم — يُعبّأوا من generateSEO() أو من DB مباشرة #}
+    <span id="seo-title-ar" style="display:none">{{ seo_meta.meta_title_ar if seo_meta and seo_meta.meta_title_ar else '' }}</span>
+    <span id="seo-desc-ar"  style="display:none">{{ seo_meta.meta_desc_ar  if seo_meta and seo_meta.meta_desc_ar  else '' }}</span>
+    <span id="seo-title-en" style="display:none">{{ seo_meta.meta_title_en if seo_meta and seo_meta.meta_title_en else '' }}</span>
+    <span id="seo-desc-en"  style="display:none">{{ seo_meta.meta_desc_en  if seo_meta and seo_meta.meta_desc_en  else '' }}</span>
 
-    <div id="seo-preview" style="display:none;margin-top:16px">
+    <div id="seo-preview" style="display:{{ 'block' if seo_meta and (seo_meta.meta_title_ar or seo_meta.meta_title_en) else 'none' }};margin-top:16px">
       {# toggle لغة #}
       <div style="display:flex;gap:6px;margin-bottom:10px">
         <button type="button" onclick="setSeoLang('ar')" id="seo-lang-ar"
@@ -1090,6 +1090,10 @@ async function saveSpecs() {
   nameAr.addEventListener('input', () => { if (!slugAr._touched) slugAr.value = toArSlug(nameAr.value); });
   slugEn.addEventListener('input', () => { slugEn._touched = !!slugEn.value; });
   slugAr.addEventListener('input', () => { slugAr._touched = !!slugAr.value; });
+  {% endif %}
+
+  {% if product %}
+  if (typeof updateSerpPreview === 'function') updateSerpPreview();
   {% endif %}
 })();
 </script>
