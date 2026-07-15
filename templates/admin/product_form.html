@@ -406,11 +406,47 @@
       </button>
       <span id="seo-result-msg" style="font-size:0.82rem"></span>
     </div>
-    <div id="seo-preview" style="display:none;margin-top:14px;padding:12px;background:var(--surface2);border-radius:8px;font-size:0.8rem">
-      <div style="color:var(--gold);font-weight:600;margin-bottom:4px" id="seo-title-ar"></div>
-      <div style="color:var(--muted);margin-bottom:8px" id="seo-desc-ar"></div>
-      <div style="color:var(--gold);font-weight:600;margin-bottom:4px" id="seo-title-en"></div>
-      <div style="color:var(--muted)" id="seo-desc-en"></div>
+    {# hidden spans يحملوا القيم — يُعبّأوا من generateSEO() #}
+    <span id="seo-title-ar" style="display:none"></span>
+    <span id="seo-desc-ar"  style="display:none"></span>
+    <span id="seo-title-en" style="display:none"></span>
+    <span id="seo-desc-en"  style="display:none"></span>
+
+    <div id="seo-preview" style="display:none;margin-top:16px">
+      {# toggle لغة #}
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button type="button" onclick="setSeoLang('ar')" id="seo-lang-ar"
+          class="btn-adm-sm" style="font-size:0.75rem;opacity:1">🇦🇪 عربي</button>
+        <button type="button" onclick="setSeoLang('en')" id="seo-lang-en"
+          class="btn-adm-sm" style="font-size:0.75rem;opacity:0.45">🇬🇧 English</button>
+      </div>
+
+      {# Google card #}
+      <div style="background:#fff;border-radius:10px;padding:14px 16px;max-width:600px;
+                  font-family:Arial,sans-serif;box-shadow:0 1px 6px rgba(0,0,0,.18)">
+        {# site line #}
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div style="width:26px;height:26px;border-radius:50%;background:#e8f0fe;
+                      display:flex;align-items:center;justify-content:center;font-size:13px">G</div>
+          <div>
+            <div id="serp-domain" style="color:#202124;font-size:14px;font-weight:500;line-height:1.2">bellapetstore.com</div>
+            <div id="serp-url"    style="color:#4d5156;font-size:12px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:480px"></div>
+          </div>
+        </div>
+        {# title #}
+        <div id="serp-title" style="color:#1a0dab;font-size:20px;line-height:1.3;
+             cursor:pointer;margin-bottom:3px;overflow:hidden;display:-webkit-box;
+             -webkit-line-clamp:1;-webkit-box-orient:vertical"></div>
+        {# description #}
+        <div id="serp-desc" style="color:#4d5156;font-size:14px;line-height:1.58;
+             overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"></div>
+      </div>
+
+      {# character counters #}
+      <div style="margin-top:8px;font-size:0.75rem;color:var(--muted);display:flex;gap:16px">
+        <span>عنوان: <b id="serp-title-len" style="color:var(--fg)">0</b>/60</span>
+        <span>وصف: <b id="serp-desc-len"  style="color:var(--fg)">0</b>/160</span>
+      </div>
     </div>
     {% endif %}
   </div>
@@ -822,6 +858,7 @@ function generateSEO() {
       document.getElementById('seo-title-en').textContent = p.meta_title_en || '';
       document.getElementById('seo-desc-en').textContent  = p.meta_desc_en  || '';
       document.getElementById('seo-preview').style.display = '';
+      updateSerpPreview();
     } else {
       msg.style.color = '#f87171';
       msg.textContent = '✗ ' + (data.error || 'خطأ غير معروف');
@@ -833,6 +870,37 @@ function generateSEO() {
     msg.style.color = '#f87171';
     msg.textContent = '✗ فشل الاتصال';
   });
+}
+
+/* ── Google SERP Preview ── */
+let _serpLang = 'ar';
+function setSeoLang(lang) {
+  _serpLang = lang;
+  document.getElementById('seo-lang-ar').style.opacity = lang === 'ar' ? '1' : '0.45';
+  document.getElementById('seo-lang-en').style.opacity = lang === 'en' ? '1' : '0.45';
+  updateSerpPreview();
+}
+function updateSerpPreview() {
+  const isAr  = _serpLang === 'ar';
+  const title = document.getElementById(isAr ? 'seo-title-ar' : 'seo-title-en').textContent.trim();
+  const desc  = document.getElementById(isAr ? 'seo-desc-ar'  : 'seo-desc-en').textContent.trim();
+  const slug  = isAr
+    ? (document.getElementById('slug_ar')?.value || document.getElementById('slug')?.value || '')
+    : (document.getElementById('slug')?.value || '');
+
+  document.getElementById('serp-url').textContent   = 'bellapetstore.com › products › ' + slug;
+  document.getElementById('serp-title').textContent = title || '—';
+  document.getElementById('serp-desc').textContent  = desc  || '—';
+  document.getElementById('serp-title').dir = isAr ? 'rtl' : 'ltr';
+  document.getElementById('serp-desc').dir  = isAr ? 'rtl' : 'ltr';
+
+  const tLen = title.length, dLen = desc.length;
+  const tEl = document.getElementById('serp-title-len');
+  const dEl = document.getElementById('serp-desc-len');
+  tEl.textContent = tLen;
+  tEl.style.color = tLen > 60 ? '#f87171' : tLen > 50 ? '#fbbf24' : 'var(--fg)';
+  dEl.textContent = dLen;
+  dEl.style.color = dLen > 160 ? '#f87171' : dLen > 140 ? '#fbbf24' : 'var(--fg)';
 }
 {% endif %}
 
