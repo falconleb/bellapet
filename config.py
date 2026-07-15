@@ -50,7 +50,7 @@ ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 # Gemini API — لتوليد SEO والوصف (مجاني)
 # احصل على مفتاحك من: https://aistudio.google.com/app/apikey
 GEMINI_API_KEY   = os.environ.get('GEMINI_API_KEY', '')
-GEMINI_MODEL     = 'gemini-2.0-flash'
+GEMINI_MODEL     = 'gemini-2.5-flash'
 
 # Groq API — للمستشار الذكي والبحث
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
