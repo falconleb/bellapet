@@ -400,10 +400,14 @@
     </div>
 
     <div class="adm-section-divider">SEO ⚡</div>
-    <div id="seo-status-bar" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div id="seo-status-bar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <button type="button" class="btn-adm-secondary" onclick="generateSEO()" id="seo-gen-btn">
         ⚡ ولّد SEO تلقائياً
       </button>
+      <a href="https://bellapetstore.com/products/{{ product.slug }}" target="_blank"
+         class="btn-adm-secondary" style="text-decoration:none;font-size:0.82rem">
+        👁 معاينة على المتجر
+      </a>
       <span id="seo-result-msg" style="font-size:0.82rem"></span>
     </div>
     {# hidden spans يحملوا القيم — يُعبّأوا من generateSEO() أو من DB مباشرة #}
