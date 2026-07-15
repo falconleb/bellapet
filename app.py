@@ -1649,6 +1649,14 @@ def admin_generate_description(pid):
     if not p:
         return jsonify({'ok': False, 'error': 'منتج غير موجود'})
 
+    # بناء سياق إضافي من الحقول المتوفرة
+    _age_parts = []
+    if p['min_age_months']: _age_parts.append(f"من {p['min_age_months']} شهر")
+    if p['max_age_months']: _age_parts.append(f"حتى {p['max_age_months']} شهر")
+    _age_str   = ' '.join(_age_parts) if _age_parts else ''
+    _tags_str  = (p['health_tags'] or '').replace(',', '، ')
+    _type_str  = 'طعام/علف (قابل للاستهلاك)' if p['is_consumable'] else 'منتج (غير غذائي)'
+
     prompt = f"""أنت كاتب محتوى متخصص في متاجر الحيوانات الأليفة في لبنان.
 اكتب وصفاً تسويقياً لهذا المنتج:
 
@@ -1656,6 +1664,9 @@ def admin_generate_description(pid):
 الاسم الإنجليزي: {p['name_en'] or ''}
 الماركة: {p['brand'] or ''}
 التصنيف: {p['cat_ar'] or p['cat_en'] or ''}
+نوع المنتج: {_type_str}{f'''
+الفئة العمرية: {_age_str}''' if _age_str else ''}{f'''
+الفوائد الصحية: {_tags_str}''' if _tags_str else ''}
 
 القواعد الصارمة:
 - benefit_ar: جملة مفيدة واحدة (10-15 كلمة) تلخّص الفائدة الرئيسية للحيوان بالعربي
