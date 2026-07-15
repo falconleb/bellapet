@@ -127,7 +127,11 @@ def _call_gemini(prompt: str) -> dict | None:
                 f"{config.GEMINI_MODEL}:generateContent?key={config.GEMINI_API_KEY}")
         body = json.dumps({
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"maxOutputTokens": 2500, "temperature": 0.3},
+            "generationConfig": {
+                "maxOutputTokens": 3000,
+                "temperature": 0.3,
+                "thinkingConfig": {"thinkingBudget": 0},
+            },
         }).encode()
         req  = urllib.request.Request(url, data=body,
                headers={"Content-Type": "application/json"}, method="POST")

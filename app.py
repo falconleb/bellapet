@@ -1689,7 +1689,11 @@ def admin_generate_description(pid):
                    f"{config.GEMINI_MODEL}:generateContent?key={gemini_key}")
             body = _js.dumps({
                 "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"maxOutputTokens": 2500, "temperature": 0.3},
+                "generationConfig": {
+                    "maxOutputTokens": 3000,
+                    "temperature": 0.3,
+                    "thinkingConfig": {"thinkingBudget": 0},
+                },
             }).encode()
             req = _ur.Request(url, data=body,
                    headers={"Content-Type": "application/json"}, method="POST")
