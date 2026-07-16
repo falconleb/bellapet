@@ -119,7 +119,9 @@
 
 {# ── Gallery ── #}
 <div class="product-gallery">
-  <div class="gallery-main" id="gallery-main">
+  <div class="gallery-main" id="gallery-main"
+       data-hotspots="{{ images[0]['hotspots'] or '[]' if images else '[]' }}"
+       data-lang="{{ lang }}">
     {% if images %}
       <img src="{{ url_for('static', filename='img/products/' + images[0]['filename']) }}"
            alt="{{ images[0]['alt_text'] or pick(p['name_en'], p['name_ar']) }}"
@@ -135,12 +137,14 @@
     {% if p['discount_price'] %}
     <span class="badge-gold gallery-badge">{{ icons.icon_seal("b-icon") }} {{ 'عرض' if lang == 'ar' else 'Sale' }}</span>
     {% endif %}
+    <div id="hs-layer" style="position:absolute;inset:0;pointer-events:none"></div>
   </div>
   {% if images|length > 1 %}
   <div class="gallery-thumbs">
     {% for img in images %}
     <button class="thumb-btn {{ 'is-active' if loop.first else '' }}"
-            onclick="switchImg(this, '{{ url_for('static', filename='img/products/' + img['filename']) }}')">
+            data-hotspots="{{ img['hotspots'] or '[]' }}"
+            onclick="switchImg(this, '{{ url_for('static', filename='img/products/' + img['filename']) }}', this.dataset.hotspots)">
       <img src="{{ url_for('static', filename='img/products/' + img['filename']) }}"
            alt="{{ img['alt_text'] or pick(p['name_en'], p['name_ar']) }}" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async">
     </button>
@@ -1014,11 +1018,39 @@ function showToast() {
 
 
 // ── Gallery ──
-function switchImg(btn, src) {
+function switchImg(btn, src, hotspotsJson) {
   document.getElementById('main-img').src = src;
   document.querySelectorAll('.thumb-btn').forEach(b => b.classList.remove('is-active'));
   btn.classList.add('is-active');
+  renderHotspots(hotspotsJson || '[]');
 }
+
+function renderHotspots(json) {
+  const layer = document.getElementById('hs-layer');
+  if (!layer) return;
+  layer.innerHTML = '';
+  let spots = [];
+  try { spots = JSON.parse(json); } catch(e) {}
+  const lang = document.getElementById('gallery-main') ? document.getElementById('gallery-main').dataset.lang : 'ar';
+  spots.forEach((h, i) => {
+    const el = document.createElement('div');
+    el.className = 'hs-spot';
+    el.style.cssText = `top:${h.y}%;left:${h.x}%;pointer-events:auto`;
+    const label = lang === 'ar' ? (h.ar || h.en || '') : (h.en || h.ar || '');
+    el.innerHTML = `<span class="hs-dot">${i + 1}</span><div class="hs-tip">${label}</div>`;
+    el.addEventListener('click', () => {
+      el.classList.toggle('hs-open');
+      layer.querySelectorAll('.hs-spot').forEach(s => { if(s !== el) s.classList.remove('hs-open'); });
+    });
+    layer.appendChild(el);
+  });
+}
+
+// render on load
+(function(){
+  const gm = document.getElementById('gallery-main');
+  if (gm) renderHotspots(gm.dataset.hotspots || '[]');
+})();
 
 // ── Variants ──
 let currentPrice = price;
