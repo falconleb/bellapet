@@ -122,7 +122,7 @@
   <div class="gallery-main" id="gallery-main">
     {% if images %}
       <img src="{{ url_for('static', filename='img/products/' + images[0]['filename']) }}"
-           alt="{{ pick(p['name_en'], p['name_ar']) }}"
+           alt="{{ images[0]['alt_text'] or pick(p['name_en'], p['name_ar']) }}"
            id="main-img"
            fetchpriority="high"
            decoding="async"
@@ -142,7 +142,7 @@
     <button class="thumb-btn {{ 'is-active' if loop.first else '' }}"
             onclick="switchImg(this, '{{ url_for('static', filename='img/products/' + img['filename']) }}')">
       <img src="{{ url_for('static', filename='img/products/' + img['filename']) }}"
-           alt="{{ pick(p['name_en'], p['name_ar']) }}" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async">
+           alt="{{ img['alt_text'] or pick(p['name_en'], p['name_ar']) }}" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async">
     </button>
     {% endfor %}
   </div>
