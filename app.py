@@ -3899,6 +3899,48 @@ def api_product(pid):
     if not row: return _api_err('not found', 404)
     return jsonify(dict(row))
 
+@app.route('/api/v1/products/<int:pid>/images', methods=['GET'])
+def api_product_images(pid):
+    if not _api_auth(): return _api_err('unauthorized')
+    db = get_db()
+    rows = db.execute(
+        "SELECT id, filename, sort_order, alt_text, hotspots FROM product_images WHERE product_id=? ORDER BY sort_order",
+        (pid,)
+    ).fetchall()
+    db.close()
+    imgs = []
+    for r in rows:
+        d = dict(r)
+        d['url'] = url_for('static', filename=f"img/products/{r['filename']}", _external=True)
+        imgs.append(d)
+    return jsonify(imgs)
+
+@app.route('/api/v1/products/<int:pid>/images/<int:iid>', methods=['PATCH'])
+def api_product_image_patch(pid, iid):
+    if not _api_auth(): return _api_err('unauthorized')
+    data = request.get_json(silent=True) or {}
+    fields, params = [], []
+    if 'alt_text' in data:
+        fields.append('alt_text=?'); params.append(data['alt_text'])
+    if 'hotspots' in data:
+        import json as _json
+        hs = data['hotspots']
+        if not isinstance(hs, str):
+            hs = _json.dumps(hs, ensure_ascii=False)
+        fields.append('hotspots=?'); params.append(hs)
+    if not fields:
+        return _api_err('nothing to update', 400)
+    params += [iid, pid]
+    db = get_db()
+    cur = db.execute(
+        f"UPDATE product_images SET {', '.join(fields)} WHERE id=? AND product_id=?", params
+    )
+    db.commit()
+    db.close()
+    if cur.rowcount == 0:
+        return _api_err('image not found', 404)
+    return jsonify({'ok': True})
+
 @app.route('/api/v1/products/<int:pid>/stock', methods=['PUT'])
 def api_product_stock(pid):
     if not _api_auth(): return _api_err('unauthorized')
